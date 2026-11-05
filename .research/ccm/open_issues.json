@@ -1,0 +1,158 @@
+[
+  {
+    "url": "https://api.github.com/repos/vtokic/comfyui-cable-management/issues/6",
+    "repository_url": "https://api.github.com/repos/vtokic/comfyui-cable-management",
+    "labels_url": "https://api.github.com/repos/vtokic/comfyui-cable-management/issues/6/labels{/name}",
+    "comments_url": "https://api.github.com/repos/vtokic/comfyui-cable-management/issues/6/comments",
+    "events_url": "https://api.github.com/repos/vtokic/comfyui-cable-management/issues/6/events",
+    "html_url": "https://github.com/vtokic/comfyui-cable-management/issues/6",
+    "id": 5695748646,
+    "node_id": "I_kwDOTwlRdM8AAAABU346Jg",
+    "number": 6,
+    "title": "Problem with Ribbons",
+    "user": {
+      "login": "gammahurricane",
+      "id": 204526880,
+      "node_id": "U_kgDODDDVIA",
+      "avatar_url": "https://avatars.githubusercontent.com/u/204526880?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/gammahurricane",
+      "html_url": "https://github.com/gammahurricane",
+      "followers_url": "https://api.github.com/users/gammahurricane/followers",
+      "following_url": "https://api.github.com/users/gammahurricane/following{/other_user}",
+      "gists_url": "https://api.github.com/users/gammahurricane/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/gammahurricane/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/gammahurricane/subscriptions",
+      "organizations_url": "https://api.github.com/users/gammahurricane/orgs",
+      "repos_url": "https://api.github.com/users/gammahurricane/repos",
+      "events_url": "https://api.github.com/users/gammahurricane/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/gammahurricane/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "labels": [
+
+    ],
+    "state": "open",
+    "locked": false,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "comments": 0,
+    "created_at": "2026-10-04T03:03:25Z",
+    "updated_at": "2026-10-04T03:03:25Z",
+    "closed_at": null,
+    "assignee": null,
+    "author_association": "NONE",
+    "active_lock_reason": null,
+    "sub_issues_summary": {
+      "total": 0,
+      "completed": 0,
+      "percent_completed": 0
+    },
+    "issue_dependencies_summary": {
+      "blocked_by": 0,
+      "total_blocked_by": 0,
+      "blocking": 0,
+      "total_blocking": 0
+    },
+    "body": "Comfy ver: 0.38.0 Rev 6042 [6b747c04]\nFront: 1.53.6 and up to 1.54.8\nPy: 3.12.10\nTorch: 2.14.1+cu130\n\nOne of the most important features, creating ribbons, just doesn't work properly. And I noticed that it is very easy to break connector positions using Ctrl+Z, which ends up causing visual glitches even with standard connections. Doesn't matter if it's Nodes 2.0 or legacy.\n\n<img width=\"800\" height=\"708\" alt=\"Image\" src=\"https://github.com/user-attachments/assets/ada7dc11-52b4-429e-be1f-a49e84ff9ce5\" />",
+    "closed_by": null,
+    "reactions": {
+      "url": "https://api.github.com/repos/vtokic/comfyui-cable-management/issues/6/reactions",
+      "total_count": 2,
+      "+1": 2,
+      "-1": 0,
+      "laugh": 0,
+      "hooray": 0,
+      "confused": 0,
+      "heart": 0,
+      "rocket": 0,
+      "eyes": 0
+    },
+    "timeline_url": "https://api.github.com/repos/vtokic/comfyui-cable-management/issues/6/timeline",
+    "performed_via_github_app": null,
+    "state_reason": null,
+    "pinned_comment": null
+  },
+  {
+    "url": "https://api.github.com/repos/vtokic/comfyui-cable-management/issues/5",
+    "repository_url": "https://api.github.com/repos/vtokic/comfyui-cable-management",
+    "labels_url": "https://api.github.com/repos/vtokic/comfyui-cable-management/issues/5/labels{/name}",
+    "comments_url": "https://api.github.com/repos/vtokic/comfyui-cable-management/issues/5/comments",
+    "events_url": "https://api.github.com/repos/vtokic/comfyui-cable-management/issues/5/events",
+    "html_url": "https://github.com/vtokic/comfyui-cable-management/issues/5",
+    "id": 5484533726,
+    "node_id": "I_kwDOTwlRdM8AAAABRudX3g",
+    "number": 5,
+    "title": "How to change the spacing between links ?",
+    "user": {
+      "login": "pbenaim",
+      "id": 24461020,
+      "node_id": "MDQ6VXNlcjI0NDYxMDIw",
+      "avatar_url": "https://avatars.githubusercontent.com/u/24461020?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/pbenaim",
+      "html_url": "https://github.com/pbenaim",
+      "followers_url": "https://api.github.com/users/pbenaim/followers",
+      "following_url": "https://api.github.com/users/pbenaim/following{/other_user}",
+      "gists_url": "https://api.github.com/users/pbenaim/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/pbenaim/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/pbenaim/subscriptions",
+      "organizations_url": "https://api.github.com/users/pbenaim/orgs",
+      "repos_url": "https://api.github.com/users/pbenaim/repos",
+      "events_url": "https://api.github.com/users/pbenaim/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/pbenaim/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "labels": [
+
+    ],
+    "state": "open",
+    "locked": false,
+    "assignees": [
+
+    ],
+    "milestone": null,
+    "comments": 2,
+    "created_at": "2026-09-17T07:49:06Z",
+    "updated_at": "2026-09-18T07:07:36Z",
+    "closed_at": null,
+    "assignee": null,
+    "author_association": "NONE",
+    "active_lock_reason": null,
+    "sub_issues_summary": {
+      "total": 0,
+      "completed": 0,
+      "percent_completed": 0
+    },
+    "issue_dependencies_summary": {
+      "blocked_by": 0,
+      "total_blocked_by": 0,
+      "blocking": 0,
+      "total_blocking": 0
+    },
+    "body": "All is in title...\n\nThanks again for your excellent work.",
+    "closed_by": null,
+    "reactions": {
+      "url": "https://api.github.com/repos/vtokic/comfyui-cable-management/issues/5/reactions",
+      "total_count": 0,
+      "+1": 0,
+      "-1": 0,
+      "laugh": 0,
+      "hooray": 0,
+      "confused": 0,
+      "heart": 0,
+      "rocket": 0,
+      "eyes": 0
+    },
+    "timeline_url": "https://api.github.com/repos/vtokic/comfyui-cable-management/issues/5/timeline",
+    "performed_via_github_app": null,
+    "state_reason": null,
+    "pinned_comment": null
+  }
+]
