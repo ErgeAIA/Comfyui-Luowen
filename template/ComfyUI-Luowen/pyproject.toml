@@ -1,0 +1,18 @@
+# Registry 发布元数据：字段与本机 KJNodes / VHS 的 pyproject.toml 逐字对齐
+# （7 个范例包中 6/7 采用此结构）。发布用 comfy-cli（comfy node publish），
+# 官方流程核验记录见 docs/comfyui-dev-conventions.md §4。
+[project]
+name = "comfyui-luowen"
+description = "Luowen's ComfyUI custom nodes. Minimal convention template, verified on ComfyUI v0.43.2."
+version = "0.1.0"
+license = { text = "MIT" }
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/ErgeAIA/Comfyui-Luowen"
+
+# Used by Comfy Registry https://comfyregistry.org
+[tool.comfy]
+PublisherId = "luowen"
+DisplayName = "ComfyUI-Luowen"
+Icon = ""

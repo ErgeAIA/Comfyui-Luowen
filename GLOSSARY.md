@@ -1,0 +1,63 @@
+# Comfyui-Luowen
+
+Luowen 的 ComfyUI 自定义节点项目。术语在开发基线（docs/comfyui-dev-conventions.md）制定过程中凝固，改动术语须同步该文档。
+
+## Language
+
+### 项目
+
+**目标实例**:
+本机锁定的唯一开发与验证宿主：`D:\AIGC\ComfyUI_windows_portable\ComfyUI`（v0.43.2）。
+_Avoid_: 主环境、生产环境、TE 实例（指另一套 0.17.0 安装，永不作为目标）
+
+**开发基线**:
+开写业务代码前建立并验证过的可复核事实集合：约定文档 + 模板包 + 验证记录。
+_Avoid_: 调研笔记、参考资料
+
+**交叉验证**:
+一条写法只有在本机成熟节点包中出现 ≥2 次（标注 `[n/7]`）才被承认为约定。
+_Avoid_: 据说、官方推荐（无出处时）
+
+**坑测试**:
+故意注入缺陷（如导入期抛错的包）以实测宿主真实反应的验证手段。
+_Avoid_: 边界测试、异常测试
+
+### 节点
+
+**自定义节点包**:
+放进 `custom_nodes/` 的一个目录，含 `__init__.py`、节点实现与可选前端扩展；本项目的交付物形态。
+_Avoid_: 插件、插件包、custom node（指单节点时）
+
+**节点契约**:
+节点类必须满足的服务端约定，分两代：**V1 契约**（`NODE_CLASS_MAPPINGS` + `INPUT_TYPES` 等类属性）与 **V3 契约**（`comfy_entrypoint` + `io.Schema`）。两者并存，V1 未废弃。
+_Avoid_: 旧式/新式写法（含贬义暗示）、Schema（单独使用时易与 V3 混淆）
+
+**映射键**:
+`NODE_CLASS_MAPPINGS` 的 key，全 ComfyUI 全局唯一的节点名，进 `/object_info` 与前端搜索。
+_Avoid_: 类名（映射键可与实现类名解耦）、节点 ID
+
+**显示名**:
+映射键在 UI 中的展示文本，经 `NODE_DISPLAY_NAME_MAPPINGS` 提供，可省略。
+_Avoid_: 标题、名称
+
+**输出节点**:
+声明 `OUTPUT_NODE` 的节点，承担保存/预览职责，结果走 ui 通道且调度优先。
+_Avoid_: 末端节点、Save 节点
+
+**缓存签名**:
+执行引擎为每个节点计算的键：类名 + IS_CHANGED 结果 + 输入值/祖先拓扑（部分节点含 node_id）；相同则跳过执行。
+_Avoid_: 哈希、缓存键（键是签名的组成部分）
+
+### 前端
+
+**前端扩展**:
+包内 `WEB_DIRECTORY` 下的 .js 模块，经 `app.registerExtension` 注册，随页面自动加载。
+_Avoid_: 前端脚本、JS 插件
+
+**自定义 Widget**:
+服务端声明同名自定义类型、前端用 `getCustomWidgets` 工厂渲染的输入控件。
+_Avoid_: 自定义控件、DOM 组件（那是 addDOMWidget 路线）
+
+**自定义类型**:
+INPUT_TYPES 中任意字符串充当的类型；socket 按"类型字符串集合求交集"匹配，无注册表。
+_Avoid_: ANY 类型（特指 `"*"`）、动态类型

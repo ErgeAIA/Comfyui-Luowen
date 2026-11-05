@@ -1,0 +1,32 @@
+# Python（template/ 与后续节点包）
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Node / 前端（web/ 与 tests/ 后续引入）
+node_modules/
+
+# 构建产物
+dist/
+build/
+
+# 本地环境与密钥
+.env
+.env.*
+*.pem
+*.key
+!.env.example
+
+# 工具产物
+.codegraph/
+
+# 项目本地验证与浏览器自动化工件
+.verify/
+.playwright-mcp/
+
+# OS 临时文件
+.DS_Store
+Thumbs.db
+desktop.ini

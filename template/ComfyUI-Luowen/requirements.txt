@@ -1,0 +1,3 @@
+# ComfyUI 核心不会自动安装本文件——nodes.py 中没有任何 pip 调用（仅 3 处警告文案），
+# 依赖安装是 ComfyUI-Manager 或用户的事（失败表现见 docs/comfyui-dev-conventions.md §2.6）。
+# 当前模板无第三方依赖。需要时逐行列出，风格参照 VHS：最少必要项、带下限版本。
