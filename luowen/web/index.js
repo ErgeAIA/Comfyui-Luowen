@@ -11,6 +11,7 @@ const { app } = window.comfyAPI.app;
 const ENABLED_ID = 'LuoWen.Enabled';
 const STYLE_ID = 'LuoWen.WireStyle';
 const AVOID_ID = 'LuoWen.NodeAvoidance';
+const CHAMFER_ID = 'LuoWen.Chamfer';
 
 let baseline = null;
 
@@ -88,6 +89,15 @@ app.registerExtension({
       defaultValue: 'standard',
       onChange: (v) => setSettings({ avoidance: v === 'low' ? 'low' : v === 'high' ? 'high' : 'standard' }),
     },
+    {
+      id: CHAMFER_ID,
+      name: '绕障外角大斜切',
+      category: ['LuoWen'],
+      tooltip: '仅正交样式生效：只把「为绕开第三方节点」形成的外凸直角切掉一大块；三通/分叉/引脚段保持直角。关闭后回到直角；与 smooth 圆角互斥（DEC-012）',
+      type: 'boolean',
+      defaultValue: true,
+      onChange: (v) => setSettings({ chamfer: !!v }),
+    },
   ],
 
   afterConfigureGraph() {
@@ -103,6 +113,7 @@ app.registerExtension({
         enabled: !!readSetting(ENABLED_ID, true),
         style: readSetting(STYLE_ID, 'orthogonal'),
         avoidance: readSetting(AVOID_ID, 'standard'),
+        chamfer: !!readSetting(CHAMFER_ID, true),
       });
     } catch {
       /* 设置读取失败保持默认 */
@@ -122,6 +133,27 @@ app.registerExtension({
       setStyle: (v) => {
         setSettings({ style: v });
         return getStats().style;
+      },
+      setChamfer: (v) => {
+        setSettings({ chamfer: !!v });
+        return getStats().chamfer;
+      },
+      setBevelRatio: (v) => {
+        // 调试对照入口：默认 0.6 已固化；0.35 / 0.85 仅用于对比，不写入持久设置
+        setSettings({ bevelRatio: Math.max(0, Math.min(1, Number(v))) });
+        return getStats().bevelRatio;
+      },
+      setLanePitch: (v) => {
+        // 调试对照入口：默认 8px（DEC-013）；5px 仅用于同取景对比，不写入持久设置
+        const n = Math.round(Number(v));
+        if (!Number.isFinite(n)) return getStats().lanePitch;
+        setSettings({ lanePitch: Math.max(2, Math.min(24, n)) });
+        return getStats().lanePitch;
+      },
+      setTrunkCap: (v) => {
+        // 调试对照入口：null = 合法最晚分叉（默认）；数值 = 旧版固定上限口径
+        setSettings({ trunkCap: v == null ? null : Number(v) });
+        return getStats().trunkCap;
       },
       rebase: () => {
         baseline = snapshotGraph();

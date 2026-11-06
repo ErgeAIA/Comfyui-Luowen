@@ -4,20 +4,18 @@
 //       A* 路由），以及从分叉点重新求解分支的回调。
 // 输出：主干预 + 每个成员的分叉路径；不在 merged 里的成员保持自己的独立路径。
 //
-// 契约（PRD §7.3 / §8.2-§8.3 / 阶段 2 交付）：
-//   - 主干只取所有成员第一段沿出线方向的**共同范围**，分叉点不越过公共前缀；
-//   - 合流段按 PRD §7.3 呈现为**平行 Ribbon**（pitch 4px），不重叠冒充合并；
-//     每条逻辑连接保留独立命中区域（§8.3 的降级形态：不支持组选择时用多股呈现）；
+// 契约（PRD §7.3 / §8.2-§8.3 / 阶段 2 交付，DEC-009 / DEC-012）：
+//   - 主干沿出线方向走「合法最晚分叉」：T = min(最近目标投影 − stub, 前方卡片净空)，
+//     不再受固定 72px 上限；主干到 fork 前仍是同一方向的一条线；
+//   - 合流段是**单条共享主干**：同组所有成员共用同一几何，端口只出一条线，到分叉点
+//     之后再按成员各自分支（不在端口处分股，DEC-009 修正 DEC-008 的 Ribbon 并排）；
 //   - 分叉后分支重新求解（可避障），并按“共享后长度 / 独立长度”做单目标绕行保护；
 //   - 合并决策带双阈值滞回：曾合并的成员放宽到 keepRatio 才踢出，曾独立的成员收紧到
 //     rejoinRatio 才纳入，避免布局微动时拓扑闪烁（§6.5）；
-//   - 合流成员 < 2 或空间不足时返回空计划（完全独立）。
+//   - 合流成员 < 2 或共同前缀不足时返回空计划（完全独立）。
 
 const EPS = 0.01;
-const DEFAULT_PITCH = 4; // 线宽 2 + 间隔 2（PRD §7.3：不以零间距重叠冒充合并）
-const DEFAULT_FAN = 14; // 离开引脚后的并排展开距离（引脚内缩约 9px，需在卡片外）
 const DEFAULT_MIN_TRUNK = 16;
-const DEFAULT_MAX_TRUNK = 72;
 
 export function pathLength(pts) {
   let total = 0;
@@ -42,16 +40,19 @@ export function sameDir(a, b) {
   return !!a && !!b && a[0] === b[0] && a[1] === b[1];
 }
 
-// 分叉长度：至少要有 min 的共同前缀；上限取 max 与“最近目标投影 − 余量”的较小者。
-// 不把共同前缀本身当上限——主干的目的就是让分支晚一点分开；是否划算交给绕行保护判定。
-export function chooseForkLength(runs, { min = DEFAULT_MIN_TRUNK, max = DEFAULT_MAX_TRUNK, limit = null } = {}) {
+// 分叉长度：至少要有 min 的共同前缀；上限只由「合法最晚」约束决定（DEC-012）：
+//   - 最近目标投影 − stub（再晚就要让最近目标先倒退）；
+//   - 正前方最近卡片 − stub − 余量（分叉点与分支不得顶进卡片）。
+// 不再套固定 72px 上限：主干每延长 1px，重复几何减少 (n-1)px；长主干比长平行分支更符合
+// 「同源一棵树」。max 参数仅保留给显式调用方（对照/测试）作额外上限。
+export function chooseForkLength(runs, { min = DEFAULT_MIN_TRUNK, max = null, limit = null } = {}) {
   const usable = runs.filter((r) => r != null && r.len > EPS);
   if (!usable.length) return null;
   const common = Math.min(...usable.map((r) => r.len));
   if (common < min) return null;
-  const cap = limit == null ? max : Math.min(max, limit);
-  if (cap < min) return null;
-  return Math.max(min, cap);
+  const candidate = limit == null ? (max == null ? common : max) : max == null ? limit : Math.min(max, limit);
+  if (candidate < min) return null;
+  return Math.max(min, candidate);
 }
 
 // 双阈值滞回：prev 为上一轮合并集合（Set 或 null）
@@ -89,6 +90,52 @@ function simplify(pts) {
   }
   out.push(pts[pts.length - 1]);
   return out;
+}
+
+// 两条分支从 fork 出发的几何公共前缀长度（同轴/同向/共线才计入）。
+// 分支各自 A* 时，在真正分歧之前常需要走同一段走廊；这段必须合并成一条线，
+// 否则会因 lane 阶梯或求解差异生成几像素间距的平行股（DEC-010）。
+function sharedPrefixLength(a, b) {
+  let i = 1;
+  let j = 1;
+  let len = 0;
+  while (i < a.length && j < b.length) {
+    const dxA = Math.sign(a[i][0] - a[i - 1][0]);
+    const dyA = Math.sign(a[i][1] - a[i - 1][1]);
+    const dxB = Math.sign(b[j][0] - b[j - 1][0]);
+    const dyB = Math.sign(b[j][1] - b[j - 1][1]);
+    if (dxA !== dxB || dyA !== dyB) break;
+    if (dxA !== 0) {
+      if (Math.abs(a[i - 1][1] - b[j - 1][1]) > 0.5) break; // 水平段但不共线
+    } else if (Math.abs(a[i - 1][0] - b[j - 1][0]) > 0.5) break; // 垂直段但不共线
+    const lenA = Math.abs(a[i][0] - a[i - 1][0]) + Math.abs(a[i][1] - a[i - 1][1]);
+    const lenB = Math.abs(b[j][0] - b[j - 1][0]) + Math.abs(b[j][1] - b[j - 1][1]);
+    len += Math.min(lenA, lenB);
+    if (Math.abs(lenA - lenB) > 0.5) break; // 短的一段在此转向，之后不再共享
+    i += 1;
+    j += 1;
+  }
+  return len;
+}
+
+// 按弧长切分正交折线：{prefix 到切点, rest 从切点起}
+function splitAt(pts, len) {
+  let i = 1;
+  while (i < pts.length) {
+    const seg = Math.abs(pts[i][0] - pts[i - 1][0]) + Math.abs(pts[i][1] - pts[i - 1][1]);
+    if (seg < EPS) {
+      i += 1;
+      continue;
+    }
+    if (len <= seg + EPS) {
+      const t = Math.max(0, Math.min(1, len / seg));
+      const cut = [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * t, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * t];
+      return { prefix: [...pts.slice(0, i), cut], rest: [cut, ...pts.slice(i)] };
+    }
+    len -= seg;
+    i += 1;
+  }
+  return { prefix: pts, rest: [pts[pts.length - 1]] };
 }
 
 // 主干方向上最近障碍的“净空上限”：分叉点 + stub 不得顶进前方卡片（PRD §7.2）
@@ -145,7 +192,8 @@ export function planTrunk({ routes, pin, solveBranch, prevMembers = null, opts =
 
   const fork = [pin[0] + dir0[0] * T, pin[1] + dir0[1] * T];
   const entries = ids.map((id) => {
-    const branch = solveBranch(id, fork);
+    // router 对 canonical 直连返回 null（交给原生直连）；合流时用共线直线补齐分支
+    const branch = solveBranch(id, fork) ?? straightBranch(fork, routes.get(id).at(-1), dir0);
     if (!branch) return { id, branch: null, ratio: Infinity };
     const independent = pathLength(routes.get(id));
     const shared = T + pathLength(branch);
@@ -155,39 +203,29 @@ export function planTrunk({ routes, pin, solveBranch, prevMembers = null, opts =
   const merged = decideMembership(entries, prevMembers, opts);
   if (merged.size < 2) return { ...empty, ratios: new Map(entries.map((e) => [e.id, e.ratio])) };
 
-  // Ribbon：按目标在主干法向上的位置排序，分配平行股道
-  const pitch = opts.ribbonPitch ?? DEFAULT_PITCH;
-  const fan = opts.fan ?? DEFAULT_FAN;
-  const perp = dir0[0] !== 0 ? [0, 1] : [1, 0];
-  const ordered = [...merged].sort((a, b) => {
-    const ea = routes.get(a).at(-1);
-    const eb = routes.get(b).at(-1);
-    const va = ea[0] * perp[0] + ea[1] * perp[1];
-    const vb = eb[0] * perp[0] + eb[1] * perp[1];
-    return va - vb || a - b;
-  });
-  const n = ordered.length;
-  // 空间不足：并排股道放不进公共前缀 → 退回完全独立（不做零间距重叠）
-  if (T < fan + ((n - 1) / 2) * pitch + 6) return { ...empty, ratios: new Map(entries.map((e) => [e.id, e.ratio])) };
+  // 单主干（三通形态，用户裁决）：主干段所有成员共用同一条几何，到 fork 再分支。
+  // 分叉后仍要走同一段走廊的（如同列目标），把各分支的几何公共前缀合并成一条，
+  // 只有真正分歧处才分开（DEC-010）。
+  const mergedBranches = [];
+  for (const e of entries) if (merged.has(e.id)) mergedBranches.push(e.branch);
+  let sharedLen = Infinity;
+  for (const b of mergedBranches) sharedLen = Math.min(sharedLen, sharedPrefixLength(mergedBranches[0], b));
+  if (!Number.isFinite(sharedLen) || sharedLen <= EPS) sharedLen = 0;
+  const sharedPrefix = sharedLen > 0 ? splitAt(mergedBranches[0], sharedLen).prefix : null;
 
-  const f0 = [pin[0] + dir0[0] * fan, pin[1] + dir0[1] * fan];
   const paths = new Map();
-  for (let i = 0; i < n; i++) {
-    const id = ordered[i];
-    const off = (i - (n - 1) / 2) * pitch;
-    const jog = [f0[0] + perp[0] * off, f0[1] + perp[1] * off];
-    const f1 = [pin[0] + dir0[0] * T + perp[0] * off, pin[1] + dir0[1] * T + perp[1] * off];
-    const end = routes.get(id).at(-1);
-    let branch = solveBranch(id, f1);
-    if (!branch) branch = straightBranch(f1, end, dir0);
-    if (!branch) {
-      merged.delete(id);
+  for (const e of entries) {
+    if (!merged.has(e.id)) continue;
+    const b = e.branch;
+    if (sharedPrefix) {
+      const rest = splitAt(b, sharedLen).rest;
+      const restPts = Math.abs(rest[0][0] - b[b.length - 1][0]) < 0.5 && Math.abs(rest[0][1] - b[b.length - 1][1]) < 0.5 ? [] : rest.slice(1);
+      paths.set(e.id, simplify([[pin[0], pin[1]], [fork[0], fork[1]], ...sharedPrefix.slice(1), ...restPts]));
       continue;
     }
-    const rest =
-      Math.abs(branch[0][0] - f1[0]) < 0.5 && Math.abs(branch[0][1] - f1[1]) < 0.5 ? branch.slice(1) : branch;
-    paths.set(id, simplify([[pin[0], pin[1]], f0, jog, f1, ...rest]));
+    const rest = Math.abs(b[0][0] - fork[0]) < 0.5 && Math.abs(b[0][1] - fork[1]) < 0.5 ? b.slice(1) : b;
+    paths.set(e.id, simplify([[pin[0], pin[1]], [fork[0], fork[1]], ...rest]));
   }
-  if (merged.size < 2) return { ...empty, ratios: new Map(entries.map((e) => [e.id, e.ratio])) };
+  if (paths.size < 2) return { ...empty, ratios: new Map(entries.map((e) => [e.id, e.ratio])) };
   return { merged, fork, T, ratios: new Map(entries.map((e) => [e.id, e.ratio])), paths };
 }

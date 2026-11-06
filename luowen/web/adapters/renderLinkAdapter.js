@@ -13,9 +13,10 @@
 
 import { route } from '../geometry/router.js';
 import { emit as emitRounded, measure as measurePts, pointAt } from '../geometry/trace.js';
+import { DEFAULT_BEVEL_RATIO, chamferPolyline, findSharedPoints } from '../geometry/chamfer.js';
 import { previewPath } from '../geometry/preview.js';
 import { obstacleHash, corridorClear } from '../geometry/obstacles.js';
-import { allocateLanes, laneHash as computeLaneHash } from '../routing/laneAssign.js';
+import { allocateLanes, laneHash as computeLaneHash, DEFAULT_LANE_PITCH } from '../routing/laneAssign.js';
 import { createRouteCache } from '../routing/routeCache.js';
 import { planTrunk } from '../routing/trunkPlan.js';
 import { graphLinks, nodeRects, linksHash as computeLinksHash } from './graphRead.js';
@@ -26,6 +27,9 @@ const { app } = window.comfyAPI.app;
 const AVOID_CLEARANCE = { low: 8, standard: 16, high: 24 };
 const VPAD = 8;
 const DEFAULT_STUB = 24;
+// DEC-011：线宽级共线容差。两引脚偏移 ≤3px 视为共线，端点仍钉死在引脚中心，
+// 只允许一段 ≤3px 的极短转折；更大的高差仍走 A* 台阶（对称台阶属美学候选，未实现）
+const STRAIGHT_TOL = 3;
 const DIR_NAME = { 0: 'none', 1: 'up', 2: 'down', 3: 'left', 4: 'right', 5: 'none' };
 
 const state = {
@@ -35,8 +39,19 @@ const state = {
   wrappedRenderRef: null,
   originalDrawConnections: null,
   wrappedDrawRef: null,
-  settings: { enabled: true, style: 'orthogonal', avoidance: 'standard' },
-  frame: { obstacleHashStr: '', version: 0, rects: [], laneHashStr: '', lanes: null, linksHashStr: '', trunks: new Map(), trunkInfo: [] },
+  settings: { enabled: true, style: 'orthogonal', avoidance: 'standard', chamfer: true, bevelRatio: DEFAULT_BEVEL_RATIO, trunkCap: null, lanePitch: DEFAULT_LANE_PITCH },
+  frame: {
+    obstacleHashStr: '',
+    version: 0,
+    rects: [],
+    laneHashStr: '',
+    lanes: null,
+    linksHashStr: '',
+    trunks: new Map(),
+    trunkInfo: [],
+    trunkShared: new Map(),
+    prevRoutes: new Map(), // 上一帧实际绘制折线（大斜切与其他线路的净空检查用）
+  },
   cache: createRouteCache({ max: 4096 }),
   routes: new Map(), // linkId -> 当前绘制的折线（悬停命中 + 调试用）
   endpoints: new Map(), // linkId -> 上一帧观察到的端点/方向（阶段 2 主干规划输入）
@@ -103,6 +118,7 @@ function solveRouteTiers(args, endpointIdx) {
 
 function solveBranchFor(link, ep, fork, clearance) {
   const lanes = state.frame.lanes?.get(link.id) ?? { stubOut: DEFAULT_STUB, stubIn: DEFAULT_STUB };
+  // DEC-011：stub 长度只由 laneAssign 决定（输出侧已组内统一为 base），此处不再覆盖
   const args = routeArgs(fork[0], fork[1], ep.bx, ep.by, ep.sd, ep.ed, clearance, lanes);
   const r = solveRouteTiers(args, endpointIndices(link.origin_id, link.target_id));
   return r.pts; // null → 该成员不参与合流（保持独立路径）
@@ -112,6 +128,7 @@ function solveBranchFor(link, ep, fork, clearance) {
 
 function planTrunks(graph, canvas) {
   state.frame.trunks = new Map();
+  state.frame.trunkShared = new Map();
   state.frame.trunkInfo = [];
   state.frame.trunkDebug = { endpoints: state.endpoints.size, epsVer: state.endpointsVer, version: state.frame.version, groups: 0, candidates: 0 };
   // 端点缓存必须与本帧几何版本一致（上一帧渲染时记录），否则等待下一帧。
@@ -145,7 +162,7 @@ function planTrunks(graph, canvas) {
     const linksById = new Map(members.map((m) => [m.l.id, m.l]));
     const pin = routes.get(members[0].l.id)[0];
     const sig =
-      `${state.frame.version}|${state.frame.laneHashStr}|` +
+      `${state.frame.version}|${state.frame.laneHashStr}|${state.settings.trunkCap ?? ''}|` +
       members.map((m) => `${m.l.id}:${Math.round(m.ep.ax)},${Math.round(m.ep.ay)},${Math.round(m.ep.bx)},${Math.round(m.ep.by)}`).join(';');
 
     let plan = state.trunkCache.get(gkey);
@@ -157,8 +174,14 @@ function planTrunks(graph, canvas) {
           routes,
           pin,
           prevMembers: state.trunkPrev.get(gkey) ?? null,
+          // 分支与独立路径共用同一 lane 来源（输出侧 stub 已组内统一，DEC-011）
           solveBranch: (id, fork) => solveBranchFor(linksById.get(id), epMap.get(id), fork, clearance),
-          opts: { obstacles: state.frame.rects.map((r) => [r.x, r.y, r.w, r.h]), stub: DEFAULT_STUB },
+          opts: {
+            obstacles: state.frame.rects.map((r) => [r.x, r.y, r.w, r.h]),
+            stub: DEFAULT_STUB,
+            // 仅调试对照用：默认 null = 合法最晚分叉；显式数值时回到旧上限口径
+            max: state.settings.trunkCap ?? null,
+          },
         }),
       };
       state.trunkCache.set(gkey, plan);
@@ -171,7 +194,13 @@ function planTrunks(graph, canvas) {
       }
     }
     if (plan.merged.size >= 2) {
-      for (const [id, pts] of plan.paths) state.frame.trunks.set(id, pts);
+      // 倒角只在合并后的共用树上做：组内共享点（主干 pin→fork、公共走廊、分叉点）
+      // 全部保持直角，同组所有成员共用同一 skip 集合（DEC-012 修订）
+      const shared = findSharedPoints([...plan.paths.values()]);
+      for (const [id, pts] of plan.paths) {
+        state.frame.trunks.set(id, pts);
+        state.frame.trunkShared.set(id, shared);
+      }
       state.frame.trunkInfo.push({ group: gkey, T: plan.T, merged: [...plan.merged] });
     }
   }
@@ -184,6 +213,9 @@ export function beginFrame(canvas) {
   if (!graph) return;
   if (canvas.pointer && canvas.pointer.isDown) return; // 拖拽期冻结：不更新障碍版本/lanes（R10/CM 实践）
 
+  // 大斜切需要与其他线路保持净空：以上一帧实际绘制折线为参照。
+  state.frame.prevRoutes = new Map(state.routes);
+
   const rects = nodeRects(graph);
   const oh = obstacleHash(rects);
   if (oh !== state.frame.obstacleHashStr) {
@@ -191,16 +223,18 @@ export function beginFrame(canvas) {
     state.frame.rects = rects;
     state.frame.version += 1;
     state.routes.clear();
+    state.frame.prevRoutes.clear(); // 旧版本几何已失效，不用它约束新斜切
     state.frame.trunks = new Map(); // 旧版本的主干几何立即失效（避免压到新位置的节点）
+    state.frame.trunkShared = new Map();
     state.frame.trunkInfo = [];
   } else {
     state.frame.rects = rects;
   }
 
-  const lh = computeLaneHash(graphLinks(graph), rects) + '|' + computeLinksHash(graph);
+  const lh = computeLaneHash(graphLinks(graph), rects) + '|' + computeLinksHash(graph) + '|p' + state.settings.lanePitch;
   if (lh !== state.frame.laneHashStr) {
     state.frame.laneHashStr = lh;
-    state.frame.lanes = allocateLanes(graphLinks(graph), rects);
+    state.frame.lanes = allocateLanes(graphLinks(graph), rects, { pitch: state.settings.lanePitch });
   }
 
   // 阶段 2：同源多目标主干（依赖上一帧记录的端点 + 本帧独立路径基准）
@@ -221,6 +255,28 @@ function sharpPath(path, pts) {
 }
 
 // 拖拽期预览函数在 geometry/preview.js（纯函数，可单测）
+
+// 近共线捷径（DEC-011）：偏移 ≤STRAIGHT_TOL 时直接生成正交近直线，
+// 端点严格落在两个引脚上；差 0.5~3px 的一段放在目标侧 stub 处，形成极短竖/横段。
+function nearFlatPath(ax, ay, bx, by, lanes) {
+  const dx = Math.abs(bx - ax);
+  const dy = Math.abs(by - ay);
+  if (dy <= STRAIGHT_TOL && dx >= dy) {
+    if (dy < 0.5) return [[ax, ay], [bx, by]];
+    const dir = Math.sign(bx - ax) || 1;
+    const reach = Math.min(lanes.stubIn, dx / 2);
+    const mx = bx - dir * reach;
+    return [[ax, ay], [mx, ay], [mx, by], [bx, by]];
+  }
+  if (dx <= STRAIGHT_TOL && dy >= dx) {
+    if (dx < 0.5) return [[ax, ay], [bx, by]];
+    const dir = Math.sign(by - ay) || 1;
+    const reach = Math.min(lanes.stubIn, dy / 2);
+    const my = by - dir * reach;
+    return [[ax, ay], [ax, my], [bx, my], [bx, by]];
+  }
+  return null;
+}
 
 // ---------- 整线悬停（只读渲染状态，不碰图数据） ----------
 
@@ -323,15 +379,13 @@ function tryCustomRender(ctx, a, b, link, color, start_dir, end_dir, opts) {
         traceEntry({ id: link.id, mode: 'preview', rects: state.frame.rects.length, ver: state.frame.version });
         pts = previewPath(ax, ay, bx, by, DIR_NAME[start_dir] ?? 'right', DIR_NAME[end_dir] ?? 'left', lanes.stubOut, lanes.stubIn);
       } else {
-        // 直线捷径仅限共线（水平/竖直）且走廊净空——正交样式禁止斜线（PRD §5.2）
-        const colinear = Math.abs(ay - by) < 2 || Math.abs(ax - bx) < 2;
-        if (colinear && corridorClear(ax, ay, bx, by, state.frame.rects, [link.origin_id, link.target_id], clearance, VPAD)) {
+        // 近共线捷径：≤STRAIGHT_TOL 视为共线（端点不吸附，仅允许极短转折段），
+        // 走廊必须净空——正交样式禁止斜线（PRD §5.2，DEC-011）
+        const flat = nearFlatPath(ax, ay, bx, by, lanes);
+        if (flat && corridorClear(ax, ay, bx, by, state.frame.rects, [link.origin_id, link.target_id], clearance, VPAD)) {
           state.counters.straight += 1;
           traceEntry({ id: link.id, mode: 'straight', rects: state.frame.rects.length, ver: state.frame.version });
-          pts = [
-            [ax, ay],
-            [bx, by],
-          ];
+          pts = flat;
         } else {
           // 障碍包含两端节点自身：中段禁止从自己连接的卡片底下穿过（引脚 stub 仍允许贴边引出）
           const args = routeArgs(ax, ay, bx, by, start_dir, end_dir, clearance, lanes);
@@ -362,10 +416,27 @@ function tryCustomRender(ctx, a, b, link, color, start_dir, end_dir, opts) {
   // 整线悬停（本适配器命中折线任意位置）或原生中心点悬停
   const hovered = state.hoverLinkId === link.id || canvas.over_link_center === link;
 
+  // 绕障外角大斜切：仅正交样式 + 开关开启；与 smooth 圆角互斥（DEC-012 修订）。
+  // 只切「为绕开第三方节点」形成的外凸拐角；合并树共享点全直角，端点节点不参与绕障判定，
+  // 因此 T 点/分叉点/端口出线/入引脚段保持直角。cutA/cutB 按两腿可用长度独立计算。
+  const orthogonal = cfg.style !== 'smooth';
+  const drawPts =
+    orthogonal && cfg.chamfer
+      ? chamferPolyline(pts, {
+          ratio: cfg.bevelRatio,
+          skip: state.frame.trunkShared.get(link.id) ?? null,
+          obstacles: state.frame.rects.map((r) => [r.x, r.y, r.w, r.h]),
+          others: [...state.frame.prevRoutes]
+            .filter(([id]) => id !== link.id)
+            .map(([, p]) => p),
+          excludeIndices: endpointIndices(link.origin_id, link.target_id),
+        })
+      : pts;
+
   const path = new Path2D();
   if (cfg.style === 'smooth') emitRounded(path, pts);
-  else sharpPath(path, pts);
-  const mid = pointAt(pts, measurePts(pts), 0.5); // {x, y, angle}
+  else sharpPath(path, drawPts);
+  const mid = pointAt(drawPts, measurePts(drawPts), 0.5); // {x, y, angle}
 
   ctx.save();
   ctx.lineWidth = width + (hovered ? 1.5 : 0);
@@ -388,11 +459,12 @@ function tryCustomRender(ctx, a, b, link, color, start_dir, end_dir, opts) {
   ctx.fill();
   ctx.restore();
 
-  // 命中跟随：覆写渲染产物（不触碰图数据）
+  // 命中跟随：覆写渲染产物（不触碰图数据）。
+  // 大斜切后按实际折线命中：斜边可悬停/可删除（DEC-012 修订）。
   link.path = path;
   link._pos = [mid.x, mid.y];
-  // 记录下来供整线悬停与调试 API 使用（只读渲染产物）
-  state.routes.set(link.id, pts);
+  // 记录下来供整线悬停、删除命中与调试 API 使用（只读渲染产物）
+  state.routes.set(link.id, drawPts);
   return true;
 }
 
@@ -468,6 +540,7 @@ export function uninstall() {
   state.trunkCache.clear();
   state.trunkPrev.clear();
   state.frame.trunks = new Map();
+  state.frame.trunkShared = new Map();
   state.frame.trunkInfo = [];
   state.hoverLinkId = null;
   state.cache.clear();
@@ -484,7 +557,7 @@ export function setSettings(partial) {
 
 export function getStats() {
   return {
-    rev: 'r3-trunk',
+    rev: 'r7-input-lanes',
     ...state.settings,
     installed: state.installed,
     obstacleVersion: state.frame.version,
