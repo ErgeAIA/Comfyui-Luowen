@@ -1,6 +1,6 @@
 # Comfyui-Luowen
 
-Luowen 的 ComfyUI 自定义节点项目。术语在开发基线（docs/comfyui-dev-conventions.md）制定过程中凝固，改动术语须同步该文档。
+Luowen 的 ComfyUI 自定义节点项目。产品中文名唯一写法：**络纹**（勿用"落纹"）。术语在开发基线（docs/comfyui-dev-conventions.md）制定过程中凝固，改动术语须同步该文档。
 
 ## Language
 
