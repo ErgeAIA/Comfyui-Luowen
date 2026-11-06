@@ -41,6 +41,7 @@ YOU MUST 术语用法先对齐 GLOSSARY.md，新术语先入表再使用
 | 启动验证宿主 | run_nvidia_gpu.bat | D:\AIGC\ComfyUI_windows_portable\run_nvidia_gpu.bat |
 | 查节点 schema | curl http://127.0.0.1:8188/object_info/<类名> | docs/comfyui-dev-conventions.md §6 |
 | Python 语法自检 | python_embeded\python.exe -I -m py_compile <files> | docs/comfyui-dev-conventions.md §6 |
+| 前端单元测试 | node --test tests/unit/*.test.mjs | 阶段 1 引入（glob 必需：Windows 上 node --test 传目录会 MODULE_NOT_FOUND） |
 
 ## Conventions
 

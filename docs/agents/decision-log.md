@@ -16,6 +16,17 @@ description: >
 > 格式：`## DEC-NNN: 标题`，新条目置顶，NNN 三位递增。
 > 字段：`- **日期**：` / `- **背景**：` / `- **决策**：` / `- **验证**：`
 
+## DEC-005: 阶段 1 挂载策略与几何内核复用方式
+
+- **日期**：2026-11-06
+- **背景**：阶段 1 需要在不碰图数据的前提下接管线路绘制；候选挂载点有实例级 `canvas.linkRenderer` 与原型级 `renderLink`，几何内核候选为自研或复用 MIT 的 Cable Management。
+- **决策**：
+  1. 挂载用**原型级** `LGraphCanvas.prototype.renderLink` + `drawConnections` 包裹，带 `__luowenWrapped` 防双包与精确 uninstall；不用实例 pathRenderer（避免依赖私有属性、随 setGraph 重建失效）。
+  2. 命中测试不另做：绘制后覆写 `link.path`/`link._pos`，前端 1.55.18 的命中逻辑直接读渲染产物，悬停/菜单/删除自动跟随。
+  3. `router.js`/`trace.js` 逐字复用（MIT，保留版权头、LICENSES 全文、THIRD_PARTY_NOTICES 登记）；`obstacles.js`/`laneAssign.js`/`routeCache.js`/`graphRead.js` 为原创。
+  4. 非共线端点禁止直线捷径：先 `corridorClear` 预检，未净空一律走 A*，保证正交样式无斜线。
+- **验证**：阶段 1 实测（10 nodes/9 links）：三样式切换、节点拖动避障重算（obstacleVersion 1→2）、总开关回滚原生、数据不变性 verify ok、单元测试 17/17；详见 docs/routing-algorithm.md §7。
+
 ## DEC-004: 产品中文名定为"络纹"
 
 - **日期**：2026-11-06

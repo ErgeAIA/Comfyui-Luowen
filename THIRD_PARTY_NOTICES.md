@@ -1,6 +1,17 @@
 # Third-Party Notices（PRD §13.6 要求）
 
-本文件登记仓库中每一个实际复制或改编的第三方代码/文件。**络纹产品代码（template/、prototype/）目前全部为原创，未引入第三方代码**；以下登记的是研究参考副本。
+本文件登记仓库中每一个实际复制或改编的第三方代码/文件。
+
+## ComfyUI Cable Management（已进入产品代码）
+
+- **来源仓库**：https://github.com/vtokic/comfyui-cable-management （分支 master）
+- **许可证**：MIT（Copyright (c) 2026 Vedran Aberle Tokić；完整许可文本已随包附带）
+- **仓库内位置**：
+  - `luowen/web/geometry/router.js`（上游 `web/pathing/router.js`）
+  - `luowen/web/geometry/trace.js`（上游 `web/pathing/trace.js`）
+- **修改情况**：未修改。仅在每个文件头前置 SPDX/版权/来源注释块（`SPDX-License-Identifier: MIT`）。
+- **许可文本**：`luowen/LICENSES/cable-management-MIT.txt`（含复用范围说明）
+- **用途**：阶段 1 起作为正交路由（A*）与折线描边/中点几何内核。
 
 ## ComfyUI Cable Management（研究参考副本）
 
