@@ -16,6 +16,95 @@ description: >
 > 格式：`## DEC-NNN: 标题`，新条目置顶，NNN 三位递增。
 > 字段：`- **日期**：` / `- **背景**：` / `- **决策**：` / `- **验证**：`
 
+## DEC-019: 撤除 3C 顺序抽头实现（由公共前缀合并天然达成）
+
+- **日期**：2026-11-06
+- **结论**：顺序抽头（Daisy-Taps）在当前架构下由「单主干 + 分叉后公共前缀合并」（DEC-009/DEC-010）天然实现，不需要独立代码。
+  - 宿主同取景 A/B（11 节点分散目标、scale=1、offset=[500,350]、1600×1000）：开/关**连线画布逐像素 0 差异**，仅底部统计文字（DOM）181 px 差异；交叉对集合完全相同（均为 10 对）。
+  - 根因：`T_i = p_i − stub` 使抽头列恰好等于单 T 分支自身的转向列，分支首段又沿主干方向，抽头只改变折线顶点归属与共享点集合，不改变绘制并集。
+  - 实现与 A/B 明细见 DEC-018（仅存档，不代表当前代码）。
+- **决策（用户批准撤除范围，仅本轮 3C 新增内容）**：
+  1. `routing/trunkPlan.js`：移除 `TAP_MIN_SPREAD` / `TAP_GAP` / `chooseTapSequence` / `planDaisy`，以及 `planTrunk` 的 `daisyTaps` 分支；
+  2. `geometry/chamfer.js`：移除 `pointKey` 与 `findSharedPoints(paths, extra)` 的 `extra` 参数，恢复 `findSharedPoints(paths)`；
+  3. `adapters/renderLinkAdapter.js`：移除 `settings.daisyTaps`、主干缓存签名的 `dt0/dt1` 分量、`trunkInfo` 与 `getStats().trunks` 的 `daisy`/`taps` 透出；
+  4. `index.js`：移除设置项 `LuoWen.DaisyTaps` 与 `window.LuoWen.setDaisyTaps`；
+  5. 删除 `tests/unit/daisyTaps.test.mjs`。
+- **未动**：`crossings.js` / `crossCleanup.js`（3B 保留）、`alignSnap` / `dragSnap`（3A 保留）、输入侧走廊、单主干、斜切、合法最晚分叉。
+- **验证**：
+  - 全量单测 `node --test tests/unit/*.test.mjs` **95/95**，fail 0（移除新增 7 项后回到 3B 后的应有数量）。
+  - 宿主默认布局：10 节点 / 10 link，`verify()` `ok:true, diffs:[]`；主干组 `2:0` `fork=107, merged=[9,10]`；`LuoWen` 命名空间无 `setDaisyTaps`，`status()` 无 `daisyTaps`，设置面板无 `LuoWen.DaisyTaps`。
+  - 撤销后复现撤除前「关闭态」临时布局：`fork=66, merged=[9,10,11]`；link9 `[[-440,139],[-374,139],[-374,-288],[-350,-288]]`、link10 `[[-440,139],[-44,139],[-44,342],[-20,342]]`、link11 `[[-440,139],[476,139],[476,32],[500,32]]`，与撤除前记录的关闭态**逐点一致**；该布局 `rebase()` 后 `verify()` ok（11 节点/11 link）。
+  - 源文件与宿主 `custom_nodes/luowen/web` 四份副本哈希一致。
+
+## DEC-018: 3C 顺序抽头 Daisy-Taps（默认关闭，宿主 A/B 无可见差异）
+
+- **日期**：2026-11-06
+- **背景**：3B-2 离线交叉清理收益极小（10 对→9 对，+0.48% 长度），用户决定保持其默认关闭，转向「从源头减少交叉」的 3C：同一输出端口的多个分散目标按投影顺序逐段抽头，避免所有分支都从同一远端 T 点拉出。
+- **决策**：
+  1. **抽头序列**：`trunkPlan.js` 新增导出常量 `TAP_MIN_SPREAD=48`、`TAP_GAP=24` 与 `chooseTapSequence(targets)`；成员 ≥3、按目标投影升序、相邻投影间距 ≥48、`T_i=min(proj_i−stub, 走廊上限)` 且 ≥`min`、相邻抽头间距 ≥24；任一不满足返回 `null`。
+  2. **规划路径**：新增 `planDaisy`；`planTrunk` 在 `opts.daisyTaps && ids.length>=3` 时优先调用，成功要求三条分支全部有解且 **全部通过 `decideMembership`**，否则原样回退现有单 T 合流。2 目标永不进入该分支，行为逐点不变。
+  3. **路径分组**：第 k 个成员路径为 `pin + 前 k 个抽头 + 该成员分支`，抽头顶点不做 `simplify`；最后一个抽头只出现在末位成员路径上。
+  4. **直角锁定**：`chamfer.findSharedPoints(paths, extra)` 新增可选 `extra`；适配器把全部抽头点并入 skip 集合，抽头处不参与绕障外角大斜切（单测锁定）。
+  5. **开关与调试**：设置项 `LuoWen.DaisyTaps` 默认 `false`；`LuoWen.setDaisyTaps(bool)` 内存态 + 持久设置同步；主干缓存签名追加 `dt0/dt1`；`trunkInfo` / `getStats().trunks` 透出 `daisy` 与 `taps[{id,T,point}]`。关闭时 `planTrunk` 不进入该分支，结果逐点不变。
+- **验证**：
+  - 单测 `node --test tests/unit/*.test.mjs` **102/102**；新增 `tests/unit/daisyTaps.test.mjs` 7 项：① 投影 100/300/500 → 抽头 76/276/476 且间距合法；② 成员 <3 或投影过密 → `null`；③ 三目标抽头路径分组与分支起点；④ 2 目标开/关 `deepEqual`；⑤ 三目标间距不足回退与关闭态一致；⑥ 关闭 vs 不传选项逐点一致；⑦ 全部抽头进 skip 后大斜切不切抽头（无 skip 时会被切）。
+  - 宿主 A/B（11 节点临时布局：node4→(-350,-300)、node5→(-20,330)、新增 CLIPTextEncode→(500,20) 接 CLIPLoader slot0；scale=1、offset=[500,350]、视口 1600×1000）：关闭 `fork=66, merged=[9,10,11], daisy=false`；开启 `fork=916, merged=[9,10,11], daisy=true`，抽头 `T=66/396/916`（x=-374/-44/476），投影间距 **330/520**，主干分段 `-440→-374 / -374→-44 / -44→476`，分支起点 `-374→上`、`-44→下`、`476→上`。
+  - 可见结果：同取景截图逐像素 diff **181 px**，bbox `(91,932)-(119,940)` 为底部统计文字（DOM），**连线画布区域 0 差异**；交叉对开/关均为 **10 对**且集合完全相同。
+  - 根因（已定位）：`T_i = proj_i − stub` 使抽头列恰等于单 T 分支自身转向列（目标列 −24 stub），且分支首段沿主干方向；两种模式下所有折线的**绘制并集完全相同**，抽头只改变顶点归属与共享点集合，不改变可见几何，也不改变交叉对。标准节点输出槽方向恒为右，无法构造垂直主干来观察差异。
+  - 不变量：`verify()` `ok:true, diffs:[]`；11 节点坐标与 11 条 link 五元组零差异。
+  - 截图：`.verify/shots/3c-daisy-off-sameframe-2026-11-06T14-11-39-817Z.png` / `3c-daisy-on-sameframe-2026-11-06T14-11-50-846Z.png`（同取景）；另有 scale 0.7 / 1.0 旧组。
+- **未覆盖**：
+  1. 垂直/非右向主干不可构造，抽头在该拓扑下是否产生可见差异未验证；
+  2. 主干带内有卡片时 `corridorLimit` 会压短抽头并导致回退，复杂绕障布局未实测；
+  3. 2 目标仅单测 `deepEqual`，未做宿主 A/B；
+  4. 未用真实鼠标交互、未测连线增删事件；
+  5. 本轮不提交 git；3C 是否保留/重定义（例如让抽头列偏离目标 stub 列）待用户决定。
+
+## DEC-017: 3B-2 离线交叉清理接宿主（默认关闭）
+
+- **日期**：2026-11-06
+- **背景**：3B-1 只做了交叉枚举与 router 的可选成本，未接宿主。3B-2 要把「停止拖拽后离线重解、减少交叉」接到宿主，但保持默认关闭，先用 A/B 供用户判断是否改为默认开。
+- **决策**：
+  1. **模块**：新增纯模块 `luowen/web/routing/crossCleanup.js`，导出 `planCrossCleanup({ routes, resolve, maxRounds, maxGrowth, crossCost, locked })`；默认 `maxGrowth=0.15`、`maxRounds=2`、`crossCost=60`。不依赖 DOM / litegraph / app。
+  2. **触发**：`drawConnections` 包裹层在每次绘制后调 `scheduleCleanup`；去抖 `CLEANUP_DEBOUNCE_MS=400`（落在用户要求的 300–500ms 区间）。指针按下（拖拽中）不调度。
+  3. **几何校验**：待执行项记录 `version|laneHash|env` 三元组；`beginFrame` 中障碍版本（节点移动/尺寸变化）、lane 哈希（连线变化）、环境（样式/避让/间距）任一变化即 `invalidateCleanup`，清空待执行与已应用结果；去抖回调执行前再校验三元组，不符直接返回（`geometry-changed` / `dragging`）。
+  4. **范围**：只对 `enumerateCrossings` 的 `byPair` 中 `cross > 0` 的线路对重解；纯共线重叠对不进候选。同组共线重叠与共享引脚仍按 DEC-016 豁免，不处罚。
+  5. **重解输入**：把所有其他线路折线作为 `lineObstacles`、`crossCost=CLEANUP_CROSS_COST` 传给 `route`；锁定主干成员（`groupOf.keys()`）不参与重解，但仍计入交叉统计。
+  6. **采纳条件**：交叉对数严格下降（`stats.pairs - trialStats.pairs > 0`）且参与线路总长增幅 ≤ 15%；否则丢弃整轮，保持当前画面。重新解出与基准逐点相同的线路记为 `unchanged`，不计入参与线路与增幅。
+  7. **轮上限**：`maxRounds` 钳制在 1–2（默认 2），避免多次连锁重解。
+  8. **缓存签名**：`version|laneHash|env|specs.length|fnv1a(全部基准几何)`；几何指纹覆盖参与清理的全部线路，任一线路移动都会换签名，不会复用旧几何结果。
+  9. **调试入口**：`LuoWen.setCrossCleanup(bool)`、`LuoWen.crossDebug()`（交叉对数、候选对、逐线尝试、采纳列表、丢弃原因、总长与增幅、轮数、epoch）、`LuoWen.crossCleanupNow()`（手动立即执行）。
+  10. **默认关闭不变**：设置项 `LuoWen.CrossCleanup` 默认 `false`；关闭时 `tryCustomRender` 的覆盖分支短路，不写 `baseRoutes`/`effectiveRoutes` 覆盖，路径逐点与已验收版本一致。
+- **验证**：
+  - 单测 `node --test tests/unit/*.test.mjs` **95/95**（新增 `tests/unit/crossCleanup.test.mjs` 11 项：采纳、增幅拒绝、未下降拒绝、无路由、确定性、第二轮幂等、锁定线、纯重叠不候选、同组重叠豁免、轮数钳制、空输入）。
+  - 宿主实测（复刻 10 节点 / 10 连线、KSampler 四输入汇聚）：清理前 **10 对 / 11 事件**，涉及 `[2,3,4,5,6,7,8,9]`；清理后 **9 对 / 10 事件**；采纳线路 `link 8`（VAEDecode→SaveImage），参与线路总长 `1517.657 → 1525.000`（**+0.484%**，≤15%）；round1 采纳 8，round2 全部 `unchanged`。
+  - 幂等：已应用态再调 `crossCleanupNow()` 返回 `cached`；强制失效（关→开）重算得到与首次逐点相同的 link 8 路径（最大坐标差 0）。
+  - 移动节点：KSampler +20px / 再 +20px 后 `activeLinks` 立即清空、`appliedEpoch` 落后于 `epoch`；700ms 后按新几何重新清理。旧清理结果不残留，画面无跳变。
+  - 默认关闭：关闭态两次采样逐点一致；开→关后与关闭态基准逐点一致。
+  - `verify()` `ok:true`、`diffs:[]`；节点坐标与 10 条 link 的 `id/origin_id/origin_slot/target_id/target_slot` 零差异。
+  - 截图：`.verify/shots/3b2-ab2-off-z09-*.png` 与 `3b2-ab2-on-z09-*.png`（scale 0.9，同一取景）。
+  - 未覆盖：连线增删事件、缩放事件、真实鼠标/触摸拖拽期间、缓存签名「别的线移动」专项构造、15% 增幅边界的宿主实测（仅单测覆盖）。
+
+**补记（2026-11-06，用户决定；不改上方实现与验证结论）**
+
+- **决策**：`LuoWen.CrossCleanup` 保持**默认关闭**，实现代码保留不删；后续稀疏布局可按需手动开启。
+- **理由**：逐条重解收益极小——宿主实测 10 对交叉仅降到 9 对，参与线路总长增幅 +0.4838%；先做 3C 顺序抽头，从源头减少交叉（3C 结论见 DEC-018）。
+- **处置**：设置项默认值不变（`false`），不进入设置面板默认启用清单；调试入口 `setCrossCleanup` / `crossCleanupNow` / `crossDebug` 保留。
+
+## DEC-016: 3B-1 交叉枚举与可选交叉成本（默认关闭）
+
+- **日期**：2026-11-06
+- **背景**：3B 需要把线路交叉变成可度量、可计费的对象；但本阶段只做离线枚举与 router 的可选成本，不接宿主、不改已验收的路由形态。
+- **决策**：
+  1. **模块**：新增纯模块 `luowen/web/routing/crossings.js`，不依赖 DOM / litegraph / app。`segmentsOfRoutes` 把带 `startPin`/`endPin` 的折线摊平成线段，引脚只挂在首段起点与末段终点（中间拐点不是引脚）。
+  2. **判定口径**：`cross` = 垂直相交且交点到两条线段各自端点的距离都 > tol（默认 0.5 图 px）；`overlap` = 同轴共线重叠长度 > tol；`touch` = 只在端点接触，或共线相切（重叠长 ≤ tol）。`cross` 与 `overlap` 计入，`touch` 只记录不计数。斜边不参与（`state.routes` / `link.path` 始终保持正交）。
+  3. **同组豁免边界**：仅豁免「同组 + 共线重叠」（共享走廊、共享段是设计预期）；同组线束之间的垂直穿插仍计为交叉。共享引脚要求两侧端点引脚标识相同，而不是仅坐标相同。
+  4. **输出**：`pairs`（唯一线路对）、`count`（计入事件数，一对可有多处）、`involved`（涉及线路集合，保留原 id 类型并排序）、`byPair`、`events`（含未计入项与 reason）、`ignored`（sameLink / sameGroup / sharedPin / touch）。
+  5. **router 可选成本**：`route({ lineObstacles, crossCost })`；`lineObstacles` 是既有折线数组，`crossCost` 是每次垂直内点交叉的代价。仅 `crossCost > 0` 时构建线段表；`crossCost=0` 或无线段时新代码路径完全不进入。直连捷径在开启且与既有线路相交时不再放行，交 A* 计费。
+  6. **未接宿主**：3B-1 不向宿主传 `lineObstacles`，适配器默认调用与已验收版本一致；离线清理留到 3B-2，本轮未加骨架。
+- **验证**：单测 `node --test tests/unit/*.test.mjs` **84/84**（新增 `crossings.test.mjs` 15 项）。默认关闭逐点证据：同一输入在 `route(args)` / `{lineObstacles, crossCost:0}` / `{crossCost:40}`（无线段）三条路径下输出均 `[[0,100],[24,100],[24,24],[576,24],[576,100],[600,100]]`。成本生效证据：等长上下绕行时默认走 y=234，`crossCost=60` 改走 y=366（避开 x=300 竖段）。
+- **未覆盖**：① 斜边不参与枚举；② 共线重叠不进入路由成本（成本只计垂直内点交叉），是否按重叠长度计费待 3B-2；③ 成本量级（60）未做宿主调参；④ 枚举为 O(n²) 两两检查，未做空间索引；⑤ 真实工作流下的交叉计数与观感未实测。
+
 ## DEC-015: 3A-2 接宿主——Vue 后置 rAF、引脚行候选、自建 DOM overlay、设置开关
 
 - **日期**：2026-11-06

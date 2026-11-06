@@ -2,7 +2,16 @@
 // 设置项（PRD §5.4 首版少而明确）：总开关 / 线路样式三选一 / 避障档位。
 // 对外验证 API：window.LuoWen（status/rebase/verify——数据不变性机检，延续 phase0 方法）。
 
-import { install, uninstall, setSettings, getStats, getDebugRoutes, getTrace } from './adapters/renderLinkAdapter.js';
+import {
+  install,
+  uninstall,
+  setSettings,
+  getStats,
+  getDebugRoutes,
+  getTrace,
+  getCrossDebug,
+  runCrossCleanup,
+} from './adapters/renderLinkAdapter.js';
 import { graphNodes, linkTuples } from './adapters/graphRead.js';
 import { installSnap, uninstallSnap, setSnapEnabled, getSnapDebug } from './snap/dragSnap.js';
 
@@ -14,6 +23,7 @@ const STYLE_ID = 'LuoWen.WireStyle';
 const AVOID_ID = 'LuoWen.NodeAvoidance';
 const CHAMFER_ID = 'LuoWen.Chamfer';
 const SNAP_ID = 'LuoWen.SnapAlign';
+const CROSS_CLEANUP_ID = 'LuoWen.CrossCleanup';
 
 let baseline = null;
 
@@ -117,6 +127,15 @@ app.registerExtension({
       defaultValue: true,
       onChange: (v) => setSettings({ chamfer: !!v }),
     },
+    {
+      id: CROSS_CLEANUP_ID,
+      name: '离线交叉清理（实验）',
+      category: ['LuoWen'],
+      tooltip: '布局静止 400ms 后，只对存在垂直交叉的线路对做一次离线重解；交叉对严格下降且参与线路总长增幅 ≤15% 才采纳，否则保持原画面。默认关闭',
+      type: 'boolean',
+      defaultValue: false,
+      onChange: (v) => setSettings({ crossCleanup: !!v }),
+    },
   ],
 
   afterConfigureGraph() {
@@ -135,6 +154,7 @@ app.registerExtension({
         style: readSetting(STYLE_ID, 'orthogonal'),
         avoidance: readSetting(AVOID_ID, 'standard'),
         chamfer: !!readSetting(CHAMFER_ID, true),
+        crossCleanup: !!readSetting(CROSS_CLEANUP_ID, false),
       });
     } catch {
       /* 设置读取失败保持默认 */
@@ -147,6 +167,19 @@ app.registerExtension({
       routes: () => getDebugRoutes(),
       trace: () => getTrace(),
       snapDebug: () => getSnapDebug(),
+      crossDebug: () => getCrossDebug(),
+      setCrossCleanup: (v) => {
+        // 调试对照入口：返回实际生效值；同步写入设置，便于 A/B 同取景对照
+        const on = !!v;
+        setSettings({ crossCleanup: on });
+        try {
+          app.ui?.settings?.setSettingValue?.(CROSS_CLEANUP_ID, on);
+        } catch {
+          /* 设置不可写时仅内存生效 */
+        }
+        return getStats().crossCleanup;
+      },
+      crossCleanupNow: () => runCrossCleanup('manual'),
       setEnabled: (v) => {
         setSettings({ enabled: !!v });
         if (v) {

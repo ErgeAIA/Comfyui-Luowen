@@ -18,10 +18,39 @@ description: >
 ## 当前状态
 
 - **当前分支**：main
-- **阶段**：阶段 2 已验收并提交（commit `8614a8a`，14 文件）；阶段 3 进行中，3A-0 查证完成、3A-1 `alignSnap` 纯函数 + 单测完成、**3A-2 宿主适配器与 overlay 提示线已落地并完成宿主实测（未提交）**；待用户验收 3A-2，未进 3B
+- **阶段**：阶段 2 已验收并提交（commit `8614a8a`，14 文件）；3A（对齐吸附 + 提示线）已由用户验收并提交（commit `b6dab5c`，8 文件）；3B-1 与 3B-2 已完成（3B-2 保持默认关闭），本轮提交 3B；**3C 顺序抽头经实测撤除**（由公共前缀合并天然达成，DEC-019）
 - **代码**：`luowen/`（含 `routing/trunkPlan.js` 单主干共享几何、Ribbon 已移除、三档避障、预览、缓存、`geometry/chamfer.js` 绕障外角大斜切、`routing/laneAssign.js` 输入侧按接近方向嵌套分道 + 走廊净空顺延），已装本机 custom_nodes 实测
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2；Playwright 浏览器实测流程已打通
-- **本轮 3A-2 接宿主（2026-11-06，DEC-015；未提交）**：
+- **本轮 3C 顺序抽头阶段性实现后撤除（2026-11-06，DEC-018 存档 / DEC-019 撤除）**：
+  - 曾按「≥3 分散目标、投影升序抽头、间距 ≥48/≥24、全员合流否则回退单 T」实现 `chooseTapSequence` / `planDaisy` 并接宿主开关 `LuoWen.DaisyTaps`（默认关闭）。
+  - 宿主 A/B 结论：同一 11 节点布局、同取景（scale=1、offset=[500,350]、1600×1000）下，开/关**连线画布逐像素 0 差异**（仅底部统计文字 DOM 181 px 差异）；交叉对开/关均为 **10 对**且集合相同；开启抽头 `T=66/396/916`、投影间距 330/520，关闭 `fork=66`。
+  - 根因：`T_i = proj_i − stub` 使抽头列恰等于单 T 分支自己的转向列（目标列 −24），分支首段又沿主干方向 → 两种模式绘制并集相同；顺序抽头当前架构下由「单主干 + 分叉后公共前缀合并」天然达成。
+  - 处置（用户批准，仅撤本轮 3C 新增）：删除 `trunkPlan.js` 的 `TAP_MIN_SPREAD`/`TAP_GAP`/`chooseTapSequence`/`planDaisy` 与 `daisyTaps` 分支、`chamfer.js` 的 `pointKey` 与 `findSharedPoints` 的 `extra`、适配器的 `daisyTaps`/`dt0/dt1`/`daisy`/`taps` 透出、`index.js` 的 `LuoWen.DaisyTaps` 与 `setDaisyTaps`，并删除 `tests/unit/daisyTaps.test.mjs`。
+  - 验证：全量单测 **95/95**（fail 0）；宿主默认布局 10 节点/10 link，`verify()` ok、`fork=107, merged=[9,10]`；`LuoWen` 无 `setDaisyTaps`/`status().daisyTaps`/`LuoWen.DaisyTaps`；复现撤除前关闭态临时布局，`fork=66, merged=[9,10,11]`，link9/10/11 折线与撤除前记录逐点一致。
+  - 存档截图（不再代表当前实现）：`.verify/shots/3c-daisy-off-sameframe-2026-11-06T14-11-39-817Z.png` / `3c-daisy-on-sameframe-2026-11-06T14-11-50-846Z.png`。
+- **本轮 3B-2 离线交叉清理接宿主（2026-11-06，DEC-017；用户决定保持默认关闭）**：
+  - 新增纯模块 `luowen/web/routing/crossCleanup.js`：`planCrossCleanup({routes, resolve, maxRounds=2, maxGrowth=0.15, crossCost=60, locked})`；只对 `byPair` 中 `cross>0` 的线路对重解，纯重叠不进候选；整轮验收「交叉对严格下降 + 参与线路总长增幅 ≤15%」；`samePoints` 记 `unchanged`，不计参与与增幅；`maxRounds` 钳制 1–2。
+  - 适配器 `renderLinkAdapter.js`：`CLEANUP_DEBOUNCE_MS=400`、`CLEANUP_CROSS_COST=60`、`CLEANUP_MAX_GROWTH=0.15`、`CLEANUP_MAX_ROUNDS=2`；新增 `frame.baseRoutes`（清理前基准）+ `frame.effectiveRoutes`（清理后）+ `frame.cleanupEpoch`、`cleanup{sig,epoch,triggerSig,routes,timer,pending,runs,lastReason,last}`；`scheduleCleanup` 记录 `version|laneHash|env` 三元组，`beginFrame` 中任一变化即 `invalidateCleanup`（障碍版本 `obstacle-version` / lane 哈希 `lane-hash` / 设置 `settings`），去抖回调执行前再校验一次；指针按下不调度。
+  - 覆盖：`tryCustomRender` 先写 `baseRoutes` 再按 `cleanup.routes` 覆盖（仅当 `epoch===cleanupEpoch` 且端点一致），不改变未采纳线路；缓存签名为 `version|laneHash|env|specs.length|fnv1a(全部基准几何)`。
+  - 调试入口 `index.js`：设置项 `LuoWen.CrossCleanup`（默认 false）、`LuoWen.setCrossCleanup(bool)`、`LuoWen.crossDebug()`（交叉对数/候选对/逐线尝试/采纳/丢弃原因/总长与增幅/轮数/epoch）、`LuoWen.crossCleanupNow()`。
+  - 实测（复刻 10 节点 / 10 连线、KSampler 四输入汇聚、SaveImage 在 (418,484)）：清理前 **10 对 / 11 事件**，涉及 `[2,3,4,5,6,7,8,9]`；清理后 **9 对 / 10 事件**，`activeLinks=[8]`（VAEDecode→SaveImage），参与线路总长 `1517.657 → 1525.000`（**+0.4838%**）。link 8 由下方绕行（`y≈788`）改为上方绕行（`y≈228`），视觉差异明显；round1 采纳 8，round2 全部 `unchanged`。
+  - 幂等：已应用态再调 `crossCleanupNow()` → `lastReason='cached'`；关→开强制重算，link 8 路径与首次逐点差 0（`md=0`），`pairs [10,9]`、`active [8]`。
+  - 移动放弃：KSampler `setPos(+20)` 后 `active` 立即清空（`ep 60/58`）；再 `+20` → `ep 62/58`、`pending:true`；700ms 后按新几何重算 `ep 62/62`、`active [8]`；回原位 `ep 64/64`。旧结果不残留，画面无跳变。
+  - 默认关闭：关闭态两次采样逐点一致（`same12:[]`）；开→关后与基准逐点一致（`same14:[]`）。
+  - 不变量：`verify()` `ok:true, diffs:[]`；10 节点坐标与 10 条 link 五元组零差异（`nodesSame:true`、`linksSame:true`）。
+  - 单测 `node --test tests/unit/*.test.mjs` **95/95**（新增 `tests/unit/crossCleanup.test.mjs` 11 项）。
+  - 截图（同一取景）：`.verify/shots/3b2-ab1-off-z068-2026-11-06T13-41-11-850Z.png` / `3b2-ab1-on-z068-2026-11-06T13-41-20-521Z.png`（scale 0.68 全图）；`.verify/shots/3b2-ab2-off-z09-2026-11-06T13-42-14-801Z.png` / `3b2-ab2-on-z09-2026-11-06T13-42-31-803Z.png`（scale 0.9 局部）。
+  - 未覆盖：连线增删事件、缩放事件、真实鼠标/触摸拖拽期间、缓存签名「别的线移动」专项构造、15% 增幅边界的宿主实测（仅单测）；移动时 `lastReason` 实际落为 `'lane-hash'`（行为正确、标签不够贴合语义）。
+  - **用户决定（2026-11-06）**：保持 `LuoWen.CrossCleanup` **默认关闭**，代码保留不删（后续稀疏布局可手动开启）。理由：逐条重解收益极小（10 对交叉仅降到 9 对，参与线路总长 +0.48%），先做 3C 从源头减少交叉。
+- **本轮 3B-1 交叉枚举与可选成本（2026-11-06，DEC-016；默认关闭、未接宿主）**：
+  - 新增 `luowen/web/routing/crossings.js`：`segmentsOfRoutes` / `enumerateCrossings` / `crossingsOnSegment`；输出 `pairs`（唯一交叉对）、`count`（计入事件）、`involved`（涉及线路，去重排序）、`byPair`、`events`、`ignored`（sameLink / sameGroup / sharedPin / touch）。
+  - 口径：垂直内点相交 = `cross`（计入）；同轴共线重叠长 >0.5px = `overlap`（计入，同组或共享引脚除外）；仅端点接触与共线相切 = `touch`（不计）；斜边不参与。
+  - `geometry/router.js` 新增可选 `lineObstacles`（既有折线）与 `crossCost`（每次垂直内点交叉的代价）；仅 `crossCost > 0` 时构建线段表，默认关闭。
+  - 单测 `node --test tests/unit/*.test.mjs` **84/84**（新增 `tests/unit/crossings.test.mjs` 15 项）。
+  - 默认关闭证据：同一输入在 `route(args)` / `{lineObstacles, crossCost:0}` / `{crossCost:40}` 三条路径下输出逐点相同 `[[0,100],[24,100],[24,24],[576,24],[576,100],[600,100]]`。
+  - 成本生效证据：等长上下绕行时默认走 y=234，`crossCost=60` 改走 y=366（避开 x=300 竖段）。
+  - 未覆盖：未接宿主、未做离线清理（3B-2）、斜边不参与枚举、重叠未进成本（只计 cross）、成本量级未调参。
+- **本轮 3A-2 接宿主（2026-11-06，DEC-015；已提交 `b6dab5c`）**：
   - 新增 `luowen/web/snap/dragSnap.js`（install/uninstall/setSnapEnabled/getSnapDebug）；`index.js` 增加设置 `LuoWen.SnapAlign`（默认开）与 `LuoWen.setSnapEnabled` / `LuoWen.snapDebug` 调试入口。
   - 挂载：window 冒泡 + 自排 rAF（晚于原生 `useNodeDrag.handleDrag`）；`pointerup` 同步收尾（早于 `mouseup` 快照）。候选：`nodeRects` 换算 body 坐标 + `graphLinks` 判 adjacent + 引脚行 `yTarget`（`skipX`）。多选 `selectedItems.size>1` 跳过。
   - 提示线：自建 `#luowen-snap-overlay`（z=500、`pointer-events:none`）挂运行时 `#graph-canvas-container`；源码包无该容器字符串，结论以运行时 DOM 为准（conventions §2.7 已补）。

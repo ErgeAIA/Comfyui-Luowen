@@ -7,12 +7,17 @@
  * Modifications by LuoWen: optional `strict` mode (all hard node boxes impassable)
  * and `blockRects` (only the listed obstacle indices impassable), instead of the
  * upstream 8x-cost best effort. Both default off; upstream behavior is unchanged.
+ * Also optional `lineObstacles` (already-routed polylines) + `crossCost` (toll per
+ * perpendicular crossing) for the 3B crossing experiment. Default off (`crossCost=0`
+ * and no polylines), which leaves every code path and every coordinate identical.
  */
 // Orthogonal router on a sparse Hanan grid whose lanes are the edges of inflated
 // obstacle rects. Pure geometry: no DOM, no litegraph, no app.
 //
 // route() returns graph-coord waypoints [start, ...bends..., end] or null when the
 // trivial case applies (caller then leaves the link to core's renderer).
+
+import { crossingsOnSegment } from '../routing/crossings.js'
 
 const BEND_COST = 24
 // Best-effort (R1): a blocked grid edge is not forbidden, it costs its length times this.
@@ -37,13 +42,20 @@ const DIR = {
   none: [1, 0]
 }
 
-export function route({ start, end, startDir = 'right', endDir = 'left', obstacles, clearance = 16, stubStart = 24, stubEnd = 24, enforceStart = false, enforceEnd = false, vPad = 0, flatTol = 0, strict = false, blockRects = null }) {
+export function route({ start, end, startDir = 'right', endDir = 'left', obstacles, clearance = 16, stubStart = 24, stubEnd = 24, enforceStart = false, enforceEnd = false, vPad = 0, flatTol = 0, strict = false, blockRects = null, lineObstacles = null, crossCost = 0 }) {
   // Reroute ends (core passes CENTER -> 'none') are resolved by the registry to the
   // upstream's side before this call; the mapping here is only a fallback.
   const sv = DIR[startDir === 'none' ? 'right' : startDir] ?? DIR.right
   const ev = DIR[endDir === 'none' ? 'left' : endDir] ?? DIR.left
   const sStub = [start[0] + sv[0] * stubStart, start[1] + sv[1] * stubStart]
   const eStub = [end[0] + ev[0] * stubEnd, end[1] + ev[1] * stubEnd]
+
+  // LuoWen 3B experiment: already-routed polylines become a priced nuisance, never a
+  // blocker. Built only when the toll is positive, so the default path allocates
+  // nothing and stays byte-identical.
+  const lineSegs = crossCost > 0 && Array.isArray(lineObstacles) && lineObstacles.length
+    ? polylineSegments(lineObstacles)
+    : null
 
   // Local obstacle set, inflated. The corridor bbox is padded so lanes exist around
   // obstacles sitting just outside the endpoints' span.
@@ -90,7 +102,9 @@ export function route({ start, end, startDir = 'right', endDir = 'left', obstacl
     eStub[0] - sStub[0] > EPS && Math.abs(sStub[1] - eStub[1]) < Math.max(EPS, flatTol) &&
     clearH(sStub[1], sStub[0], eStub[0], rects) && clearH(eStub[1], sStub[0], eStub[0], rects)
   ) {
-    return null
+    // 3B: with the toll on, a straight run through an existing link is priced, so the
+    // grid search gets a chance to pick a crossing-free homotopy.
+    if (!lineSegs || crossingsOnSegment(sStub, eStub, lineSegs, { tol: EPS }) === 0) return null
   }
 
   // Lanes: obstacle edges plus the two stub coordinates.
@@ -102,12 +116,23 @@ export function route({ start, end, startDir = 'right', endDir = 'left', obstacl
   const si = [idx(X, sStub[0]), idx(Y, sStub[1])]
   const ei = [idx(X, eStub[0]), idx(Y, eStub[1])]
 
-  const path = astar(X, Y, si, ei, rects, hard, blocked, sv, ev, enforceStart, enforceEnd)
+  const path = astar(X, Y, si, ei, rects, hard, blocked, sv, ev, enforceStart, enforceEnd, lineSegs, crossCost)
   if (!path) return null
 
   // Waypoints: real endpoints, stubs, grid path. Collinear runs collapsed.
   const pts = [start, sStub, ...path.map(([i, j]) => [X[i], Y[j]]), eStub, end]
   return simplify(pts)
+}
+
+// [[[x,y],...], ...] -> [{ a, b }] for the crossing toll. Degenerate point runs are
+// dropped; only the opt-in crossCost path ever calls this.
+function polylineSegments(lines) {
+  const out = []
+  for (const pts of lines) {
+    if (!Array.isArray(pts) || pts.length < 2) continue
+    for (let k = 1; k < pts.length; k++) out.push({ a: pts[k - 1], b: pts[k] })
+  }
+  return out
 }
 
 function dedupe(vals) {
@@ -141,7 +166,7 @@ function clearV(x, ya, yb, rects) {
   return true
 }
 
-function astar(X, Y, si, ei, rects, hard, blocked, sv, ev, enforceStart, enforceEnd) {
+function astar(X, Y, si, ei, rects, hard, blocked, sv, ev, enforceStart, enforceEnd, lineSegs = null, crossCost = 0) {
   const W = X.length, H = Y.length
   const id = (i, j) => j * W + i
   // State carries entry axis (0 h, 1 v, -1 start) for the bend penalty.
@@ -206,6 +231,9 @@ function astar(X, Y, si, ei, rects, hard, blocked, sv, ev, enforceStart, enforce
       // fell to expansion order and single links ignored their entry lane.
       let cost = len * mult * (nax === 1 ? 1.0005 + Math.abs(X[i] - X[ei[0]]) * 1e-6 : 1)
       if (axis !== -1 && axis !== nax) cost += BEND_COST
+      // 3B: toll per perpendicular crossing with an already-routed link. `lineSegs`
+      // is null unless the caller opted in, so the default search is untouched.
+      if (lineSegs) cost += crossingsOnSegment([X[i], Y[j]], [X[ni], Y[nj]], lineSegs, { tol: EPS }) * crossCost
       const nkey = id(ni, nj) * 4 + (nax + 1)
       const ng = base + cost
       if (ng < (g.get(nkey) ?? Infinity)) {
