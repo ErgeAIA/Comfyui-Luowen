@@ -1,7 +1,7 @@
 ---
 title: Debug Log
 type: debug-log
-project: 落纹（LuoWen）
+project: 络纹（LuoWen）
 updated: 2026-11-06
 description: >
   反复调试的 bug 追加记录，优先级与实现事实对齐。只追加，不删除或改写历史。

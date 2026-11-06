@@ -1,7 +1,7 @@
 ---
 title: Init Report
 type: init-report
-project: 落纹（LuoWen）
+project: 络纹（LuoWen）
 updated: 2026-11-06
 description: >
   初始化执行记录，每次运行 vibe-init 且有实际动作时追加一节，逐条列出实际执行的操作。

@@ -1,7 +1,7 @@
 ---
 title: AGENTS.md Changelog
 type: agents-changelog
-project: 落纹（LuoWen）
+project: 络纹（LuoWen）
 updated: 2026-11-06
 description: >
   AGENTS.md 的变更记录，AGENTS.md 每改动一次就追加一行，不随日常开发更新。
@@ -19,3 +19,4 @@ description: >
 ---
 
 - `<无标准契约文件> → 半程合成 → 直建当前 AGENTS.md；既有约定（PRD 硬约束 §0/§2.3/§9/§10/§18、GLOSSARY.md、docs/comfyui-dev-conventions.md、template/ComfyUI-Luowen/）以 keep 原地保留 + AGENTS.md 指针方式收编，无 update/drop/merge`
+- `IMPORTANT 行产品名 落纹（LuoWen） → update → 络纹（LuoWen）：用户裁决产品中文名为"络纹"（全局 38 处同步，PRD/README/CHANGELOG 双语/过程文档/phase0 原型注释一并更新，见 decision-log DEC-004）`

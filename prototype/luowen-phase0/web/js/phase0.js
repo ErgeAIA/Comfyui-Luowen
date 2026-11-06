@@ -1,4 +1,4 @@
-// 落纹 LuoWen — 阶段 0 技术可行性验证原型（PRD §15 阶段 0 交付物）。
+// 络纹 LuoWen — 阶段 0 技术可行性验证原型（PRD §15 阶段 0 交付物）。
 //
 // 目标：证明在 ComfyUI 前端 1.55.18 上——
 //   1) 可以单点接管线路绘制（renderLink）并完整回滚；
@@ -284,7 +284,7 @@ app.registerExtension({
       id: STYLE_SETTING_ID,
       name: "线路样式（阶段 0 demo）",
       category: ["LuoWen", "Phase0"],
-      tooltip: "native = 原生渲染；orthogonal = 落纹正交样例路径（只改绘制，不改数据）",
+      tooltip: "native = 原生渲染；orthogonal = 络纹正交样例路径（只改绘制，不改数据）",
       type: "combo",
       options: ["native", "orthogonal"],
       defaultValue: "native",

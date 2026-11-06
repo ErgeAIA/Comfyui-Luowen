@@ -4,7 +4,7 @@
 
 ## Permissions
 
-IMPORTANT: 落纹（LuoWen）是 ComfyUI 纯前端连线路由扩展——只改线路绘制表达，禁止改变任何原生工作流数据。
+IMPORTANT: 络纹（LuoWen）是 ComfyUI 纯前端连线路由扩展——只改线路绘制表达，禁止改变任何原生工作流数据。
 YOU MUST 会话开始先读 docs/agents/ 三件套与 docs/handoff/ 最新一份
 YOU MUST 先复述现状与待确认项，再动手
 YOU MUST 改码前先读 docs/prd/luowen-prd-v1.0.md 与 docs/agents/decision-log.md

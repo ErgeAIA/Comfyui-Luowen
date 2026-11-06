@@ -1,4 +1,4 @@
-# Changelog — LuoWen (落纹)
+# Changelog — LuoWen (络纹)
 
 All notable changes to this project will be documented in this file.
 

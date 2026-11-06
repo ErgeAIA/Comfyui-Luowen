@@ -1,6 +1,6 @@
 # 绘制 API 适配说明与已验证版本（PRD 阶段 0 交付物）
 
-> **状态**：阶段 0 已完成实测验证（2026-11-06）。本文是落纹接管线路绘制的权威技术依据，行号引用基于本机安装的 **comfyui-frontend-package 1.55.18** sourcemap（内嵌完整 TypeScript 原文，与运行版本逐字一致）。
+> **状态**：阶段 0 已完成实测验证（2026-11-06）。本文是络纹接管线路绘制的权威技术依据，行号引用基于本机安装的 **comfyui-frontend-package 1.55.18** sourcemap（内嵌完整 TypeScript 原文，与运行版本逐字一致）。
 > 实测代码：`prototype/luowen-phase0/`（已装至本机 `custom_nodes\luowen-phase0\`）；验证记录见 §5 与 `.verify/` 截图。
 
 ## 1. 已验证版本
@@ -17,7 +17,7 @@
 LGraphCanvas.draw (LGraphCanvas.ts:4970)
   → drawBackCanvas:5616 / drawFrontCanvas:5173   ← drawConnections 两处调用
     → _renderAllLinkSegments:6299
-      → renderLink:6492                           ← ★ 落纹 wrap 点
+      → renderLink:6492                           ← ★ 络纹 wrap 点
         → linkRenderer.renderLinkDirect           (litegraphLinkAdapter.ts:198-361)
           → CanvasPathRenderer.drawLink           (pathRenderer.ts:93-166)
               mode: linear→buildLinearPath / straight→buildStraightPath / spline→buildSplinePath
@@ -45,7 +45,7 @@ renderLink(ctx, a, b, link, skip_border, flow, color, start_dir, end_dir,
 
 **推论（已实测证实）**：自定义渲染改变可见形状后，**必须把自建 Path2D 覆写回 `seg.path`、中心覆写回 `seg._pos`**——命中立即跟随，无需自己实现命中测试。`path`/`_pos` 是纯渲染产物，覆写不触碰图数据（数据不变性实测通过）。
 
-## 4. 落纹适配方案（prototype/luowen-phase0 已验证）
+## 4. 络纹适配方案（prototype/luowen-phase0 已验证）
 
 **单点 wrap：`LGraphCanvas.prototype.renderLink`**，经 `Object.getPrototypeOf(app.canvas)` 获取（不依赖全局导出名，不碰会随 `setGraph` 重建的 `linkRenderer` 实例——实例级 wrap 进出子图即失效）。
 
