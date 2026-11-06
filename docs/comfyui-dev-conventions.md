@@ -139,6 +139,15 @@
 - `api.addEventListener(type, cb)`，payload 在 `e.detail`；WS 事件全集（api.ts switch）：`status, executing, execution_start, execution_error, execution_interrupted, execution_cached, execution_success, progress, progress_state, executed, promptQueued, logs, b_preview, b_preview_with_metadata, notification, graphChanged, autoQueueGraphChanged, feature_flags, progress_text, reconnected, reconnecting`；可监听后端 `send_sync` 的自定义类型。
 - 其它：`api.apiURL/fileURL`、`queuePrompt`、`getNodeDefs`、`getSettings/getSetting/storeSetting`、`interrupt`、`clientId`。
 
+### 2.6 LiteGraph 几何/命中契约（1.55.18 源码 + 阶段 0/1 实测）
+
+> 证据来自安装包 sourcemap 内嵌 TS（`settingStore-*.js.map` → `src/lib/litegraph/...`），行号按该版本。
+
+- **`node.getBounding()` 返回绝对坐标 `[x, y, w, h]`**（已含 node.pos），不是相对偏移——`LGraphNode.ts:2403-2411`（`out[0] = rect[0]`，rect 即 `boundingRect`）。络纹曾在此叠加一次 `pos`，导致所有避障矩形整体平移（实测 luowen 节点 170,260 被当成 340,550）。坐标换算用 `DragAndScale`：`canvas = (graph + offset) * scale`（`DragAndScale.ts:145-150`）。
+- **连线的悬停/命中读“渲染产物”**：`renderLink` 不是自己注册命中区；`_renderAllLinkSegments` 在绘制后 `renderedPaths.add(link)`（`LGraphCanvas.ts:6430`），命中测试 `queryRenderedLinkSegmentsAtPoint` 遍历 `canvas.renderedPaths`，用 `ctx.isPointInStroke(segment.path, x*dpr, y*dpr)` 判断线条（`src/lib/litegraph/src/canvas/hitTesting.ts`）。因此接管绘制时**必须**写入 `link.path`，否则整条线的 shift/alt 点击与右键菜单命中都会丢失。
+- **`over_link_center` 只表示中心点 8×8 悬停**：`_getLinkCentreOnPos` 遍历 `renderedPaths` 比较 `_pos` 周围 `8×8`（`LGraphCanvas.ts:5196-5204`、`:3549-3553`）；它不负责整条线的高亮。整线悬停高亮需扩展自行实现（络纹用 pointermove + 折线距离）。
+- **`renderLink` 参数**：`(ctx, a, b, link, skip_border, flow, color, start_dir, end_dir, opts)`，方向用 `LinkDirection` 枚举 `NONE=0/UP=1/DOWN=2/LEFT=3/RIGHT=4/CENTER=5`（`types/globalEnums.ts`）；`opts.reroute` 表示共享段，`opts.disabled` 表示 bypass。批量绘制入口是 `_renderAllLinkSegments`（`LGraphCanvas.ts:6299`），非直接调用 `renderLink`。
+
 ## 3. 打包与依赖
 
 ### 3.1 目录结构（多数派实践 [7/7]）

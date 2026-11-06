@@ -4,7 +4,8 @@
  *
  * Verbatim copy from https://github.com/vtokic/comfyui-cable-management
  * (upstream file: web/pathing/router.js). Registered in THIRD_PARTY_NOTICES.md at repo root.
- * Modifications by LuoWen: none (attribution header prepended only).
+ * Modifications by LuoWen: optional strict mode (`strict` option) — hard node boxes
+ * are impassable instead of 8x-cost, so a routed link never runs through a node.
  */
 // Orthogonal router on a sparse Hanan grid whose lanes are the edges of inflated
 // obstacle rects. Pure geometry: no DOM, no litegraph, no app.
@@ -35,7 +36,7 @@ const DIR = {
   none: [1, 0]
 }
 
-export function route({ start, end, startDir = 'right', endDir = 'left', obstacles, clearance = 16, stubStart = 24, stubEnd = 24, enforceStart = false, enforceEnd = false, vPad = 0, flatTol = 0 }) {
+export function route({ start, end, startDir = 'right', endDir = 'left', obstacles, clearance = 16, stubStart = 24, stubEnd = 24, enforceStart = false, enforceEnd = false, vPad = 0, flatTol = 0, strict = false }) {
   // Reroute ends (core passes CENTER -> 'none') are resolved by the registry to the
   // upstream's side before this call; the mapping here is only a fallback.
   const sv = DIR[startDir === 'none' ? 'right' : startDir] ?? DIR.right
@@ -92,7 +93,7 @@ export function route({ start, end, startDir = 'right', endDir = 'left', obstacl
   const si = [idx(X, sStub[0]), idx(Y, sStub[1])]
   const ei = [idx(X, eStub[0]), idx(Y, eStub[1])]
 
-  const path = astar(X, Y, si, ei, rects, hard, sv, ev, enforceStart, enforceEnd)
+  const path = astar(X, Y, si, ei, rects, hard, sv, ev, enforceStart, enforceEnd, strict)
   if (!path) return null
 
   // Waypoints: real endpoints, stubs, grid path. Collinear runs collapsed.
@@ -131,7 +132,7 @@ function clearV(x, ya, yb, rects) {
   return true
 }
 
-function astar(X, Y, si, ei, rects, hard, sv, ev, enforceStart, enforceEnd) {
+function astar(X, Y, si, ei, rects, hard, sv, ev, enforceStart, enforceEnd, strict) {
   const W = X.length, H = Y.length
   const id = (i, j) => j * W + i
   // State carries entry axis (0 h, 1 v, -1 start) for the bend penalty.
@@ -182,6 +183,10 @@ function astar(X, Y, si, ei, rects, hard, sv, ev, enforceStart, enforceEnd) {
       let mult = 1
       if (!free) {
         const overNode = nax === 0 ? !clearH(Y[j], X[i], X[ni], hard) : !clearV(X[i], Y[j], Y[nj], hard)
+        // LuoWen strict mode: never cross a real node box. Grazing the inflated
+        // clearance band stays legal (SOFT_MULT). If the only way out is through a
+        // node, the search fails and the caller degrades that link to native.
+        if (overNode && strict) continue
         mult = overNode ? BLOCKED_MULT : SOFT_MULT
       }
       // Vertical travel carries an epsilon surcharge so equal-cost bend placements

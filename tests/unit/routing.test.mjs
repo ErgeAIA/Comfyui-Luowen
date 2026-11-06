@@ -105,6 +105,39 @@ test('route: 反向连接（目标在左侧）走完整搜索，不只靠直线'
   }
 });
 
+test('route strict: 硬障碍禁行——非严格模式会穿节点，严格模式必然绕开', () => {
+  // 一堵 100px 宽的高墙横在两点之间：穿墙代价 100×8=800，绕行约 1230
+  const wall = [[50, -400, 100, 1000]];
+  const opts = {
+    start: [0, 100],
+    end: [200, 100],
+    startDir: 'right',
+    endDir: 'left',
+    obstacles: wall,
+    clearance: 16,
+    stubStart: 24,
+    stubEnd: 24,
+    vPad: 8,
+  };
+  const loose = route({ ...opts });
+  assert.ok(Array.isArray(loose), '非严格模式应返回路径');
+  // 非严格（上游 best-effort）确实允许穿墙：默认行为保持不动
+  let looseCrosses = false;
+  try {
+    assertAvoidsBox(loose, [46, -404, 154, 604]);
+  } catch {
+    looseCrosses = true;
+  }
+  assert.ok(looseCrosses, `非严格模式预期穿墙，实际: ${JSON.stringify(loose)}`);
+
+  const strict = route({ ...opts, strict: true });
+  assert.ok(Array.isArray(strict), '严格模式应能绕行（存在净空路径）');
+  assert.deepEqual(strict[0], [0, 100]);
+  assert.deepEqual(strict[strict.length - 1], [200, 100]);
+  assertOrthogonal(strict);
+  assertAvoidsBox(strict, [46, -404, 154, 604]);
+});
+
 test('routeCache: 同版本命中、版本升级失效、超限回收', () => {
   const cache = createRouteCache({ max: 2 });
   cache.set('k', 1, [[0, 0], [1, 0]]);

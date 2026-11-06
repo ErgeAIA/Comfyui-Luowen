@@ -17,5 +17,12 @@
 - 前端单元测试 17 项（`node --test tests/unit/*.test.mjs`）：正交性、避障、反向连接、lane、缓存、trace 几何
 - 文档 `docs/routing-algorithm.md`；MIT 复用的 Cable Management 几何内核登记于 `THIRD_PARTY_NOTICES.md`
 
+### Fixed
+
+- 障碍矩形坐标错误（`getBounding()` 已返回绝对坐标，之前重复叠加了 `pos`），导致线路从节点下方穿过
+- 新增路由严格模式：节点框禁行；无净空路径的线自动降级原生，不再穿过节点
+- 拖动节点时连接线保持正交（两折预览），不再变回贝塞尔曲线
+- 悬停线路任意位置即高亮整条线（此前只有中心圆点可感知）
+
 [Unreleased]: https://github.com/ErgeAIA/Comfyui-Luowen/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/ErgeAIA/Comfyui-Luowen/releases/tag/v0.1.0

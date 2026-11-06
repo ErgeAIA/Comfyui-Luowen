@@ -17,6 +17,7 @@ export function graphLinks(graph) {
 }
 
 // 节点矩形（graph 坐标）：折叠节点取其标题栏包围盒（getBounding 优先，pos/size 兜底）
+// 注意：LiteGraph 的 getBounding() 返回的是**绝对** [x, y, w, h]（已含 pos），不可再加 pos。
 export function nodeRects(graph) {
   const rects = [];
   for (const n of graphNodes(graph)) {
@@ -28,11 +29,13 @@ export function nodeRects(graph) {
     let h;
     if (typeof n.getBounding === 'function') {
       try {
-        const b = n.getBounding(); // [dx, dy, width, height]（相对 pos）
-        x = Math.round(n.pos[0] + (b[0] ?? 0));
-        y = Math.round(n.pos[1] + (b[1] ?? 0));
-        w = Math.max(1, Math.round(b[2] ?? n.size?.[0] ?? 200));
-        h = Math.max(1, Math.round(b[3] ?? n.size?.[1] ?? 100));
+        const b = n.getBounding(); // [x, y, width, height]（绝对坐标）
+        if (Number.isFinite(b?.[0]) && Number.isFinite(b?.[1])) {
+          x = Math.round(b[0]);
+          y = Math.round(b[1]);
+        }
+        w = Math.max(1, Math.round(b?.[2] ?? n.size?.[0] ?? 200));
+        h = Math.max(1, Math.round(b?.[3] ?? n.size?.[1] ?? 100));
       } catch {
         w = Math.max(1, Math.round(n.size?.[0] ?? 200));
         h = Math.max(1, Math.round(n.size?.[1] ?? 100));

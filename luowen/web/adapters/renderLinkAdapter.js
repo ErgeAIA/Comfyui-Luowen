@@ -13,6 +13,7 @@
 
 import { route } from '../geometry/router.js';
 import { emit as emitRounded, measure as measurePts, pointAt } from '../geometry/trace.js';
+import { previewPath } from '../geometry/preview.js';
 import { obstacleHash, toRawRects, corridorClear } from '../geometry/obstacles.js';
 import { allocateLanes, laneHash as computeLaneHash } from '../routing/laneAssign.js';
 import { createRouteCache } from '../routing/routeCache.js';
@@ -36,8 +37,18 @@ const state = {
   settings: { enabled: true, style: 'orthogonal', avoidance: 'standard' },
   frame: { obstacleHashStr: '', version: 0, rects: [], laneHashStr: '', lanes: null, linksHashStr: '' },
   cache: createRouteCache({ max: 4096 }),
+  routes: new Map(), // linkId -> 当前绘制的折线（悬停命中 + 调试用）
+  hoverLinkId: null,
+  hoverBound: false,
+  counters: { preview: 0, strictNull: 0, straight: 0, routed: 0 },
+  trace: [],
   warned: false,
 };
+
+function traceEntry(e) {
+  state.trace.push(e);
+  if (state.trace.length > 40) state.trace.shift();
+}
 
 function warnOnce(...args) {
   if (!state.warned) {
@@ -59,6 +70,7 @@ export function beginFrame(canvas) {
     state.frame.obstacleHashStr = oh;
     state.frame.rects = rects;
     state.frame.version += 1;
+    state.routes.clear();
   } else {
     state.frame.rects = rects;
   }
@@ -77,24 +89,81 @@ function sharpPath(path, pts) {
   for (let i = 1; i < pts.length; i++) path.lineTo(pts[i][0], pts[i][1]);
 }
 
+// 拖拽期预览函数在 geometry/preview.js（纯函数，可单测）
+
+// ---------- 整线悬停（只读渲染状态，不碰图数据） ----------
+
+function pointSegDist(px, py, ax, ay, bx, by) {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const len2 = dx * dx + dy * dy;
+  let t = len2 ? ((px - ax) * dx + (py - ay) * dy) / len2 : 0;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+
+function distToPolyline(px, py, pts) {
+  let d = Infinity;
+  for (let i = 1; i < pts.length; i++) {
+    d = Math.min(d, pointSegDist(px, py, pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1]));
+  }
+  return d;
+}
+
+function onPointerMove(e) {
+  const cfg = state.settings;
+  if (!state.installed || !cfg.enabled || cfg.style === 'native') return;
+  const canvas = app.canvas;
+  if (!canvas?.canvas) return;
+  const rect = canvas.canvas.getBoundingClientRect();
+  // LiteGraph: canvas = (graph + offset) * scale（DragAndScale.convertOffsetToCanvas）
+  const gx = (e.clientX - rect.left) / canvas.ds.scale - canvas.ds.offset[0];
+  const gy = (e.clientY - rect.top) / canvas.ds.scale - canvas.ds.offset[1];
+  const tol = 8 / canvas.ds.scale;
+  let best = null;
+  let bestD = tol;
+  for (const [id, pts] of state.routes) {
+    const d = distToPolyline(gx, gy, pts);
+    if (d <= bestD) {
+      bestD = d;
+      best = id;
+    }
+  }
+  if (best !== state.hoverLinkId) {
+    state.hoverLinkId = best;
+    canvas.setDirty(true, true);
+  }
+}
+
+function onPointerLeave() {
+  if (state.hoverLinkId !== null) {
+    state.hoverLinkId = null;
+    app.canvas?.setDirty?.(true, true);
+  }
+}
+
 // 返回 true = 已由络纹绘制；false = 调用方回退原函数
 function tryCustomRender(ctx, a, b, link, color, start_dir, end_dir, opts) {
   const cfg = state.settings;
   const o = opts ?? {};
-  if (!cfg.enabled || cfg.style === 'native') return false;
-  if (!a || !b || !link || link.id == null || link.id < 0) return false; // 拖拽预览 / floating
-  if (o.disabled || o.reroute) return false; // bypass；reroute 共享段阶段 1 保守回退（PRD F-010）
-  if (this !== app.canvas) return false; // 覆盖层/派生渲染器借用（R12）→ 直通
+  const bypass = () => {
+    if (link?.id != null) state.routes.delete(link.id); // 本帧原生接管：丢弃旧调试快照
+    return false;
+  };
+  if (!cfg.enabled || cfg.style === 'native') return bypass();
+  if (!a || !b || !link || link.id == null || link.id < 0) return bypass(); // 拖拽预览 / floating
+  if (o.disabled || o.reroute) return bypass(); // bypass；reroute 共享段阶段 1 保守回退（PRD F-010）
+  if (this !== app.canvas) return bypass(); // 覆盖层/派生渲染器借用（R12）→ 直通
 
   const canvas = app.canvas;
   const graph = canvas?.graph;
-  if (!graph) return false;
+  if (!graph) return bypass();
 
   const ax = a.x ?? a[0];
   const ay = a.y ?? a[1];
   const bx = b.x ?? b[0];
   const by = b.y ?? b[1];
-  if (![ax, ay, bx, by].every(Number.isFinite)) return false;
+  if (![ax, ay, bx, by].every(Number.isFinite)) return bypass();
 
   const lanes = state.frame.lanes?.get(link.id) ?? { stubOut: DEFAULT_STUB, stubIn: DEFAULT_STUB };
   const clearance = AVOID_CLEARANCE[cfg.avoidance] ?? 16;
@@ -102,36 +171,59 @@ function tryCustomRender(ctx, a, b, link, color, start_dir, end_dir, opts) {
 
   let pts = state.cache.get(key, state.frame.version);
   if (!pts) {
-    if (canvas.pointer && canvas.pointer.isDown) return false; // 冻结期不重算 → 本线原生
-    // 直线捷径仅限共线（水平/竖直）且走廊净空——正交样式禁止斜线（PRD §5.2）
-    const colinear = Math.abs(ay - by) < 2 || Math.abs(ax - bx) < 2;
-    if (colinear && corridorClear(ax, ay, bx, by, state.frame.rects, [link.origin_id, link.target_id], clearance, VPAD)) {
-      pts = [
-        [ax, ay],
-        [bx, by],
-      ];
+    if (canvas.pointer && canvas.pointer.isDown) {
+      // 拖拽期：端点正在移动的线用正交预览（不进缓存），避免整线回退成原生曲线
+      state.counters.preview += 1;
+      traceEntry({ id: link.id, mode: 'preview', rects: state.frame.rects.length, ver: state.frame.version });
+      pts = previewPath(ax, ay, bx, by, DIR_NAME[start_dir] ?? 'right', DIR_NAME[end_dir] ?? 'left', lanes.stubOut, lanes.stubIn);
     } else {
-      const raw = toRawRects(state.frame.rects, [link.origin_id, link.target_id]);
-      pts = route({
-        start: [ax, ay],
-        end: [bx, by],
-        startDir: DIR_NAME[start_dir] ?? 'right',
-        endDir: DIR_NAME[end_dir] ?? 'left',
-        obstacles: raw,
-        clearance,
-        stubStart: lanes.stubOut,
-        stubEnd: lanes.stubIn,
-        vPad: VPAD,
-        flatTol: 0,
-      });
-      if (!pts) return false; // A* 失败/预算超限 → 原生降级（degraded, alive）
+      // 直线捷径仅限共线（水平/竖直）且走廊净空——正交样式禁止斜线（PRD §5.2）
+      const colinear = Math.abs(ay - by) < 2 || Math.abs(ax - bx) < 2;
+      if (colinear && corridorClear(ax, ay, bx, by, state.frame.rects, [link.origin_id, link.target_id], clearance, VPAD)) {
+        state.counters.straight += 1;
+        traceEntry({ id: link.id, mode: 'straight', rects: state.frame.rects.length, ver: state.frame.version });
+        pts = [
+          [ax, ay],
+          [bx, by],
+        ];
+      } else {
+        const raw = toRawRects(state.frame.rects, [link.origin_id, link.target_id]);
+        pts = route({
+          start: [ax, ay],
+          end: [bx, by],
+          startDir: DIR_NAME[start_dir] ?? 'right',
+          endDir: DIR_NAME[end_dir] ?? 'left',
+          obstacles: raw,
+          clearance,
+          stubStart: lanes.stubOut,
+          stubEnd: lanes.stubIn,
+          vPad: VPAD,
+          flatTol: 0,
+          strict: true, // 硬框禁行：宁可降级原生，也不从节点身上穿过去
+        });
+        if (!pts) {
+          state.counters.strictNull += 1;
+          traceEntry({ id: link.id, mode: 'strictNull', rects: state.frame.rects.length, ver: state.frame.version });
+          return bypass(); // A* 失败/预算超限 → 原生降级（degraded, alive）
+        }
+        state.counters.routed += 1;
+        traceEntry({
+          id: link.id,
+          mode: 'route',
+          ver: state.frame.version,
+          stub: [lanes.stubOut, lanes.stubIn],
+          raw: raw.length,
+          pts,
+        });
+      }
+      state.cache.set(key, state.frame.version, pts);
     }
-    state.cache.set(key, state.frame.version, pts);
   }
 
   const width = typeof canvas.connections_width === 'number' ? canvas.connections_width : 2;
   const stroke = typeof color === 'string' && color ? color : '#94a3b8';
-  const hovered = canvas.over_link_center === link;
+  // 整线悬停（本适配器命中折线任意位置）或原生中心点悬停
+  const hovered = state.hoverLinkId === link.id || canvas.over_link_center === link;
 
   const path = new Path2D();
   if (cfg.style === 'smooth') emitRounded(path, pts);
@@ -144,6 +236,13 @@ function tryCustomRender(ctx, a, b, link, color, start_dir, end_dir, opts) {
   ctx.lineJoin = 'miter';
   ctx.lineCap = 'round';
   ctx.stroke(path);
+  if (hovered) {
+    // 高亮：同路径白色柔光叠加（只改绘制，不改数据）
+    ctx.globalAlpha = 0.35;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = width + 3;
+    ctx.stroke(path);
+  }
   // 中心 marker：与 _pos 对齐（悬停 8×8 / 线上菜单锚点）
   ctx.beginPath();
   ctx.arc(mid.x, mid.y, 4, 0, Math.PI * 2);
@@ -155,6 +254,8 @@ function tryCustomRender(ctx, a, b, link, color, start_dir, end_dir, opts) {
   // 命中跟随：覆写渲染产物（不触碰图数据）
   link.path = path;
   link._pos = [mid.x, mid.y];
+  // 记录下来供整线悬停与调试 API 使用（只读渲染产物）
+  state.routes.set(link.id, pts);
   return true;
 }
 
@@ -194,6 +295,14 @@ export function install(canvas) {
   proto.drawConnections = wrappedDrawConnections;
   state.proto = proto;
   state.installed = true;
+
+  // 整线悬停：监听画布指针（只读，不拦截任何事件）
+  const el = canvas?.canvas;
+  if (el && !state.hoverBound) {
+    el.addEventListener('pointermove', onPointerMove);
+    el.addEventListener('pointerleave', onPointerLeave);
+    state.hoverBound = true;
+  }
   return true;
 }
 
@@ -203,12 +312,20 @@ export function uninstall() {
     if (state.proto.renderLink === state.wrappedRenderRef) state.proto.renderLink = state.originalRenderLink;
     if (state.proto.drawConnections === state.wrappedDrawRef) state.proto.drawConnections = state.originalDrawConnections;
   }
+  const el = app.canvas?.canvas;
+  if (el && state.hoverBound) {
+    el.removeEventListener('pointermove', onPointerMove);
+    el.removeEventListener('pointerleave', onPointerLeave);
+    state.hoverBound = false;
+  }
   state.proto = null;
   state.originalRenderLink = null;
   state.originalDrawConnections = null;
   state.wrappedRenderRef = null;
   state.wrappedDrawRef = null;
   state.installed = false;
+  state.routes.clear();
+  state.hoverLinkId = null;
   state.cache.clear();
 }
 
@@ -223,10 +340,23 @@ export function setSettings(partial) {
 
 export function getStats() {
   return {
+    rev: 'r2-strict',
     ...state.settings,
     installed: state.installed,
     obstacleVersion: state.frame.version,
     rects: state.frame.rects.length,
     cache: state.cache.stats(),
+    hovered: state.hoverLinkId,
+    routed: state.routes.size,
+    counters: { ...state.counters },
   };
+}
+
+// 调试/验收入口：返回当前绘制的折线（只读快照，不暴露内部对象）
+export function getDebugRoutes() {
+  return [...state.routes].map(([id, pts]) => ({ id, pts: pts.map((p) => [p[0], p[1]]) }));
+}
+
+export function getTrace() {
+  return [...state.trace];
 }

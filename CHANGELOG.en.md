@@ -17,5 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - 17 frontend unit tests (`node --test tests/unit/*.test.mjs`): orthogonality, avoidance, reverse connections, lanes, cache, trace geometry
 - `docs/routing-algorithm.md`; MIT-reused Cable Management geometry kernel registered in `THIRD_PARTY_NOTICES.md`
 
+### Fixed
+
+- Wrong obstacle rectangles (`getBounding()` already returns absolute coordinates; `pos` was added twice), which let links run underneath nodes
+- Strict routing mode: node boxes are impassable; links without a clear path degrade to native instead of crossing nodes
+- Links stay orthogonal while dragging a node (two-bend preview) instead of reverting to Bezier curves
+- Hovering anywhere on a link now highlights the whole line (previously only the centre dot responded)
+
 [Unreleased]: https://github.com/ErgeAIA/Comfyui-Luowen/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/ErgeAIA/Comfyui-Luowen/releases/tag/v0.1.0

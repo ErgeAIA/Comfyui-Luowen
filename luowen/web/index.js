@@ -2,7 +2,7 @@
 // 设置项（PRD §5.4 首版少而明确）：总开关 / 线路样式三选一 / 避障档位。
 // 对外验证 API：window.LuoWen（status/rebase/verify——数据不变性机检，延续 phase0 方法）。
 
-import { install, uninstall, setSettings, getStats } from './adapters/renderLinkAdapter.js';
+import { install, uninstall, setSettings, getStats, getDebugRoutes, getTrace } from './adapters/renderLinkAdapter.js';
 import { graphNodes, linkTuples } from './adapters/graphRead.js';
 
 // 前端 1.55.18 只暴露 window.comfyAPI shim（见 docs/phase0/drawing-api-notes.md §2）
@@ -111,6 +111,8 @@ app.registerExtension({
 
     window.LuoWen = {
       status: () => getStats(),
+      routes: () => getDebugRoutes(),
+      trace: () => getTrace(),
       setEnabled: (v) => {
         setSettings({ enabled: !!v });
         if (v) install(app.canvas);
