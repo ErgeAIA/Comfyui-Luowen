@@ -4,6 +4,7 @@
 
 import { install, uninstall, setSettings, getStats, getDebugRoutes, getTrace } from './adapters/renderLinkAdapter.js';
 import { graphNodes, linkTuples } from './adapters/graphRead.js';
+import { installSnap, uninstallSnap, setSnapEnabled, getSnapDebug } from './snap/dragSnap.js';
 
 // 前端 1.55.18 只暴露 window.comfyAPI shim（见 docs/phase0/drawing-api-notes.md §2）
 const { app } = window.comfyAPI.app;
@@ -12,6 +13,7 @@ const ENABLED_ID = 'LuoWen.Enabled';
 const STYLE_ID = 'LuoWen.WireStyle';
 const AVOID_ID = 'LuoWen.NodeAvoidance';
 const CHAMFER_ID = 'LuoWen.Chamfer';
+const SNAP_ID = 'LuoWen.SnapAlign';
 
 let baseline = null;
 
@@ -65,8 +67,25 @@ app.registerExtension({
       type: 'boolean',
       defaultValue: true,
       onChange: (v) => {
-        if (v) install(app.canvas);
-        else uninstall();
+        if (v) {
+          install(app.canvas);
+          installSnap(app.canvas);
+        } else {
+          uninstall();
+          uninstallSnap();
+        }
+      },
+    },
+    {
+      id: SNAP_ID,
+      name: '对齐吸附',
+      category: ['LuoWen'],
+      tooltip: '拖动单个节点时，与相连邻居的引脚行做 10px（图坐标）对齐吸附；离开 15px 才脱离。关闭后与未安装一致',
+      type: 'boolean',
+      defaultValue: true,
+      onChange: (v) => {
+        if (v) installSnap(app.canvas);
+        setSnapEnabled(!!v);
       },
     },
     {
@@ -108,6 +127,8 @@ app.registerExtension({
   setup() {
     const ok = install(app.canvas);
     console.log('[LuoWen] 安装:', ok ? 'OK' : 'FAIL（能力检测未过，保持原生渲染）');
+    const snapOk = installSnap(app.canvas);
+    console.log('[LuoWen] 对齐吸附:', snapOk ? 'OK' : 'SKIP（非 Vue 节点模式或能力未就绪）');
     try {
       setSettings({
         enabled: !!readSetting(ENABLED_ID, true),
@@ -118,17 +139,36 @@ app.registerExtension({
     } catch {
       /* 设置读取失败保持默认 */
     }
+    setSnapEnabled(!!readSetting(SNAP_ID, true));
     if (!baseline) baseline = snapshotGraph();
 
     window.LuoWen = {
       status: () => getStats(),
       routes: () => getDebugRoutes(),
       trace: () => getTrace(),
+      snapDebug: () => getSnapDebug(),
       setEnabled: (v) => {
         setSettings({ enabled: !!v });
-        if (v) install(app.canvas);
-        else uninstall();
+        if (v) {
+          install(app.canvas);
+          installSnap(app.canvas);
+        } else {
+          uninstall();
+          uninstallSnap();
+        }
         return getStats().installed;
+      },
+      setSnapEnabled: (v) => {
+        // 调试对照入口：返回实际生效值；同步写入设置，便于和「关闭 / 未安装」对照
+        const on = !!v;
+        if (on) installSnap(app.canvas);
+        setSnapEnabled(on);
+        try {
+          app.ui?.settings?.setSettingValue?.(SNAP_ID, on);
+        } catch {
+          /* 设置不可写时仅内存生效 */
+        }
+        return getSnapDebug().enabled;
       },
       setStyle: (v) => {
         setSettings({ style: v });

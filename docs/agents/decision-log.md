@@ -16,6 +16,39 @@ description: >
 > 格式：`## DEC-NNN: 标题`，新条目置顶，NNN 三位递增。
 > 字段：`- **日期**：` / `- **背景**：` / `- **决策**：` / `- **验证**：`
 
+## DEC-015: 3A-2 接宿主——Vue 后置 rAF、引脚行候选、自建 DOM overlay、设置开关
+
+- **日期**：2026-11-06
+- **背景**：3A-1 的 `alignSnap` 纯函数完成，需要接入宿主（ComfyUI 1.55.18，`vueNodesMode=true`）。约束：写入必须晚于原生 rAF；收尾必须早于 `mouseup` 快照；多选跳过；提示线不参与命中测试；用户明确保留「相连邻居优先」的 2px 平手窗口语义，不改。
+- **决策**：
+  1. **挂载**：window 冒泡阶段监听 `pointerdown/pointermove/pointerup/pointercancel/contextmenu`；`pointermove` 每帧只排一个自建 rAF，晚于原生 `handleDrag` 的 rAF；`pointerup` 内取消未执行 rAF 并同步做最后写入，早于 changeTracker 的 `mouseup` 快照。`Alt` 拖动与 `pinned`/`readOnly` 直接不接管。
+  2. **候选**：矩形来自 `graphRead.nodeRects`，统一换算成 body 坐标（`y + NODE_TITLE_HEIGHT`、`h - NODE_TITLE_HEIGHT`，折叠节点跳过）；`adjacent` 由 `graphLinks` 的 origin/target 判定。引脚行候选 `yTarget = nodeY + (neighborPinY - movedPinY)`，只按被拖动节点 `top` 匹配并 `skipX`，使两端引脚 y 相等、连线变直。
+  3. **多选**：`canvas.selectedItems.size > 1` 跳过并清空迟滞、隐藏提示线。实测注意点：原生 `pointerdown` 会重置选择集，合成多选必须在 `pointerdown` 之后再调用 `canvas.selectItems([...], true)` 才生效。
+  4. **提示线**：自建 `#luowen-snap-overlay`（absolute、`pointer-events:none`、z-index 500）挂在运行时 `#graph-canvas-container` 末尾；按 `(graph + ds.offset) * ds.scale` 同步；`pointerup` 立即 `display:none`。源码包无该容器 id 字符串，接入点结论只以运行时 DOM 为准（见 conventions §2.7）。
+  5. **开关**：新增设置 `LuoWen.SnapAlign`（默认开），关闭后适配器不接管拖动、不显示提示线，行为与未安装一致；`LuoWen.setSnapEnabled(bool)` 与 `LuoWen.snapDebug()` 作为对照入口。
+- **验证**（宿主 1100×800，`ds.scale=0.9`，`ds.offset=[416,109.6876]`；node 62 CLIPLoader → node 67 CLIPTextEncode，link 79）：
+  - 引脚吸附：raw y=295 → 落点 290.00006（pin 目标 290.00006），`pinDy=0`；link 79 折线 `[[0,302.000064],[170.00001,302.000064]]`，完全水平。
+  - 超距不吸附：选完全自由落点 raw (-340,382) → 落点不变，`state` 两轴均 null、无提示线。
+  - 迟滞：raw 299 → 吸附 290；raw 302（12px）与 304（14px）仍保持 290；raw 306（16px）引脚解除（随后被 node 63 中线的通用锚点捕获，属 3A-1 既有语义）。
+  - 多选：选择集 2 时 `multi=true`、`state=null`、无提示线，落点严格等于 raw。
+  - overlay：z=500（卡片 19~34、选择框 9999、菜单 999、提示框 99999），`elementFromPoint` 返回 `CANVAS#graph-canvas`；`pointerup` 同帧两条线 `display:none`。
+  - 不变量：`LuoWen.verify()` 前后 `ok:true`（10 节点/10 连线）；除 node 62 外其余节点坐标零差异；10 条 link 五元组逐一相同。
+  - undo：单次拖动（3 次 pointermove）队列 6→7（增量 1）；`changeTracker.undo()` 后回到拖动前 310.00006，队列回到 6。
+  - 单测：`node --test tests/unit/*.test.mjs` **69/69**（新增 6 项 pin 目标与迟滞）。
+- **未覆盖**：① 真实鼠标/触控笔与触摸拖动（本轮全部用合成 PointerEvent 驱动真实 Vue 拖动）；② Legacy 拖动（关闭 Vue 节点）未实现也未测；③ 越过 15px 解除后仍可能被其他节点的通用锚点立即捕获，是否放宽 2px 平手窗口待宿主长期实测；④ 截图仅 OS 窗口截图落盘（Chrome DevTools MCP 的 `filePath` 受 workspace roots 限制），未做逐帧录屏；⑤ 多节点高密度布局下「完全自由落点」很少，测试 2 需先算锚点距离再选点。
+
+## DEC-014: 3A 修饰键改设置开关；提示线改 DOM overlay；对齐吸附内核落地
+
+- **日期**：2026-11-06
+- **背景**：3A-0 查证确认宿主走 Vue 节点拖动，Alt（克隆拖动）与 Shift（多选 + 原生网格吸附）在 pointerdown 阶段均被占用，且拖动中松开任一修饰键都会触发 `captureState` 把一次拖动拆成多条 undo（`changeTracker.ts:559-564`、`:580-585`）。原「默认 Alt，被占用改 Shift」两条均不成立。
+- **决策**（用户拍板）：
+  1. **不绑修饰键**。改为设置项「对齐吸附 开/关」（默认开），由 `alignSnap` 的 `enabled` 入参控制；Alt/Shift/Ctrl/Meta 原生行为一律不动。理由：B（Shift 重定义为网格吸附）与 C（另选键）交互代价过大，keyup 拆 undo 风险不可接受。
+  2. **提示线走 DOM overlay**：`pointer-events:none`，z-index 高于 Vue 节点卡片层，随 `canvas.ds` 同步平移/缩放；拖动结束立即消失，不参与命中测试。**不用** `canvas.onDrawForeground`。若宿主已有 overlay 容器/插槽则优先复用；无则自建，接入点在 3A-2 先给结论再实现。
+  3. **保留 3A-0 约束**：吸附写入必须排在原生 rAF 之后；收尾写入在 `pointerup` 内、早于 `window mouseup` 快照（保证一次拖动一条 undo）；`selectedItems.size > 1` 跳过；`snapTol=10` 图坐标、脱离阈值 15px 迟滞。
+  4. **内核契约**：新增纯函数 `luowen/web/snap/alignSnap.js`，入参 `{pos,size,candidates,state,multiSelect,enabled,snapTol,releaseTol}`，出参 `{position,delta,snapped,guides,state,skipped}`。每轴独立（x 用 left/center/right，y 用 top/middle/bottom）；距离差 <2px 的近似平手窗口内相连邻居 `adjacent=true` 优先，同档取更近，完全等距但落点不同判为歧义、该轴不吸附；距离差 ≥2px 时取更近者。多选与总开关由调用方标志跳过并清空迟滞状态。
+- **验证**：单元测试 **64/64**（新增 `tests/unit/alignSnap.test.mjs` 13 项，覆盖常量量纲、单轴/双轴、邻居平手优先、≥2px 取近、同级取近、等距歧义、重复候选、10px 进入/15px 迟滞边界、多选跳过、开关关闭、大图坐标）。3A-1 只做纯函数与单测，不接宿主。
+- **未覆盖**：① 3A-2 的 Vue 拖动适配器、overlay 接入点与宿主实测；② `adjacent` 由调用方按连接关系计算，3A-2 再定实现位置；③ 多选判定的真实来源（`canvas.selectedItems`）未实测；④ 迟滞状态跨 drag 会话的清理时机由适配器负责；⑤ 触摸/触控笔未覆盖。
+
 ## DEC-013: 产品判定顺序——可读性 > 简洁 > 美化（输入侧不得共用几何）
 
 - **日期**：2026-11-06

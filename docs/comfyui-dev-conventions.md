@@ -148,6 +148,86 @@
 - **`over_link_center` 只表示中心点 8×8 悬停**：`_getLinkCentreOnPos` 遍历 `renderedPaths` 比较 `_pos` 周围 `8×8`（`LGraphCanvas.ts:5196-5204`、`:3549-3553`）；它不负责整条线的高亮。整线悬停高亮需扩展自行实现（络纹用 pointermove + 折线距离）。
 - **`renderLink` 参数**：`(ctx, a, b, link, skip_border, flow, color, start_dir, end_dir, opts)`，方向用 `LinkDirection` 枚举 `NONE=0/UP=1/DOWN=2/LEFT=3/RIGHT=4/CENTER=5`（`types/globalEnums.ts`）；`opts.reroute` 表示共享段，`opts.disabled` 表示 bypass。批量绘制入口是 `_renderAllLinkSegments`（`LGraphCanvas.ts:6299`），非直接调用 `renderLink`。
 
+### 2.7 节点拖动挂载点与磁吸可行性（3A-0 查证，2026-11-06）
+
+> 取证：安装包 sourcemap 内嵌 TS（同 §2.6 来源）+ 宿主运行时读取（Playwright 连 `http://127.0.0.1:8188`，读 `window.LiteGraph`、`window.comfyAPI.app.app`、`app.ui.settings`）。行号按前端 1.55.18。
+> 运行时实测（2026-11-06）：`LiteGraph.vueNodesMode = true`（`Comfy.VueNodes.Enabled = true`，DOM 存在 `.lg-node[data-node-id]`）；`LiteGraph.alt_drag_do_clone_nodes = true`；`LiteGraph.alwaysSnapToGrid = false`；`Comfy.SnapToGrid.GridSize = 10`；`pysssss.SnapToGrid = false`；`canvas.ds.scale ≈ 0.8264`；`canvas.onDrawForeground` 已被其他扩展链式占用（typeof function）。
+
+**当前宿主生效的拖动路径（Vue 节点模式）**
+
+- `_processNodeClick` 在 `LiteGraph.vueNodesMode` 为真时直接 `return`（`LGraphCanvas.ts:2784-2788`），节点拖动完全由 Vue 组件处理，legacy `item.move` 循环不参与。
+- 生命周期：`useNodePointerInteractions.ts:63-98`（pointermove 超过 5px 阈值才进入拖动；阈值定义 `useClickDragGuard.ts:20`）、`:123-150`（pointerup）、`:152-155`（pointercancel）。
+- 位置写入：`useNodeDrag.ts:137-192` `updateNodePositions` → `mutations.batchMoveNodes`（`:181`）；delta 由 `transformState.screenToCanvas` 求出（`:143-153`），是**图坐标**。
+- 写入频率：每帧最多一次，`handleDrag` 用 rAF 去重（`useNodeDrag.ts:194-230`，注释 `:213-214`）。
+- 收尾：`endDrag`（`useNodeDrag.ts:232-298`）只在 `shouldSnap(event)`（`:235`）时再写一次网格吸附位置（`:291`）；未执行的 rAF 会被取消（`:312-315`）。**最终位置 = 最后一次执行的 rAF，可能比指针落后 ≤1 帧**。
+- 多选：`startDrag` 记录其他选中节点起点并按同一 delta 更新（`useNodeDrag.ts:58-95`）。v1 需按 `canvas.selectedItems` 跳过（Vue 选中会同步到 legacy canvas：`useNodeEventHandlers.ts:32-52`）。
+
+**原生覆盖关系（决定能否在回调里改位置）**
+
+- Vue 模式每帧都从 `dragStartPos + canvasDelta` **绝对重算**（`useNodeDrag.ts:137-153`），先写的值会在下一帧被覆盖；吸附必须「晚于原生 rAF 再写一次」。
+- Vue 模式可用的写入口：`node.setPos`（`LGraphNode.ts:752-768`）→ `setNodePosition/commitNodePosition`（`graphLayoutAttachment.ts:170-196`）→ `layoutStore.applyOperation('moveNode')`（`:451-461`）。`node.pos` 是 layoutStore 投影，`serialize()` 直接读它（`LGraphNode.ts:752-754`、`:1257`），写入会经 `onGeometryChange` 触发 `canvas.setDirty(true,true)`（`notifyLayoutChanges.ts:21-26`）。
+- Legacy 路径（关闭 Vue 节点时才走）：`processMouseMove` 每个 pointermove 用 `delta/ds.scale` 调 `item.move`（`LGraphCanvas.ts:3577-3592`），无 rAF 节流；`_startDraggingItems` 用 `beforeChange/afterChange` 包住整段（`:3645-3659`）。改位置要么改 `move` 入参、要么包装 `move`。
+- **没有可用的逐帧节点移动回调**：`onNodeMoved` 已标 `@deprecated`、只处理单节点、只在拖动结束触发一次（`LGraphCanvas.ts:871`、`:3701-3711`）；Vue 模式没有调用点（`useNodeDrag.ts:232-298` 无该调用），运行时 `canvas.onNodeMoved === undefined`。`graphChanged` 在 `captureCanvasState` 提交后才派发（`changeTracker.ts:425-436`），此时 undo 快照已形成，不能用于改位置。
+
+**undo 次数（一次拖动）**
+
+- 正常情况 = 一条：Vue 拖动期间不进入 `before/after-change`（`useNodeDrag.ts` 无调用），只由 `window mouseup` 的 `captureState` 记一次（`changeTracker.ts:588-590`）；Legacy 由 `changeCount` 抑制中间快照（`:409-418`、`:507-515`），结束一次 capture。
+- **例外会拆成多条**：Vue 拖动中松开 Ctrl/Shift/Alt/Meta，`keyup` 会主动 `captureState()`（`changeTracker.ts:559-564`、`:580-585`），把半途位置记成一条 undo。
+- 适配器收尾写入必须同步发生在 `pointerup` 内、早于 `window mouseup`；用 rAF 延后收尾会多记一条 undo。
+
+**坐标量纲**
+
+- Vue：`screenToCanvas` 差分（`useNodeDrag.ts:143-153`）；Legacy：`delta/ds.scale`（`LGraphCanvas.ts:3584-3585`）。两套都是**图坐标**，`snapTol=10px` 应按图坐标。
+- 后果：缩放 0.826 时 10 图 px ≈ 8.3 屏幕 px，200% 时 = 20 屏幕 px；迟滞 15px 同理随缩放变化。
+
+**修饰键占用（Alt 与 Shift 都不空）**
+
+- Alt：Vue 节点 pointerdown + `altKey` → `cloneNodes([node])` 并开拖克隆（`LGraphNode.vue:438-454`；运行时 `alt_drag_do_clone_nodes=true`）；Legacy Alt+拖克隆（`LGraphCanvas.ts:2488-2501`）；Alt+点 link 建 Reroute（`:2600-2613`）；Alt 框选减选（`:4395-4456`）。
+- Shift：拖动结束用 `shiftKey` 触发原生网格吸附（`useNodeSnap.ts:24-26`、`useNodeDrag.ts:235`、Legacy `LGraphCanvas.ts:3703-3704`）；拖动期间 `trackShiftKey` 向 canvas 派发合成 Shift 键事件（`useShiftKeySync.ts:37-54`、`useNodeDrag.ts:29,57`），使 `_shiftDown`（`LGraphCanvas.ts:4001`）→ `_snapToGrid`（`:5082-5085`）→ 网格吸附提示线（`:5139-5148`）。Shift/Ctrl/Meta 同时是多选键（`selectionUtils.ts:8-10`）。
+- 结论：四个修饰键在 pointerdown 阶段全部被占用；Alt 会克隆节点，Shift 会多选 + 网格吸附。原方案「默认 Alt，被占用改 Shift」两条都不成立，需要重选交互。
+- **3A-1 拍板（2026-11-06，DEC-014）**：不绑任何修饰键。改为设置项「对齐吸附 开/关」（默认开），由 `alignSnap` 的 `enabled` 入参控制；Alt/Shift/Ctrl/Meta 的原生行为一律不动。理由：Alt 克隆拖动、Shift 多选 + 网格吸附，且拖动中松开修饰键会额外 `captureState` 拆 undo（见上节），交互代价不可接受。
+
+**提示线绘制入口**
+
+> **3A-1 拍板（2026-11-06，DEC-014）：提示线改走 DOM overlay，不用 `canvas.onDrawForeground`。** 下列 canvas 入口与重绘事实保留备查，不作为实现方案；overlay 容器/插槽的宿主接入点在 3A-2 实查后再定，未查证前不宣称可复用。
+
+- 已否决入口：`canvas.onDrawForeground(ctx, visible_area)`（声明 `LGraphCanvas.ts:713-717`；在 `drawFrontCanvas` 内、`ds.toCanvasContext` 之后调用 `:5135`、`:5186`，图坐标，位于节点/连线之上）。不随缩放的是 `onDrawOverlay(ctx)`（`:881-882`、调用 `:5191`，屏幕坐标）。
+- 该入口已被其他扩展链式占用（运行时是包装后的函数），必须继续链式包装，不能覆盖（参考 `DomWidgets.vue` 的 `useChainCallback`）。
+- 原生 `drawSnapGuides`（`LGraphCanvas.ts:5139-5148`）与 `drawSnapGuide`（`:5961` 起）只服务网格吸附（Shift/alwaysSnap），不能用于邻居对齐；对齐提示线需自绘。
+- Vue 拖动期间 canvas 会重绘：`notifyLayoutChanges.ts:21-26` 的 `onGeometryChange` → `canvas.setDirty(true,true)`。
+- 1px 建议按屏幕像素：`lineWidth = 1/ds.scale`、`setLineDash([4/ds.scale, 4/ds.scale])`；按图坐标写 1 会随缩放变粗/变细。
+
+**可落地适配器形态（供 3A-2，非本次实现）**
+
+- 吸附内核已落地：`luowen/web/snap/alignSnap.js`（纯函数，图坐标；`enabled` 控制设置开关、`multiSelect` 由调用方跳过、`state` 承载 10→15 迟滞）。3A-2 只做宿主适配与提示线，不改内核契约。
+- Vue（当前宿主）：画布容器 capture 监听 `pointerdown` 命中 `.lg-node[data-node-id]` 记起点；`pointermove` 后排一个 rAF（晚于原生 rAF）→ 用 `ds.scale` 算 raw 图坐标 → `alignSnap` → `node.setPos()`；`pointerup` 同步收尾；`canvas.selectedItems.size > 1` 直接跳过；拖动阈值对齐 5px（`useClickDragGuard.ts:20`）。
+- Legacy（关闭 Vue 节点时）：包装 `LGraphNode.prototype.move`，在 `canvas.isDragging && selectedItems.size === 1` 时把 delta 改成吸附后的 delta。
+- 提示线：DOM overlay（`pointer-events:none`，z-index 高于 Vue 节点卡片层），按 `canvas.ds` 同步平移/缩放；拖动结束立即清空。不复用 canvas `onDrawForeground`。
+- 提示线数据只存内存，不写图数据；1px 虚线在 CSS px 下即 1 屏幕 px，不随缩放变粗。
+
+**交叉验证清单（每条 ≥2 个独立位置）**
+
+| 结论 | 证据 A | 证据 B |
+| --- | --- | --- |
+| 宿主为 Vue 拖动 | 运行时 `vueNodesMode=true`、`.lg-node` 存在 | `LGraphCanvas.ts:2784-2788` 提前 return |
+| Vue 每帧绝对重算并覆盖 | `useNodeDrag.ts:137-153` | `layoutStore.ts:1380-1411`（批量事务） |
+| 坐标是图坐标 | `useNodeDrag.ts:143-153` | `LGraphCanvas.ts:3584-3585` |
+| 无逐帧移动回调 | `LGraphCanvas.ts:871`、`:3701-3711` | `useNodeDrag.ts:232-298` 无 onNodeMoved |
+| 一次拖动一条 undo | `changeTracker.ts:409-418`、`:507-515` | `changeTracker.ts:588-590`（mouseup） |
+| 修饰键冲突 | `LGraphNode.vue:438-454`、运行时 clone 标志 | `useNodeSnap.ts:24-26`、`useShiftKeySync.ts:37-54`、`LGraphCanvas.ts:5082-5085` |
+| 提示线入口（canvas，已否决） | `LGraphCanvas.ts:713-717`、`:5135`、`:5186` | `notifyLayoutChanges.ts:21-26`、运行时 `onDrawForeground` 为函数 |
+| 提示线改 DOM overlay（决策，待 3A-2 实查） | DEC-014 | 用户拍板：`pointer-events:none`、z-index 高于节点卡片层、随 `ds` 变换 |
+
+**3A-2 宿主实测：overlay 接入点与层序（2026-11-06）**
+
+- **接入点 = 运行时 DOM `#graph-canvas-container`**。该 id 在本机前端源码包（`.verify/*.ts`）中没有字符串命中，属于模板产物，**只能以运行时 DOM 为准**；不宣称存在可复用的宿主 overlay 插槽，自建 overlay 挂在容器末尾。
+- 运行时容器实测：`position: relative`、`overflow: clip`；子级含 `CANVAS#graph-canvas`、选择框（z=9999）、`.node-tooltip`（z=99999）、`.comfy-menu`（z=999）、`.lg-node` 卡片。
+- 运行时 z 实测：`.lg-node` 卡片 **19~34**（选中/悬停会抬高，不是固定 1）；自建 `#luowen-snap-overlay` 用 **z=500**，高于全部卡片，低于选择框/菜单/提示框。
+- 位置换算沿用 `screen = (graph + ds.offset) * ds.scale`（`DragAndScale.ts:145-150`）；提示线按 `canvas.ds` 每帧同步。
+- 命中测试：`elementFromPoint` 在提示线上返回 `CANVAS#graph-canvas`（overlay `pointer-events:none`），证明不参与交互。
+- 代码位置：`luowen/web/snap/dragSnap.js:125-168`（host/ensureGuides）、`:170-191`（updateGuides）、`:211-249`（每帧吸附写入）、`:285-321`（`pointerup` 同步收尾）、`:333-374`（install/uninstall/开关）。
+- 拖动挂载顺序复核：window 冒泡监听 + 自排 rAF，晚于原生 `handleDrag` 的 rAF（`useNodeDrag.ts:194-230`）；收尾早于 changeTracker 的 `mouseup` 快照（`changeTracker.ts:588-590`）。
+
 ## 3. 打包与依赖
 
 ### 3.1 目录结构（多数派实践 [7/7]）

@@ -18,9 +18,30 @@ description: >
 ## 当前状态
 
 - **当前分支**：main
-- **阶段**：**阶段 2 返修 6b（输入侧走廊按接近方向嵌套）已实施，单测与实测完成，等待用户验收**；返修 6（多引脚共线）同批待验收；返修 5（绕障外角大斜切）仍待验收；通过后进入阶段 3
+- **阶段**：阶段 2 已验收并提交（commit `8614a8a`，14 文件）；阶段 3 进行中，3A-0 查证完成、3A-1 `alignSnap` 纯函数 + 单测完成、**3A-2 宿主适配器与 overlay 提示线已落地并完成宿主实测（未提交）**；待用户验收 3A-2，未进 3B
 - **代码**：`luowen/`（含 `routing/trunkPlan.js` 单主干共享几何、Ribbon 已移除、三档避障、预览、缓存、`geometry/chamfer.js` 绕障外角大斜切、`routing/laneAssign.js` 输入侧按接近方向嵌套分道 + 走廊净空顺延），已装本机 custom_nodes 实测
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2；Playwright 浏览器实测流程已打通
+- **本轮 3A-2 接宿主（2026-11-06，DEC-015；未提交）**：
+  - 新增 `luowen/web/snap/dragSnap.js`（install/uninstall/setSnapEnabled/getSnapDebug）；`index.js` 增加设置 `LuoWen.SnapAlign`（默认开）与 `LuoWen.setSnapEnabled` / `LuoWen.snapDebug` 调试入口。
+  - 挂载：window 冒泡 + 自排 rAF（晚于原生 `useNodeDrag.handleDrag`）；`pointerup` 同步收尾（早于 `mouseup` 快照）。候选：`nodeRects` 换算 body 坐标 + `graphLinks` 判 adjacent + 引脚行 `yTarget`（`skipX`）。多选 `selectedItems.size>1` 跳过。
+  - 提示线：自建 `#luowen-snap-overlay`（z=500、`pointer-events:none`）挂运行时 `#graph-canvas-container`；源码包无该容器字符串，结论以运行时 DOM 为准（conventions §2.7 已补）。
+  - 实测（scale 0.9，node 62→67，link 79）：±10px 内落点 290.00006（pinDy=0，link79 全 y=302.00006 水平）；完全自由落点 (-340,382) 不吸附；迟滞 12/14px 保持、16px 解除（随后被 node 63 通用锚点捕获）；多选不吸附无提示线；`elementFromPoint` 命中 canvas；`verify()` ok、其余节点坐标与 10 条 link 五元组零差异；单次拖动 undo +1、undo 后回 310.00006。
+  - 单测 `node --test tests/unit/*.test.mjs` **69/69**。截图：`.verify/shots/3a2-t1-pin-window.png`（引脚行对齐 + 水平提示线 + link79 变直）、`.verify/shots/3a2-t5-guide-window2.png`（提示线在卡片之上）；均为 OS 窗口截图（Chrome DevTools `filePath` 受 workspace roots 限制）。`.verify/shots/3a2-t5-guide-window.png` 截到的是另一浏览器实例（83% 缩放），不作为证据。
+  - 未覆盖：真实鼠标/触摸、Legacy 拖动模式、逐帧录屏、多节点高密度布局下的自由落点选取；解除后可能立即被其他锚点捕获（设计使然）。
+- **本轮 3A-0 拖动挂载点查证（2026-11-06，未改代码、未提交）**：
+  - 结论已写入 `docs/comfyui-dev-conventions.md` §2.7，附 file:line 与交叉验证表。
+  - 宿主实际走 Vue 节点拖动：运行时 `LiteGraph.vueNodesMode=true`，legacy `_processNodeClick` 直接 return（`LGraphCanvas.ts:2784-2788`）；legacy `item.move` 循环不参与。
+  - Vue 拖动每帧 rAF 绝对重算并 `batchMoveNodes`（`useNodeDrag.ts:137-192`）；无逐帧移动回调，`onNodeMoved` 仅拖动结束一次且 Vue 模式不调用（`LGraphCanvas.ts:871`、`:3701-3711`）。
+  - 坐标是图坐标（`screenToCanvas` / `delta/ds.scale`），`snapTol=10px` 按图坐标口径成立；缩放 0.826 时约 8.3 屏幕 px。
+  - undo 正常一次拖动一条；Vue 拖动中松开 Ctrl/Shift/Alt/Meta 会额外 `captureState`（`changeTracker.ts:559-564`、`:580-585`）。
+  - **Alt 与 Shift 均被占用**（Alt=克隆节点；Shift=多选+网格吸附），原「Alt 被占用改 Shift」不成立；修饰键方案需用户重新拍板后再进 3A-1。
+- **本轮 3A-1 对齐吸附内核（2026-11-06，DEC-014；未接宿主、未提交）**：
+  - 用户拍板：修饰键方案选 **A**（不绑修饰键，改设置项「对齐吸附 开/关」默认开）；提示线走 **DOM overlay**（`pointer-events:none`、z-index 高于节点卡片层、随 `canvas.ds` 同步），不用 `canvas.onDrawForeground`。
+  - 新增 `luowen/web/snap/alignSnap.js` 纯函数；`tests/unit/alignSnap.test.mjs` 13 项。
+  - 契约：入参 `{pos,size,candidates,state,multiSelect,enabled,snapTol,releaseTol}`；出参 `{position,delta,snapped,guides,state,skipped}`；全部图坐标，无屏幕像素。
+  - 规则：每轴独立（x left/center/right，y top/middle/bottom）；10 图 px 进入、15 图 px 脱离迟滞；距离差 <2px 平手窗口内 `adjacent` 邻居优先，同档取更近，完全等距但落点不同则歧义不吸附；≥2px 取更近；`multiSelect`/`enabled=false` 跳过并清空迟滞状态。
+  - 验证：`node --test tests/unit/*.test.mjs` **64/64** 通过（全量；alignSnap 新增 13 项）。
+  - 未覆盖：宿主拖动适配器、overlay 接入点、`adjacent` 来源、`selectedItems` 实测、跨 drag 会话状态清理、触摸/触控笔。
 - **本轮返修 6b 实施（2026-11-06，DEC-013 补记 2；待用户验收）**：
   - 规则（用户硬约束）：输入侧分道顺序按「线从哪一侧接近」决定，目标嵌套不交叉——上方来源引脚越高越贴节点，下方来源镜像（引脚越高越远），平走最外层；跨组按「上→下→平」一次编号。
   - 违反证据（改前 8px）：走廊 x=646/638/630/622（75/76/82/78），方向 up/up/down/down；78（pin394）比 82（pin374）更远，78↔82 两处相交（x=622 竖线穿 y=534 水平段；y=394 水平段穿 x=630 竖线）。
