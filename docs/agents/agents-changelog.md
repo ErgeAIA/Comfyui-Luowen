@@ -21,3 +21,6 @@ description: >
 - `<无标准契约文件> → 半程合成 → 直建当前 AGENTS.md；既有约定（PRD 硬约束 §0/§2.3/§9/§10/§18、GLOSSARY.md、docs/comfyui-dev-conventions.md、template/ComfyUI-Luowen/）以 keep 原地保留 + AGENTS.md 指针方式收编，无 update/drop/merge`
 - `IMPORTANT 行产品名 落纹（LuoWen） → update → 络纹（LuoWen）：用户裁决产品中文名为"络纹"（全局 38 处同步，PRD/README/CHANGELOG 双语/过程文档/phase0 原型注释一并更新，见 decision-log DEC-004）`
 - `Commands 表 3 行（无前端测试命令） → update → 新增「前端单元测试：node --test tests/unit/*.test.mjs」：阶段 1 引入 tests/ 后登记实际可用命令；Windows 上 node --test 传目录会 MODULE_NOT_FOUND，必须显式 glob`
+- `Commands 表「前端单元测试」来源列「阶段 1 引入（glob 必需…）」 → update（N4 删日期化出处，保留规则本体） → 现为「glob 必需：Windows 上 node --test 传目录会 MODULE_NOT_FOUND」`
+- `Toolchain 表缺前端单测运行时 → update（事实回填） → 新增「Node（前端单测运行时） | 24.22.1 | PATH（node --version）」`
+- `References 缺路由算法现状文档指针 → update → 新增「改路由几何 / 核对阶段 1–2 实现现状与实测记录 → 见 docs/routing-algorithm.md」：该文档为阶段 1–2 实现与实测的 spec-of-record，此前只能靠 project-progress 反查`

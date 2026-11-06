@@ -33,6 +33,7 @@ YOU MUST 术语用法先对齐 GLOSSARY.md，新术语先入表再使用
 | Python（宿主 embedded） | 3.13 | D:\AIGC\ComfyUI_windows_portable\python_embeded |
 | torch | 2.14.0+cu130 | 宿主 python_embeded\Lib\site-packages\torch\version.py |
 | codegraph | 1.6.2 | PATH |
+| Node（前端单测运行时） | 24.22.1 | PATH（node --version） |
 
 ## Commands
 
@@ -41,7 +42,7 @@ YOU MUST 术语用法先对齐 GLOSSARY.md，新术语先入表再使用
 | 启动验证宿主 | run_nvidia_gpu.bat | D:\AIGC\ComfyUI_windows_portable\run_nvidia_gpu.bat |
 | 查节点 schema | curl http://127.0.0.1:8188/object_info/<类名> | docs/comfyui-dev-conventions.md §6 |
 | Python 语法自检 | python_embeded\python.exe -I -m py_compile <files> | docs/comfyui-dev-conventions.md §6 |
-| 前端单元测试 | node --test tests/unit/*.test.mjs | 阶段 1 引入（glob 必需：Windows 上 node --test 传目录会 MODULE_NOT_FOUND） |
+| 前端单元测试 | node --test tests/unit/*.test.mjs | glob 必需：Windows 上 node --test 传目录会 MODULE_NOT_FOUND |
 
 ## Conventions
 
@@ -64,6 +65,7 @@ YOU MUST 术语用法先对齐 GLOSSARY.md，新术语先入表再使用
 
 - 实现功能 / 判断产品边界 → 见 docs/prd/luowen-prd-v1.0.md：功能范围、算法方案、验收标准与研发阶段
 - 写 ComfyUI 契约代码 / 查前端 API / 排查坑 → 见 docs/comfyui-dev-conventions.md：V1/V3 契约、1.55.18 前端 API、file:line 可复核
+- 改路由几何 / 核对阶段 1–2 实现现状与实测记录 → 见 docs/routing-algorithm.md：挂载链路、lane 分配、主干与斜切、缓存降级、返修实测
 - 术语分歧 / 命名取舍 → 见 GLOSSARY.md：项目术语与 Avoid 词
 - 起步新节点 / 对照契约写法 → 见 template/ComfyUI-Luowen/：已验证的最小插件包
 - 会话开始复述现状 → 见 docs/agents/project-progress.md：当前分支、阶段与最近进展

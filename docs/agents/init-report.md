@@ -56,3 +56,28 @@ description: >
 - 仓库尚无任何提交：首次提交（AGENTS + 过程文档 + 模板 + 文档）建议由用户确认后执行，本技能不做 git add/commit。
 - README 与 CHANGELOG 底部链接为 `github.com/username/repo` 占位，仓库 URL 确定后交 changelog-manager / git-manager 更新。
 - PRD 阶段 0（绘制 API 调用链核实）开工前先读 docs/comfyui-dev-conventions.md §2（前端 1.55.18 实测 API）。
+
+---
+
+## 2026-11-06 · 增量维护（既有项目校准）
+
+| 类别 | 实际动作 | 目标 | 结果 | 依据 / 备注 |
+|---|---|---|---|---|
+| 前置检查 | 读取 `docs/agents/` 五件与最新 handoff | `docs/agents/`、`docs/handoff/` | 完成 | 五件齐；`docs/handoff/` 仅有 `.gitkeep`，无可读交接 |
+| Git 检查 | 只读 `git log` / `git status` / `git remote` | 仓库 | 完成 | 分支 `main`；HEAD `603a1b5`；检查时工作区干净；origin `https://github.com/ErgeAIA/Comfyui-Luowen.git`；无 tag |
+| 仓库卫生 | 检测 `.gitignore` / `CHANGELOG` 双语 / `README.md` | 根目录 | 完成 | 三件均存在；README 与 CHANGELOG 因内容严重过时，本轮委托 shuxu / changelog-manager 重写并验收 |
+| 状态识别 | 三信号查表 + 状态机 A–E | `AGENTS.md` | 状态 B | `AGENTS.md` 已存在 → 增量维护：只补缺失项，不重写既有内容 |
+| 决策保全 | 逐条过契约区与事实区 | `AGENTS.md` | 完成 | update 3：Commands 删「阶段 1 引入」出处（N4）、Toolchain 补 Node 24.22.1、References 补 `docs/routing-algorithm.md` 指针；keep 其余；drop/merge/relocate 0 |
+| 杂音扫描 | 全文过 §6b 六类 | `AGENTS.md` | 完成 | 命中 N4 1 段（Commands 来源列的日期化出处）→ 删出处、保留「glob 必需」规则本体；其余 0 |
+| 契约生成 | 复验六节结构与行数 | `AGENTS.md` | 完成 | 84 行；Permissions/Toolchain/Commands/Conventions/References/Self-Maintenance 齐；接管义务、文档义务、反杂音义务均在 |
+| 过程文档 | 检测并补齐 | `docs/agents/` | 完成 | 五件均存在；本轮同步 progress / decision-log（DEC-020）/ agents-changelog；debug-log 无新 BUG，未追加 |
+| 经验库 | 检测 `docs/agents/experience/` | `docs/agents/experience/` | 完成 | 原仅有 `.gitkeep`；本轮由 vibe-distill 建索引 + 2 域（routing / process）+ changelog，共 6 条经验 |
+| 文档委托 | README → shuxu；CHANGELOG 双语 → changelog-manager | `README.md`、`CHANGELOG.md`、`CHANGELOG.en.md` | 完成 | README 由「开发尚未开始」重写为阶段 1–2 + 3A/3B 现状；CHANGELOG 中文分类头改中文、17→95 测试、5px→8px、删 Ribbon、补阶段 2 与 3A/3B |
+| Codegraph | 索引检测 | `.codegraph` | 完成 | 索引存在，本轮未重建（无新增源码文件） |
+| 契约迁移 | CLAUDE.md → AGENTS.md | — | 未执行 | 无 `CLAUDE.md`，不适用 |
+
+### 建议
+
+- 本轮只改文档，未提交；提交范围应为上述 9 个修改文件 + `docs/agents/experience/` 新增目录，等待用户授权后再执行。
+- 阶段 3 开工前先补齐 P0 欠账（主干组交互 AT-013/015/017、手动意图保护 F-010/AT-018），再排兼容性、生命周期、冲突、性能与发布材料。
+

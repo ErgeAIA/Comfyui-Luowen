@@ -18,9 +18,18 @@ description: >
 ## 当前状态
 
 - **当前分支**：main
-- **阶段**：阶段 2 已验收并提交（commit `8614a8a`，14 文件）；3A（对齐吸附 + 提示线）已由用户验收并提交（commit `b6dab5c`，8 文件）；3B-1 与 3B-2 已完成（3B-2 保持默认关闭），本轮提交 3B；**3C 顺序抽头经实测撤除**（由公共前缀合并天然达成，DEC-019）
-- **代码**：`luowen/`（含 `routing/trunkPlan.js` 单主干共享几何、Ribbon 已移除、三档避障、预览、缓存、`geometry/chamfer.js` 绕障外角大斜切、`routing/laneAssign.js` 输入侧按接近方向嵌套分道 + 走廊净空顺延），已装本机 custom_nodes 实测
-- **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2；Playwright 浏览器实测流程已打通
+- **阶段**：阶段 0–2 已完成并由用户验收（阶段 2 提交 `8614a8a`）；阶段 3 **尚未开始**——3A（拖动对齐吸附）、3B（交叉枚举与离线清理，默认关闭）属 PRD §4.2 P1 增强，不计入阶段 3 交付；3C 顺序抽头已实现后按用户决定撤除（DEC-019）
+- **最近提交**：`603a1b5`（3B 交叉枚举 + 离线交叉清理，默认关闭）、`b6dab5c`（3A 拖动对齐吸附 + DOM 提示线覆盖层）、`8614a8a`（阶段 2 输入走廊嵌套、绕障外角大斜切、合法最晚分叉）
+- **测试**：`node --test tests/unit/*.test.mjs` **95/95** 通过（2026-11-06 实跑复核，fail 0）
+- **代码**：`luowen/`（含 `routing/trunkPlan.js` 单主干共享几何、三档避障、预览、缓存、`geometry/chamfer.js` 绕障外角大斜切、`routing/laneAssign.js` 输入侧按接近方向嵌套分道 + 走廊净空顺延、`snap/alignSnap.js` + `snap/dragSnap.js` 对齐吸附、`routing/crossings.js` + `routing/crossCleanup.js` 交叉枚举与离线清理），已装本机 custom_nodes 实测
+- **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2、Node 24.22.1；Playwright 浏览器实测流程已打通
+- **本轮文档与协作契约对齐（2026-11-06，只改文档、未动代码、未提交）**：
+  - 依据提交基线 `603a1b5` 复核现状：`luowen/` 已实现阶段 1–2 全部交付与 3A/3B 增强；单测 95/95 实跑通过。
+  - vibe-init 校准 AGENTS.md：Toolchain 补 Node 24.22.1、Commands 删日期化出处、References 补 `docs/routing-algorithm.md` 指针；全部改动留痕 `docs/agents/agents-changelog.md`。
+  - vibe-sync 消除文档与代码偏差：本文件重写「当前状态」「下一步」；README 按 shuxu 重写（原「开发尚未开始」严重失实）；CHANGELOG 双语按 changelog-manager 重写（原 17 项测试 / 5px 间距 / Ribbon 平行股道均已过时）；GLOSSARY 补登单主干、绕障外角大斜切、合法最晚分叉、输入侧走廊嵌套、顺序抽头（已撤除）五条术语。
+  - vibe-distill 沉淀经验至 `docs/agents/experience/`（见该目录 changelog）。
+  - 已知未完成项（阶段 3 交付或 P0 欠账）：主干组交互（AT-013/015/017 不通过）、手动意图保护（Reroute 排除合并、手动锚点，F-010/AT-018）、经典画布与 Nodes 2.0 兼容（F-014）、子图/折叠/撤销重做/复制粘贴生命周期测试（AT-021/023/025）、冲突扩展测试（AT-027/028 部分）、性能基准（§14.5）、发布材料（§16）、PRD §14.2 的 10 组 fixture 仅覆盖 2 组、smooth 样式为圆角折线而非 §5.1 的 Bezier。
+  - 偏差判定口径：以代码与 git 历史为准；PRD 只定义阶段 0–3，阶段 3 交付按 §15 清单执行，P1 增强不得冒充阶段 3 交付。
 - **本轮 3C 顺序抽头阶段性实现后撤除（2026-11-06，DEC-018 存档 / DEC-019 撤除）**：
   - 曾按「≥3 分散目标、投影升序抽头、间距 ≥48/≥24、全员合流否则回退单 T」实现 `chooseTapSequence` / `planDaisy` 并接宿主开关 `LuoWen.DaisyTaps`（默认关闭）。
   - 宿主 A/B 结论：同一 11 节点布局、同取景（scale=1、offset=[500,350]、1600×1000）下，开/关**连线画布逐像素 0 差异**（仅底部统计文字 DOM 181 px 差异）；交叉对开/关均为 **10 对**且集合相同；开启抽头 `T=66/396/916`、投影间距 330/520，关闭 `fork=66`。
@@ -148,5 +157,5 @@ description: >
 - **更早（阶段 1 初版 + 返修 1）**：2026-11-06
   - 原型级 renderLink/drawConnections 包裹；三样式；单条 A*（MIT 复用）+ 三档避障；lane 阶梯；缓存版本化
   - getBounding 绝对坐标修复、strict 避障、拖拽正交预览、整线悬停高亮
-- **下一步**：用户验收返修 5（默认 0.6 的绕障外角大斜切、三通/分叉直角、外角特写；目标为视觉省位，不要求塞入节点）→ 阶段 3（兼容性矩阵、与 Cable Management/NKD/Zip Ties 冲突测试、性能基准、发布材料；磁吸对齐与「对称台阶」美学规则候选一并评估）
-- **本阶段禁止**：未经用户验收开始阶段 3；改 PRD 产品边界；在宿主环境装依赖
+- **下一步**：进入阶段 3（PRD §15）——兼容性矩阵（经典画布与 Nodes 2.0）、生命周期测试（子图/折叠/组拖动/撤销重做/复制粘贴/加载）、与 Cable Management / NKD Reroutes / Zip Ties 的冲突测试、性能基准（§14.5）、发布材料（README/安装/设置/CHANGELOG/LICENSE/第三方声明）；同时补齐 P0 欠账（主干组交互 AT-013/015/017、手动意图保护 F-010/AT-018）、把 §14.2 fixture 从 2 组补到 10 组
+- **本阶段禁止**：未经用户验收开始阶段 3 的兼容性与发布动作；改 PRD 产品边界；在宿主环境装依赖；用 P1 增强（3A/3B）冒充阶段 3 交付
