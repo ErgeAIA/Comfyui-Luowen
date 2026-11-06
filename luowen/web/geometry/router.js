@@ -4,8 +4,9 @@
  *
  * Verbatim copy from https://github.com/vtokic/comfyui-cable-management
  * (upstream file: web/pathing/router.js). Registered in THIRD_PARTY_NOTICES.md at repo root.
- * Modifications by LuoWen: optional strict mode (`strict` option) — hard node boxes
- * are impassable instead of 8x-cost, so a routed link never runs through a node.
+ * Modifications by LuoWen: optional `strict` mode (all hard node boxes impassable)
+ * and `blockRects` (only the listed obstacle indices impassable), instead of the
+ * upstream 8x-cost best effort. Both default off; upstream behavior is unchanged.
  */
 // Orthogonal router on a sparse Hanan grid whose lanes are the edges of inflated
 // obstacle rects. Pure geometry: no DOM, no litegraph, no app.
@@ -36,7 +37,7 @@ const DIR = {
   none: [1, 0]
 }
 
-export function route({ start, end, startDir = 'right', endDir = 'left', obstacles, clearance = 16, stubStart = 24, stubEnd = 24, enforceStart = false, enforceEnd = false, vPad = 0, flatTol = 0, strict = false }) {
+export function route({ start, end, startDir = 'right', endDir = 'left', obstacles, clearance = 16, stubStart = 24, stubEnd = 24, enforceStart = false, enforceEnd = false, vPad = 0, flatTol = 0, strict = false, blockRects = null }) {
   // Reroute ends (core passes CENTER -> 'none') are resolved by the registry to the
   // upstream's side before this call; the mapping here is only a fallback.
   const sv = DIR[startDir === 'none' ? 'right' : startDir] ?? DIR.right
@@ -55,7 +56,10 @@ export function route({ start, end, startDir = 'right', endDir = 'left', obstacl
   ]
   const rects = []
   const hard = [] // the real node boxes: crossing these is the 8x sin
-  for (const r of obstacles) {
+  const blocked = [] // rects that are impassable (strict / blockRects), parallel to `hard`
+  const blockSet = blockRects ? new Set(blockRects) : null
+  for (let oi = 0; oi < obstacles.length; oi++) {
+    const r = obstacles[oi]
     // vPad makes every obstacle taller FOR THE GRID ONLY (Barney's shadow rule):
     // horizontal lanes form that much further from node tops/bottoms, so wires
     // stand clear of the drop shadow instead of grazing it. Vertical lanes stay
@@ -64,7 +68,12 @@ export function route({ start, end, startDir = 'right', endDir = 'left', obstacl
     const x1 = r[0] + r[2] + clearance, y1 = r[1] + r[3] + clearance + vPad
     if (x1 < bb[0] || x0 > bb[2] || y1 < bb[1] || y0 > bb[3]) continue
     rects.push([x0, y0, x1, y1])
-    hard.push([r[0] - 4, r[1] - 4, r[0] + r[2] + 4, r[1] + r[3] + 4])
+    const h = [r[0] - 4, r[1] - 4, r[0] + r[2] + 4, r[1] + r[3] + 4]
+    hard.push(h)
+    // strict: every hard box is impassable. blockRects: only the listed obstacle
+    // indices are impassable (LuoWen semi mode: endpoint cards stay solid while
+    // third-party cards remain crossable at the 8x cost if geometry forces it).
+    if (strict || (blockSet && blockSet.has(oi))) blocked.push(h)
   }
 
   // Trivial forward case: straight stub-to-stub corridor with nothing in the way.
@@ -93,7 +102,7 @@ export function route({ start, end, startDir = 'right', endDir = 'left', obstacl
   const si = [idx(X, sStub[0]), idx(Y, sStub[1])]
   const ei = [idx(X, eStub[0]), idx(Y, eStub[1])]
 
-  const path = astar(X, Y, si, ei, rects, hard, sv, ev, enforceStart, enforceEnd, strict)
+  const path = astar(X, Y, si, ei, rects, hard, blocked, sv, ev, enforceStart, enforceEnd)
   if (!path) return null
 
   // Waypoints: real endpoints, stubs, grid path. Collinear runs collapsed.
@@ -132,7 +141,7 @@ function clearV(x, ya, yb, rects) {
   return true
 }
 
-function astar(X, Y, si, ei, rects, hard, sv, ev, enforceStart, enforceEnd, strict) {
+function astar(X, Y, si, ei, rects, hard, blocked, sv, ev, enforceStart, enforceEnd) {
   const W = X.length, H = Y.length
   const id = (i, j) => j * W + i
   // State carries entry axis (0 h, 1 v, -1 start) for the bend penalty.
@@ -182,11 +191,10 @@ function astar(X, Y, si, ei, rects, hard, sv, ev, enforceStart, enforceEnd, stri
       const free = nax === 0 ? clearH(Y[j], X[i], X[ni], rects) : clearV(X[i], Y[j], Y[nj], rects)
       let mult = 1
       if (!free) {
+        // LuoWen: impassable rects (strict = all hard boxes, blockRects = listed ones).
+        // Grazing the inflated clearance band stays legal (SOFT_MULT).
+        if (blocked.length && !(nax === 0 ? clearH(Y[j], X[i], X[ni], blocked) : clearV(X[i], Y[j], Y[nj], blocked))) continue
         const overNode = nax === 0 ? !clearH(Y[j], X[i], X[ni], hard) : !clearV(X[i], Y[j], Y[nj], hard)
-        // LuoWen strict mode: never cross a real node box. Grazing the inflated
-        // clearance band stays legal (SOFT_MULT). If the only way out is through a
-        // node, the search fails and the caller degrades that link to native.
-        if (overNode && strict) continue
         mult = overNode ? BLOCKED_MULT : SOFT_MULT
       }
       // Vertical travel carries an epsilon surcharge so equal-cost bend placements

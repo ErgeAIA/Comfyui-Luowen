@@ -34,9 +34,13 @@ drawConnections(ctx, graph)
             ├─ cache.get(key, version) 命中 → 直接绘制
             ├─ 拖拽期（pointer.isDown）且未命中 → 正交预览（preview.js，无 A*，不进缓存）
             ├─ 直线捷径：仅共线（|Δy|<2 或 |Δx|<2）且 corridorClear → 两点直线
-            ├─ 否则 route(strict:true)（A*）→ null 则原生降级
+            ├─ 否则按三档求解（障碍含两端节点自身）：
+            │    strict（全部节点框禁行）→ 无解 → semi（仅两端卡片禁行）→ 无解 → loose（正交，可穿卡）
+            │    仍无解 → 原生降级
             └─ 绘制：smooth→emit 圆角；orthogonal→sharpPath；覆写 path/_pos
 ```
+
+三档取舍：**strict** 保证线不压任何卡片；**semi** 保证线不被自己连接的卡片压住（允许穿过压在引脚上的第三方卡片，8× 代价）；**loose** 只保证横平竖直。引脚被深埋（两张卡片互相覆盖）时几何上无解，此时 loose 仍保持正交，不出现曲线。
 
 ### 2.1 节点拖动期
 
@@ -54,6 +58,7 @@ drawConnections(ctx, graph)
 | 软障碍（膨胀区内、实框外） | 代价 ×1.02 | router.js:27 `SOFT_MULT` |
 | 展开预算 | >20000 次 → 返回 null（调用方原生降级） | router.js:148 |
 | **严格模式**（LuoWen 修改项） | `strict:true` 时真实节点框**禁行**（不再按 8× 代价穿行）；只有无解才返回 null | router.js:189 |
+| **定向禁行**（LuoWen 修改项） | `blockRects:[i,...]` 只让指定障碍下标禁行，其余硬框仍为 8× 代价（semi 档用） | router.js:66-75, 195 |
 | 输出 | 图坐标折线 `[start, ...bends, end]`，全程正交；平凡情形返回 null | router.js:38 |
 | 圆角描边 | `emit(path, pts)`，圆角半径 10，钳制到相邻段 1/3 | trace.js |
 | 中点/命中锚 | `measure(pts)` → 弧长；`pointAt(pts, m, 0.5)` → `{x,y,angle}` | trace.js |
@@ -87,8 +92,8 @@ drawConnections(ctx, graph)
 | `opts.disabled`（bypass） | 原生 | :86 |
 | `opts.reroute` 共享段 | 原生（F-010，阶段 2 处理） | :86 |
 | 非 `app.canvas` 的借用渲染（R12） | 原生 | :87 |
-| A* strict 无解（端点被其他节点覆盖等） | 原生（degraded, alive）；计数 `counters.strictNull` | :205 |
-| A* 预算超限 | 原生（degraded, alive） | :205 |
+| A* strict 无解（端点被其他节点覆盖等） | 先 semi（端点卡片禁行），再 loose（正交可穿卡）；全失败才原生 | :208-230 |
+| A* 预算超限 | 同上层级联，最终可原生（degraded, alive） | :208-230 |
 | 单线渲染抛异常 | 捕获→该线原生；不中断整帧 | :265 |
 | 未安装/能力检测失败 | 设置页可见、保持原生 | index.js:99-100 |
 
@@ -108,12 +113,15 @@ drawConnections(ctx, graph)
 | 节点绕行不达标、线条从节点身上穿过 | ① `nodeRects` 把 `getBounding()` 的绝对坐标又加了一次 `pos`，所有障碍矩形整体平移；② 上游路由器把穿节点当 8× 代价而非禁行 | ① 改绝对坐标（`graphRead.js:20-47`，契约见 conventions §2.6）；② router 增加 `strict`（`router.js:189`），适配器默认启用 |
 | 拖节点时连线变曲线 | `pointer.isDown` 期间直接回退原生 | 拖拽期改用 `preview.js` 正交两折预览，不进缓存、不跑 A* |
 | 只有中心圆点会亮 | 1.55.18 原生 `over_link_center` 只覆盖 `_pos` 周围 8×8；整线命中只用于 shift/alt 与右键 | 新增 pointermove 监听 + 折线距离判定，整线悬停高亮；中心点原生命中不变 |
+| 线被所连接的卡片压住；节点重叠时一端仍变曲线 | ① A* 障碍集合排除了两端节点，中段可从自己卡片底下穿；② strict 无解直接回退原生 | ① 障碍包含两端节点（`renderLinkAdapter.js:190-193`）；② 三档求解 strict→semi→loose（`:208-230`），loose 仍为正交，不再出曲线 |
+
+实测（无重叠干净布局）：第三方卡片穿透 0、自身卡片穿透 0；第三方卡片压住引脚时：自身卡片穿透 0、路由为正交（semi）；两端卡片互相覆盖的极端重叠：loose 保持正交（几何上无法完全避开，但不再出现曲线）。单元测试 26/26。
 
 ## 8. 已知限制（阶段 2/3 处理）
 
 1. **reroute 共享段**仍走原生（`opts.reroute` 直通）；绕行 Reroute 节点本身是阶段 2 目标。
 2. **手动意图**（创建 Reroute、拖动线路）尚未接入；当前为全自动绕行，阶段 2 引入 manual intent 优先。
 3. **smooth 样式**直接用圆角折线近似，未做原生贝塞尔式的张力参数。
-4. **两个节点互相重叠**时，被盖住的引脚在几何上无净空路径，strict 返回 null → 该线保持原生（fail-safe）。这是刻意取舍：宁可原生，也不穿节点。
+4. **两个节点互相重叠**时，被盖住的引脚在几何上无净空路径：semi 仍保证不穿自己卡片；若两端卡片互相覆盖，loose 保持正交但可能从卡片下穿过（不再出现曲线）。这是刻意取舍：正交一致性优先于几何上不可能的净空。
 5. 拖拽预览不考虑障碍（每帧只做两次折线），可能短暂压过节点；松手即恢复 A* 结果。这是为守住 PRD §10.1 的取舍。
 6. 命中测试跟随依赖前端 1.55.18 的「读渲染产物」实现；升级前端须重跑 `docs/phase0/drawing-api-notes.md` 的验证清单。

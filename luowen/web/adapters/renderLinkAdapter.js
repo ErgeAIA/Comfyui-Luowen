@@ -14,7 +14,7 @@
 import { route } from '../geometry/router.js';
 import { emit as emitRounded, measure as measurePts, pointAt } from '../geometry/trace.js';
 import { previewPath } from '../geometry/preview.js';
-import { obstacleHash, toRawRects, corridorClear } from '../geometry/obstacles.js';
+import { obstacleHash, corridorClear } from '../geometry/obstacles.js';
 import { allocateLanes, laneHash as computeLaneHash } from '../routing/laneAssign.js';
 import { createRouteCache } from '../routing/routeCache.js';
 import { graphLinks, nodeRects, linksHash as computeLinksHash } from './graphRead.js';
@@ -40,7 +40,7 @@ const state = {
   routes: new Map(), // linkId -> 当前绘制的折线（悬停命中 + 调试用）
   hoverLinkId: null,
   hoverBound: false,
-  counters: { preview: 0, strictNull: 0, straight: 0, routed: 0 },
+  counters: { preview: 0, strictNull: 0, loose: 0, semi: 0, straight: 0, routed: 0 },
   trace: [],
   warned: false,
 };
@@ -187,8 +187,13 @@ function tryCustomRender(ctx, a, b, link, color, start_dir, end_dir, opts) {
           [bx, by],
         ];
       } else {
-        const raw = toRawRects(state.frame.rects, [link.origin_id, link.target_id]);
-        pts = route({
+        // 障碍包含两端节点自身：中段禁止从自己连接的卡片底下穿过（引脚 stub 仍允许贴边引出）
+        const raw = state.frame.rects.map((r) => [r.x, r.y, r.w, r.h]);
+        const endpointIdx = [];
+        state.frame.rects.forEach((r, i) => {
+          if (String(r.id) === String(link.origin_id) || String(r.id) === String(link.target_id)) endpointIdx.push(i);
+        });
+        const args = {
           start: [ax, ay],
           end: [bx, by],
           startDir: DIR_NAME[start_dir] ?? 'right',
@@ -199,22 +204,32 @@ function tryCustomRender(ctx, a, b, link, color, start_dir, end_dir, opts) {
           stubEnd: lanes.stubIn,
           vPad: VPAD,
           flatTol: 0,
-          strict: true, // 硬框禁行：宁可降级原生，也不从节点身上穿过去
-        });
-        if (!pts) {
-          state.counters.strictNull += 1;
-          traceEntry({ id: link.id, mode: 'strictNull', rects: state.frame.rects.length, ver: state.frame.version });
-          return bypass(); // A* 失败/预算超限 → 原生降级（degraded, alive）
+        };
+        const strictPts = route({ ...args, strict: true });
+        if (strictPts) {
+          pts = strictPts;
+          state.counters.routed += 1;
+          traceEntry({ id: link.id, mode: 'route', ver: state.frame.version, stub: [lanes.stubOut, lanes.stubIn], raw: raw.length, pts });
+        } else {
+          // semi：端点卡片仍禁行（线不被自己连接的卡片压住），第三方卡片保留 8× 代价
+          const semiPts = endpointIdx.length ? route({ ...args, blockRects: endpointIdx }) : null;
+          if (semiPts) {
+            pts = semiPts;
+            state.counters.semi += 1;
+            traceEntry({ id: link.id, mode: 'semi', ver: state.frame.version, raw: raw.length, pts });
+          } else {
+            // loose：连 semi 都无解（引脚深埋在其他卡片里），保持正交，不出现曲线
+            state.counters.loose += 1;
+            pts = route({ ...args });
+            if (pts) {
+              traceEntry({ id: link.id, mode: 'loose', ver: state.frame.version, raw: raw.length, pts });
+            } else {
+              state.counters.strictNull += 1;
+              traceEntry({ id: link.id, mode: 'strictNull', rects: state.frame.rects.length, ver: state.frame.version });
+              return bypass(); // 连正交都无解 → 原生降级（degraded, alive）
+            }
+          }
         }
-        state.counters.routed += 1;
-        traceEntry({
-          id: link.id,
-          mode: 'route',
-          ver: state.frame.version,
-          stub: [lanes.stubOut, lanes.stubIn],
-          raw: raw.length,
-          pts,
-        });
       }
       state.cache.set(key, state.frame.version, pts);
     }

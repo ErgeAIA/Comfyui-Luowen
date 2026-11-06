@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Strict routing mode: node boxes are impassable; links without a clear path degrade to native instead of crossing nodes
 - Links stay orthogonal while dragging a node (two-bend preview) instead of reverting to Bezier curves
 - Hovering anywhere on a link now highlights the whole line (previously only the centre dot responded)
+- Link mid-sections no longer pass underneath their own endpoint cards; overlapping nodes no longer fall back to Bezier curves (strict→semi→loose orthogonal tiers)
 
 [Unreleased]: https://github.com/ErgeAIA/Comfyui-Luowen/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/ErgeAIA/Comfyui-Luowen/releases/tag/v0.1.0

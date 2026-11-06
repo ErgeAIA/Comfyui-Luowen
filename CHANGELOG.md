@@ -23,6 +23,7 @@
 - 新增路由严格模式：节点框禁行；无净空路径的线自动降级原生，不再穿过节点
 - 拖动节点时连接线保持正交（两折预览），不再变回贝塞尔曲线
 - 悬停线路任意位置即高亮整条线（此前只有中心圆点可感知）
+- 连线中段不再从自己连接的节点卡片下方穿过；节点重叠时也不再回退为贝塞尔曲线（strict→semi→loose 三档正交求解）
 
 [Unreleased]: https://github.com/ErgeAIA/Comfyui-Luowen/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/ErgeAIA/Comfyui-Luowen/releases/tag/v0.1.0

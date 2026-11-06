@@ -138,6 +138,76 @@ test('route strict: 硬障碍禁行——非严格模式会穿节点，严格模
   assertAvoidsBox(strict, [46, -404, 154, 604]);
 });
 
+test('route: 障碍包含两端节点时，中段不得从自己卡片底下穿过（strict）', () => {
+  // 源引脚 (0,0) 在源卡片右边界内 9px；目标引脚 (100,300) 在目标卡片左边界内 10px
+  const src = [-191, -50, 200, 100];
+  const dst = [90, 250, 200, 100];
+  const pts = route({
+    start: [0, 0],
+    end: [100, 300],
+    startDir: 'right',
+    endDir: 'left',
+    obstacles: [src, dst],
+    clearance: 16,
+    stubStart: 24,
+    stubEnd: 24,
+    vPad: 8,
+    flatTol: 0,
+    strict: true,
+  });
+  assert.ok(Array.isArray(pts), `应能绕开两端卡片，实际: ${JSON.stringify(pts)}`);
+  assertOrthogonal(pts);
+  // 中段（跳过首尾引脚 stub 段）不得进入任一卡片内部
+  for (let j = 1; j < pts.length - 2; j++) {
+    const [ax, ay] = pts[j];
+    const [bx, by] = pts[j + 1];
+    const steps = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / 4));
+    for (let s = 0; s <= steps; s++) {
+      const x = ax + ((bx - ax) * s) / steps;
+      const y = ay + ((by - ay) * s) / steps;
+      for (const [x0, y0, w, h] of [src, dst]) {
+        assert.ok(!(x > x0 + 1 && x < x0 + w - 1 && y > y0 + 1 && y < y0 + h - 1), `中段穿入端点卡片: (${x.toFixed(1)}, ${y.toFixed(1)})`);
+      }
+    }
+  }
+});
+
+test('route blockRects: 仅列出的矩形禁行，其余硬框保持可穿行（8×）', () => {
+  const wall = [50, -2000, 100, 4000];
+  const other = [300, 500, 80, 300]; // 不挡路，仅确认非 blockRects 的框不参与禁行
+  const opts = {
+    start: [0, 100],
+    end: [500, 100],
+    startDir: 'right',
+    endDir: 'left',
+    obstacles: [wall, other],
+    clearance: 16,
+    stubStart: 24,
+    stubEnd: 24,
+    vPad: 8,
+    flatTol: 0,
+  };
+  const blockedPts = route({ ...opts, blockRects: [0] });
+  assert.ok(Array.isArray(blockedPts), `blockRects 应返回绕行路径，实际: ${JSON.stringify(blockedPts)}`);
+  assertOrthogonal(blockedPts);
+  assertAvoidsBox(blockedPts, [46, -2004, 154, 2004]);
+
+  const loosePts = route({ ...opts });
+  assert.ok(Array.isArray(loosePts), '非禁行模式应返回穿墙路径');
+  let crosses = false;
+  for (let i = 1; i < loosePts.length; i++) {
+    const [ax, ay] = loosePts[i - 1];
+    const [bx, by] = loosePts[i];
+    const steps = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / 4));
+    for (let s = 0; s <= steps; s++) {
+      const x = ax + ((bx - ax) * s) / steps;
+      const y = ay + ((by - ay) * s) / steps;
+      if (x > 50 && x < 150 && y > 0 && y < 200) crosses = true;
+    }
+  }
+  assert.ok(crosses, `非禁行模式预期穿墙，实际: ${JSON.stringify(loosePts)}`);
+});
+
 test('routeCache: 同版本命中、版本升级失效、超限回收', () => {
   const cache = createRouteCache({ max: 2 });
   cache.set('k', 1, [[0, 0], [1, 0]]);
