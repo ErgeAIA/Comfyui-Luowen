@@ -23,14 +23,18 @@ description: >
 
 ```
 drawConnections(ctx, graph)
-  └─ beginFrame(canvas)                      # renderLinkAdapter.js:51
+  └─ beginFrame(canvas)                      # renderLinkAdapter.js:62
        ├─ pointer.isDown → 冻结（不更新版本/lanes）
        ├─ nodeRects(graph) → obstacleHash     # graphRead.js:20, obstacles.js:6
-       │    哈希变化 → frame.version += 1，缓存整体失效
-       └─ laneHash(links, rects) 变化 → allocateLanes(links, rects)
+       │    哈希变化 → frame.version += 1，缓存/主干失效
+       ├─ laneHash(links, rects) 变化 → allocateLanes(links, rects)
+       └─ planTrunks(graph)                   # 同源多目标主干（阶段 2）
+            端点缓存版本不一致 → 请求下一帧（setDirty）后返回
+            按 origin_id:origin_slot 分组 → planTrunk()（trunkPlan.js）
   └─ originalDrawConnections → 逐线 renderLink
-       └─ tryCustomRender(...)               # renderLinkAdapter.js:81
+       └─ tryCustomRender(...)               # renderLinkAdapter.js
             ├─ 直通条件：禁用/native/预览线(id<0)/disabled/reroute/非 app.canvas → 原生
+            ├─ 本帧主干计划命中且端点一致 → 主干/分支路径
             ├─ cache.get(key, version) 命中 → 直接绘制
             ├─ 拖拽期（pointer.isDown）且未命中 → 正交预览（preview.js，无 A*，不进缓存）
             ├─ 直线捷径：仅共线（|Δy|<2 或 |Δx|<2）且 corridorClear → 两点直线
@@ -76,6 +80,47 @@ drawConnections(ctx, graph)
 
 缓存 key 含 stub 长度（`renderLinkAdapter.js:101`），lane 变化自然使旧路径失效。
 
+## 4.1 多目标主干与 Ribbon（阶段 2）
+
+对象：同一输出端口（`origin_id:origin_slot`）≥2 条可路由连线。实现分两层：
+
+- **规划层** `routing/trunkPlan.js`（纯函数，可单测）
+- **接线层** `renderLinkAdapter.js` 的 `planTrunks()`：按 origin 分组 → 取独立路径基准（缓存）→ `planTrunk()` → 本帧绘制改用计划路径
+
+### 分叉长度 T
+
+1. 独立路径基准已存在（每成员一条 A* 路由）。
+2. 共同前缀：所有成员第一段方向一致，且长度 ≥ 16px。
+3. 上限三重约束：
+   - `max = 72px`（视觉上不过分拉长主干）；
+   - **最近目标投影 − stub**：分叉点不得越过最近的目标，否则该目标必须先倒退；
+   - **正前方最近卡片 − stub − 6**：分叉点+出线 stub 不得顶进迎面卡片（实测：CLIP 组在卡片前 69px 处必须收短，否则分支 stub 进卡导致折返）。
+4. `T = clamp(min(约束), 16, 72)`；不满足则整组回到独立路径。
+
+### Ribbon（PRD §7.3：不以零间距重叠冒充合并）
+
+- 出线后先共用 14px 扇出段（fan），随后按 **pitch=4px** 分为平行股道；
+- 股道顺序按目标在主干法向上的坐标排序（上目标走上股），避免分叉处交叉；
+- 每成员路径 = `pin → fan → 股道 jog → fork(offset) → 分支`；分支从各自 offset 的 fork 重新 A*（同一 strict→semi→loose 求解器）；
+- 分支 stub 按 PRD §7.2 动态收缩：`min(stub, dist/3)`，短连接不折返。
+
+### 合并决策与绕行保护（PRD §6.5）
+
+- 对每个成员：`ratio = (T + 分支长度) / 独立路径长度`；
+- 双阈值滞回：首次 `ratio≤1.25` 合流；上一轮已合并者 `≤1.35` 才踢出；上一轮独立者 `≤1.15` 才重新纳入；
+- 合流成员 < 2、或 T 不足以容纳股道（`T < fan + (n-1)/2*pitch + 6`）→ 完全独立；
+- 每次规划结果按组签名（几何版本 + lane 指纹 + 成员端点）缓存；节点移动导致版本变化时全部重算，静止时零 A*。
+
+### 命中与选择语义（PRD §8.3 降级形态）
+
+Ribbon 是 PRD 允许的降级：每条逻辑连接有**独立的平行股道**，各自保留 `path`/`_pos`：
+
+- 悬停某股 → 只高亮该条连接（实测 y=112 命中 79、y=116 命中 81）；
+- 分支区段天然独立；删除仍由 ComfyUI 原生按单条 Link 处理；
+- **未实现**“点主干选中整组/组删除”（需要自建选择状态与原生多选 API，风险高）；按 §8.3，以 Ribbon 独立命中替代，不留下不可选/不可删线段。
+
+调试：`LuoWen.status().trunks` / `trunkDebug`（endpoints、版本、组数、候选数）、`LuoWen.routes()`。
+
 ## 5. 缓存与失效
 
 - `createRouteCache({max:4096})`（`routeCache.js:5`）：`get(key, version)`，版本不符即失效；容量超限整体回收。
@@ -103,8 +148,9 @@ drawConnections(ctx, graph)
 - **节点避障（返修后）**：程序化逐段采样 7 条路由 × 全部非端点节点，穿透数为 **0**；关键场景（加载VAE → VAE解码 跨越 K采样器 区域）在 strict 下绕行，而旧版（错误矩形 + 8× 穿行）会从 K采样器 底下穿过。
 - **节点拖动**：拖动中 preview 计数持续增长（一次拖拽 400+ 帧线更新），折线保持横平竖直；松手后 A* 重算，`verify` 数据不变性 ok。
 - **整线悬停**：鼠标停在折线中段（非中心点）→ `status().hovered` = 对应 link id，线体白色柔光高亮；中心点 8×8 原生命中保持不变。
+- **主干**：`62:0` 组（加载CLIP → luowen.clip / CLIP文本编码.clip）规划为 T=39 的 Ribbon，两股 y 相差 4px；悬停两股分别命中 79 / 81；干净布局下自身/第三方穿透均为 0；`verify` 数据不变性 ok。
 - 总开关关→原生贝塞尔、开→正交折线（截图 `.verify/p1_master_off.png`、`p1_after_switch_on.png`）。
-- 单元测试 24/24：`node --test tests/unit/*.test.mjs`（正交性、严格避障、反向连接、lane 阶梯、缓存版本化、trace 几何、预览路径、getBounding 绝对坐标）。
+- 单元测试 32/32：`node --test tests/unit/*.test.mjs`（正交性、严格避障、反向连接、lane 阶梯、缓存版本化、trace 几何、预览路径、getBounding 绝对坐标、主干规划/滞回/ribbon/走廊上限）。
 
 ## 7.1 返修记录（2026-11-06，用户验收反馈）
 
@@ -124,4 +170,6 @@ drawConnections(ctx, graph)
 3. **smooth 样式**直接用圆角折线近似，未做原生贝塞尔式的张力参数。
 4. **两个节点互相重叠**时，被盖住的引脚在几何上无净空路径：semi 仍保证不穿自己卡片；若两端卡片互相覆盖，loose 保持正交但可能从卡片下穿过（不再出现曲线）。这是刻意取舍：正交一致性优先于几何上不可能的净空。
 5. 拖拽预览不考虑障碍（每帧只做两次折线），可能短暂压过节点；松手即恢复 A* 结果。这是为守住 PRD §10.1 的取舍。
+6. **主干组选择未实现**：点主干只命中单条股道（原生语义），不是 §8.1 的“选中整组”；按 §8.3 以 Ribbon 独立命中降级，不留下不可选线段。组级选择/删除留待阶段 3 评估。
+7. 主干仅对**同输出端口且同帧可见**的连线生效；离屏成员不参与规划（视口外不渲染）。
 6. 命中测试跟随依赖前端 1.55.18 的「读渲染产物」实现；升级前端须重跑 `docs/phase0/drawing-api-notes.md` 的验证清单。

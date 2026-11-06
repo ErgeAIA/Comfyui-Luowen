@@ -18,24 +18,21 @@ description: >
 ## 当前状态
 
 - **当前分支**：main
-- **阶段**：**阶段 1 复验返修 2 完成**，等待用户复验；通过后进入阶段 2
-- **代码**：`luowen/`（扩展注册 + 原型级 renderLink 适配器 + 几何/路由/缓存/预览模块），已装本机 custom_nodes 实测
+- **阶段**：**阶段 2（多目标主干与分叉）已完成**，等待用户验收；通过后进入阶段 3
+- **代码**：`luowen/`（含 `routing/trunkPlan.js`、Ribbon 渲染、三档避障、预览、缓存），已装本机 custom_nodes 实测
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2；Playwright 浏览器实测流程已打通
-- **最后更新**：2026-11-06 阶段 1 复验返修 2
+- **最后更新**：2026-11-06 阶段 2 完成
+  - 主干：按输出端口分组 → 独立路径基准 → 共同前缀 + 分叉长度三约束（72 / 最近目标 / 迎面卡片）→ Ribbon（fan 14, pitch 4，按目标排序）→ 分支 A*
+  - 决策：绕行保护 ratio 1.25 + 双阈值滞回（1.35 / 1.15）；成员不足或空间不足回退独立
+  - 修复：几何版本变化后主动补一帧重绘，否则画布静止时主干不生成；settings 注册期 install 空 canvas 防护
+  - 实测：`62:0` 组 T=39、merged 79/81；两股悬停分别命中 79/81；干净布局自身/第三方穿透 0；verify ok；单测 32/32
+  - 文档：routing-algorithm §4.1、DEC-008
+- **上一阶段**：2026-11-06 阶段 1 复验返修 2
   - 反馈：线被自身连接的卡片压住；节点重叠时 strict 无解回退曲线
-  - 修复：A* 障碍包含两端节点（中段不得穿自身卡片）；三档求解 strict→semi（仅端点卡片禁行，`blockRects`）→loose（正交可穿卡）；不再以曲线作默认退路
-  - 验证：干净布局自身/第三方穿透均 0；第三方卡片压引脚时自身穿透 0 且正交；极端重叠保持正交；单测 26/26
-  - 文档：routing-algorithm §7.1、DEC-007、THIRD_PARTY_NOTICES（router 修改范围）
-- **上一阶段**：2026-11-06 阶段 1 验收返修 1
-  - 根因：`nodeRects` 重复叠加 `pos`（getBounding 已是绝对坐标）→ 障碍矩形平移；上游路由器对穿节点只罚 8× 不禁止
-  - 修复：graphRead 绝对坐标；router `strict`；拖拽期两折正交预览（无 A*）；整线悬停高亮（pointermove + 折线距离）
-  - 验证：路由穿透扫描 0；拖拽 preview 409 次全程正交；悬停中段命中 link 74；verify 数据不变性 ok；单测 24/24
-  - 文档：conventions §2.6（LiteGraph 几何/命中契约）、routing-algorithm §7.1、DEC-006
-- **再上一阶段**：2026-11-06 阶段 1 完成（初版）
-  - 原型级 renderLink/drawConnections 包裹；orthogonal/smooth/native；单条 A*（MIT 复用）+ 三档避障；lane 阶梯；缓存版本化；降级矩阵
-  - 实测：三样式切换、obstacleVersion 变化、总开关回滚、数据不变性 ok；单测 17/17
-- **更早**：2026-11-06 阶段 0 完成
-  - 前端 1.55.18 调用链（docs/phase0/drawing-api-notes.md）、Cable Management MIT 复用清单、风险 R1–R13
-  - 9 项实测全过；命中测试读渲染产物（覆写 seg.path/_pos 即跟随）
-- **下一步**：用户复验阶段 1 → 阶段 2（Reroute 节点绕行 + 手动意图优先 + 端口 stub 细化）
-- **本阶段禁止**：未经用户复验开始阶段 2；改 PRD 产品边界；在宿主环境装依赖
+  - 修复：A* 障碍包含两端节点；三档求解 strict→semi（blockRects）→loose；不再以曲线作默认退路
+  - 验证：干净布局自身/第三方穿透均 0；极端重叠保持正交；单测 26/26
+- **更早**：2026-11-06 阶段 1（初版 + 返修 1）
+  - 原型级 renderLink/drawConnections 包裹；三样式；单条 A*（MIT 复用）+ 三档避障；lane 阶梯；缓存版本化
+  - getBounding 绝对坐标修复、strict 避障、拖拽正交预览、整线悬停高亮
+- **下一步**：用户验收阶段 2 → 阶段 3（兼容性矩阵、与 Cable Management/NKD/Zip Ties 冲突测试、性能基准、发布材料）
+- **本阶段禁止**：未经用户验收开始阶段 3；改 PRD 产品边界；在宿主环境装依赖
