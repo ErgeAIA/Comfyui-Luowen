@@ -4,7 +4,8 @@
  *
  * Adapted from https://github.com/vtokic/comfyui-cable-management
  * (upstream file: web/pathing/trace.js). Registered in THIRD_PARTY_NOTICES.md at repo root.
- * Modifications by LuoWen: fillet radius is a caller-supplied parameter (default 10).
+ * Modifications by LuoWen: fillet radius is a caller-supplied parameter (default 10);
+ * emitBezier() added for the smooth style (corner cubic Bezier, PRD §5.1 骨架曲线化).
  */
 // Trace geometry helpers: emit a filleted orthogonal polyline into a Path2D, and
 // arc-length math for the centre point and point-at-t (arrows, flow dots).
@@ -27,6 +28,33 @@ export function emit(path, pts, radius = RADIUS) {
     // 12-30px segments, and half-length fillets turn the whole trace into curve --
     // it then reads as a spline instead of a routed trace.
     path.arcTo(c[0], c[1], n[0], n[1], filletRadius(radius, dist(p, c), dist(c, n)))
+  }
+  const last = pts[pts.length - 1]
+  path.lineTo(last[0], last[1])
+}
+
+// smooth 样式的真 Bezier（PRD §5.1 骨架曲线化）：每个拐角一段贝塞尔（二次表达，
+// 控制点=角点；升阶等价于三次贝塞尔），切点沿两腿各 d（d 与圆角同一钳制语义）。
+// 曲线全程落在拐角三角形内，不因曲线化额外切入节点（障碍安全由构造保证）。
+// 与 emit 的骨架 pts 完全一致：只换绘制表达，不改变路由/命中几何。
+export function emitBezier(path, pts, radius = RADIUS) {
+  path.moveTo(pts[0][0], pts[0][1])
+  for (let k = 1; k < pts.length - 1; k++) {
+    const p = pts[k - 1], c = pts[k], n = pts[k + 1]
+    const dp = dist(p, c)
+    const dn = dist(c, n)
+    const d = filletRadius(radius, dp, dn)
+    // 共线（无转折）或退化段：直接 lineTo，不产生曲线
+    const cross = (c[0] - p[0]) * (n[1] - c[1]) - (c[1] - p[1]) * (n[0] - c[0])
+    if (!(d > 0) || dp === 0 || dn === 0 || Math.abs(cross) < 1e-9) {
+      path.lineTo(c[0], c[1])
+      continue
+    }
+    const t1 = [c[0] + ((p[0] - c[0]) / dp) * d, c[1] + ((p[1] - c[1]) / dp) * d]
+    const t2 = [c[0] + ((n[0] - c[0]) / dn) * d, c[1] + ((n[1] - c[1]) / dn) * d]
+    path.lineTo(t1[0], t1[1])
+    // 控制点=角点的二次曲线（参数最少的最快等价表达；升阶后即三次贝塞尔）
+    path.quadraticCurveTo(c[0], c[1], t2[0], t2[1])
   }
   const last = pts[pts.length - 1]
   path.lineTo(last[0], last[1])

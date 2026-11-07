@@ -143,4 +143,20 @@ description: >
 - 帧内复用 `nodesById`/`obstacles`/`endpointIndices` 的剩余空间上限约为 `begin` 的 14.3ms（整帧 11%），且其中 `trunks` 8.9ms 主要是组信标与合并判定，不是索引重建；预估可回收 <10ms，优先级低于绘制路径。
 - 500 节点 ortho 仍 47/48 帧 >33.4ms（≈0.13ms/线）；若继续优化，应先单独计时「逐线路径构建（emitRounded/measure）+ 命中路径」的占比，再决定是否值得改动，任何改动须仍满足逐线几何指纹一致。
 
+### 2026-11-07 smooth 真 Bezier（拐角曲线化，同口径 A/B）
 
+**改动**：`trace.js` 新增 `emitBezier`（控制点=角点的贝塞尔；先试升阶三次 bezierCurveTo，实测慢 ~55%，改用同形二次 `quadraticCurveTo` 后反超）；`renderLinkAdapter.js` smooth 分支 `emitRounded(arcTo)` → `emitBezier`。骨架 pts、命中几何、路由算法零改动。
+
+**协议**：500 LatentBlend 网格（clear 后建图，链式 499 线，输出槽单连），`ds.scale=0.22` 全可见；reload 后立即建图 → fit → 预热 10 帧 → `perfStart` → 40 帧（setDirty+双 rAF）→ `perfStop`；同机同日、每次独立页。脚本 `.verify/p5/perf-smooth-ab.mjs <label>`；原始数据 `.verify/p5/coexist/perf-smooth-*.json`。
+
+**数据（ms/帧）**：
+
+| 指标 | HEAD（arcTo 圆角）before-1 / before-2 | bezierCurveTo 三次（弃用）×4 | quadraticCurveTo 终版 ×3 |
+|---|---|---|---|
+| frame avg | 45.785 / 38.68 | 60.9 / 62.7 / 65.2 / 68.4 | **36.45 / 36.77 / 36.54** |
+| render avg | 33.903 / 29.33 | 43.9 ~ 48.5 | **27.76 ~ 28.34** |
+| p95 frame | 50.8 / 51.4 | 75.9 ~ 86.4 | 39.3 ~ 39.9 |
+
+同窗口成对对比（before-2 vs 终版）：frame −5.7%、render −4.5%——**不劣于圆角折线（略优）**。before-1 与 before-2 同代码差 18%，为跨页机器噪声上界；三次变体的 +55% 远超噪声带，判真回归并弃用。
+
+**行为不变**：默认模板骨架几何指纹 `3664953215` 与历史一致；`verify() ok`；主干 `62:0 [79,81]`、等距带 2、降级 0；拐角曲线顶点 hover 命中 `{linkId:75, part:'branch'}`（顶点距骨架 6px < 容差 8.9px，单测偏差上界 ≤0.26·d）；单测 105/105（新增 emitBezier 6 项）。截图 `bezier-r0/10/24.png`（0=直角 / 10 默认 / 24 满档）。

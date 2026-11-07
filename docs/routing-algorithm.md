@@ -65,7 +65,7 @@ drawConnections(ctx, graph)
 | **严格模式**（LuoWen 修改项） | `strict:true` 时真实节点框**禁行**（不再按 8× 代价穿行）；只有无解才返回 null | router.js:189 |
 | **定向禁行**（LuoWen 修改项） | `blockRects:[i,...]` 只让指定障碍下标禁行，其余硬框仍为 8× 代价（semi 档用） | router.js:66-75, 195 |
 | 输出 | 图坐标折线 `[start, ...bends, end]`，全程正交；平凡情形返回 null | router.js:38 |
-| 圆角描边 | `emit(path, pts, cornerRadius)`，半径上限来自 `LuoWen.CornerRadius`（0–24px，默认 10px），实际半径取上限与相邻两段各 1/3 的较小值；`0` 为直角 | trace.js |
+| smooth 拐角曲线 | `emitBezier(path, pts, cornerRadius)`（PRD §5.1 真 Bezier，2026-11-07）：控制点=角点的贝塞尔（升阶等价三次），切距上限来自 `LuoWen.CornerRadius`（0–24px，默认 10px），实际取上限与相邻两段各 1/3 的较小值；`0` 为直角；共线点退化 lineTo；骨架 pts 与命中几何不变 | trace.js |
 | 中点/命中锚 | `measure(pts)` → 弧长；`pointAt(pts, m, 0.5)` → `{x,y,angle}` | trace.js |
 
 `route()` 的输入由适配层提供：`start/end` 为引脚端点，`startDir/endDir` 由 `renderLink` 的 `start_dir/end_dir`（0-5）经 `DIR_NAME` 映射（`renderLinkAdapter.js:27`），障碍为 `toRawRects(nodeRects, [origin_id, target_id])`（`obstacles.js:13`，两端节点自身排除）。

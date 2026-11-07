@@ -12,7 +12,7 @@
 // 铁律：只改绘制；异常单线隔离；不写图数据。
 
 import { route } from '../geometry/router.js';
-import { emit as emitRounded, measure as measurePts, pointAt, DEFAULT_RADIUS as DEFAULT_CORNER_RADIUS } from '../geometry/trace.js';
+import { emitBezier, measure as measurePts, pointAt, DEFAULT_RADIUS as DEFAULT_CORNER_RADIUS } from '../geometry/trace.js';
 import { DEFAULT_BEVEL_RATIO, chamferPolyline, createChamferIndex, polylineBox, findSharedPoints } from '../geometry/chamfer.js';
 import { previewPath } from '../geometry/preview.js';
 import { obstacleHash, corridorClear } from '../geometry/obstacles.js';
@@ -1362,7 +1362,9 @@ function tryCustomRender(ctx, a, b, link, color, start_dir, end_dir, opts) {
   }
 
   const path = new Path2D();
-  if (cfg.style === 'smooth') emitRounded(path, pts, cfg.cornerRadius);
+  // smooth = 真 Bezier（PRD §5.1 骨架曲线化）：拐角三次贝塞尔，骨架 pts 不变，只换绘制表达。
+  // cornerRadius 语义不变（0=直角）；与 chamfer 互斥口径不变（chamfer 仅 orthogonal 分支）。
+  if (cfg.style === 'smooth') emitBezier(path, pts, cfg.cornerRadius);
   else sharpPath(path, drawPts);
   const mid = pointAt(drawPts, measurePts(drawPts), 0.5); // {x, y, angle}
 

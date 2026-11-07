@@ -7,6 +7,11 @@
 
 ## [Unreleased]
 
+### 变更
+
+- smooth 样式拐角由圆弧拼接改为贝塞尔曲线（PRD §5.1 真 Bezier）：控制点=角点、切距沿用 `LuoWen.CornerRadius`（0–24px，默认 10px，0 为直角）；骨架路径与命中几何不变；同机 A/B 帧耗时较圆角折线略优（`docs/agents/performance.md` §2026-11-07）
+
+
 ### 新增
 
 - 产品包 `luowen/`：纯前端连线路由扩展（`WEB_DIRECTORY` 最小服务端，不注册任何节点）
