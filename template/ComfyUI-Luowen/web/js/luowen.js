@@ -19,18 +19,21 @@ function chainCallback(obj, prop, cb) {
 app.registerExtension({
     name: "ComfyUI-Luowen.Example",
 
-    // 静态设置项：注册时即被 extensionService 消费，出现在设置面板
-    // （完整示例：KJNodes vue_combo.js / VHS VHS.core.js）
-    settings: [
-        {
-            id: "ComfyUI-Luowen.greeting",
-            name: "Luowen 问候语",
-            category: ["Luowen", "Example"],
-            tooltip: "模板演示：扩展注册的静态设置项",
-            type: "text",
-            defaultValue: "hello from luowen",
-        },
-    ],
+    // 静态设置项写法（本模板不实际注册，避免在用户设置面板里留下示例项）：
+    // 注册时即被 extensionService 消费（完整示例：KJNodes vue_combo.js / VHS VHS.core.js）。
+    // settings: [
+    //     {
+    //         // 建议沿用既有 id，避免用户已保存的设置值失效
+    //         id: "<扩展名>.<设置名>",
+    //         name: "<显示名>",
+    //         // 三级分类：第 1 段为导航项，第 2 段为页内分组，第 3 段为组内唯一键
+    //         // 只用一段分类会让同组设置折叠成一项（见 docs/comfyui-dev-conventions.md §2.9）
+    //         category: ["<扩展名>", "<组名>", "<唯一键>"],
+    //         tooltip: "<说明>",
+    //         type: "boolean", // boolean / number / combo / text 等
+    //         defaultValue: false,
+    //     },
+    // ],
 
     // 每个节点类型注册前调用一次；nodeData.name 即服务端 NODE_CLASS_MAPPINGS 的 key
     // （KJNodes jsnodes.js:37、rgthree seed.js:138 同款入口）

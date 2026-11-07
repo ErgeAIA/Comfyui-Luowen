@@ -11,7 +11,9 @@ import {
   getTrace,
   getCrossDebug,
   runCrossCleanup,
+  CORNER_RADIUS_MAX,
 } from './adapters/renderLinkAdapter.js';
+import { DEFAULT_RADIUS } from './geometry/trace.js';
 import { graphNodes, linkTuples } from './adapters/graphRead.js';
 import { installSnap, uninstallSnap, setSnapEnabled, getSnapDebug } from './snap/dragSnap.js';
 
@@ -22,8 +24,23 @@ const ENABLED_ID = 'LuoWen.Enabled';
 const STYLE_ID = 'LuoWen.WireStyle';
 const AVOID_ID = 'LuoWen.NodeAvoidance';
 const CHAMFER_ID = 'LuoWen.Chamfer';
+const CORNER_RADIUS_ID = 'LuoWen.CornerRadius';
 const SNAP_ID = 'LuoWen.SnapAlign';
 const CROSS_CLEANUP_ID = 'LuoWen.CrossCleanup';
+
+const TIP_CLASS = 'luowen-tooltip';
+
+// 设置项提示框宽度：1.55.18 的 PrimeVue 默认 max-width 为 200px（实测）。
+// v-tooltip 的对象形式支持附加 class，因此只放宽带此标记的提示框，不影响其他扩展与全局设置页。
+function installTooltipStyle() {
+  if (document.getElementById('luowen-tooltip-style')) return;
+  const style = document.createElement('style');
+  style.id = 'luowen-tooltip-style';
+  style.textContent = `.p-tooltip.${TIP_CLASS}{width:max-content;max-width:min(560px,calc(100vw - 2rem))}`;
+  document.head.appendChild(style);
+}
+
+installTooltipStyle();
 
 let baseline = null;
 
@@ -72,8 +89,12 @@ app.registerExtension({
     {
       id: ENABLED_ID,
       name: '启用络纹',
-      category: ['LuoWen'],
-      tooltip: '总开关：关闭后完全回归 ComfyUI 原生线路绘制（F-001）',
+      category: ['LuoWen', '基础', 'Enabled'],
+      sortOrder: 100,
+      tooltip: {
+        value: '总开关。\n关闭后完全回归 ComfyUI 原生线路绘制（F-001）。',
+        class: TIP_CLASS,
+      },
       type: 'boolean',
       defaultValue: true,
       onChange: (v) => {
@@ -89,8 +110,13 @@ app.registerExtension({
     {
       id: SNAP_ID,
       name: '对齐吸附',
-      category: ['LuoWen'],
-      tooltip: '拖动单个节点时，与相连邻居的引脚行做 10px（图坐标）对齐吸附；离开 15px 才脱离。关闭后与未安装一致',
+      category: ['LuoWen', '基础', 'SnapAlign'],
+      sortOrder: 90,
+      tooltip: {
+        value:
+          '拖动单个节点时，与相连邻居的引脚行按图坐标 10px 对齐吸附。\n离开 15px 才脱离。\n关闭后与未安装一致。',
+        class: TIP_CLASS,
+      },
       type: 'boolean',
       defaultValue: true,
       onChange: (v) => {
@@ -101,37 +127,76 @@ app.registerExtension({
     {
       id: STYLE_ID,
       name: '线路样式',
-      category: ['LuoWen'],
-      tooltip: 'orthogonal=正交折线（A* 路由）；smooth=平滑圆角（同骨架）；native=原生渲染',
+      category: ['LuoWen', '线路外观', 'WireStyle'],
+      sortOrder: 80,
+      tooltip: {
+        value: 'orthogonal：A* 路由的正交折线。\nsmooth：同一骨架的平滑圆角。\nnative：ComfyUI 原生渲染。',
+        class: TIP_CLASS,
+      },
       type: 'combo',
       options: ['orthogonal', 'smooth', 'native'],
       defaultValue: 'orthogonal',
       onChange: (v) => setSettings({ style: v === 'smooth' ? 'smooth' : v === 'native' ? 'native' : 'orthogonal' }),
     },
     {
+      id: CORNER_RADIUS_ID,
+      name: '圆角半径',
+      category: ['LuoWen', '线路外观', 'CornerRadius'],
+      sortOrder: 75,
+      tooltip: {
+        value:
+          '只对 smooth 圆角样式生效。\n设定值即圆角半径上限，单位图坐标像素。\n实际半径取设定值与相邻短段三分之一中的较小值。\n0 为直角，最大 24。\northogonal 样式下此项无效。',
+        class: TIP_CLASS,
+      },
+      type: 'slider',
+      attrs: { min: 0, max: CORNER_RADIUS_MAX, step: 1 },
+      defaultValue: DEFAULT_RADIUS,
+      onChange: (v) => setSettings({ cornerRadius: v }),
+    },
+    {
       id: AVOID_ID,
       name: '节点避障',
-      category: ['LuoWen'],
-      tooltip: '影响线路绕开节点的净空档位（low=8 / standard=16 / high=24）',
+      category: ['LuoWen', '线路外观', 'NodeAvoidance'],
+      sortOrder: 70,
+      tooltip: {
+        value:
+          '线路绕开节点时的净空档位。\nlow 净空 8，standard 净空 16，high 净空 24。\n数值单位为图坐标像素。',
+        class: TIP_CLASS,
+      },
       type: 'combo',
-      options: ['low', 'standard', 'high'],
+      options: [
+        { text: '低', value: 'low' },
+        { text: '标准', value: 'standard' },
+        { text: '高', value: 'high' },
+      ],
       defaultValue: 'standard',
       onChange: (v) => setSettings({ avoidance: v === 'low' ? 'low' : v === 'high' ? 'high' : 'standard' }),
     },
     {
       id: CHAMFER_ID,
       name: '绕障外角大斜切',
-      category: ['LuoWen'],
-      tooltip: '仅正交样式生效：只把「为绕开第三方节点」形成的外凸直角切掉一大块；三通/分叉/引脚段保持直角。关闭后回到直角；与 smooth 圆角互斥（DEC-012）',
+      category: ['LuoWen', '线路外观', 'Chamfer'],
+      sortOrder: 60,
+      tooltip: {
+        value:
+          '仅在正交样式下生效。\n只把为绕开第三方节点而形成的外凸直角切掉一大块。\n三通、分叉与引脚段保持直角。\n关闭后回到直角。\n与 smooth 圆角样式互斥。',
+        class: TIP_CLASS,
+      },
       type: 'boolean',
       defaultValue: true,
       onChange: (v) => setSettings({ chamfer: !!v }),
     },
     {
       id: CROSS_CLEANUP_ID,
-      name: '离线交叉清理（实验）',
-      category: ['LuoWen'],
-      tooltip: '布局静止 400ms 后，只对存在垂直交叉的线路对做一次离线重解；交叉对严格下降且参与线路总长增幅 ≤15% 才采纳，否则保持原画面。默认关闭',
+      name: '离线交叉清理',
+      category: ['LuoWen', '实验', 'CrossCleanup'],
+      sortOrder: 50,
+      experimental: true,
+      tooltip: {
+        value:
+          '布局静止 400ms 后，\n只对存在垂直交叉的线路对做一次离线重解。\n交叉对数严格下降。\n参与线路总长增幅不超过 15% 时才采纳。\n否则保持原画面。\n默认关闭。',
+        class: TIP_CLASS,
+      },
       type: 'boolean',
       defaultValue: false,
       onChange: (v) => setSettings({ crossCleanup: !!v }),
@@ -154,6 +219,7 @@ app.registerExtension({
         style: readSetting(STYLE_ID, 'orthogonal'),
         avoidance: readSetting(AVOID_ID, 'standard'),
         chamfer: !!readSetting(CHAMFER_ID, true),
+        cornerRadius: readSetting(CORNER_RADIUS_ID, DEFAULT_RADIUS),
         crossCleanup: !!readSetting(CROSS_CLEANUP_ID, false),
       });
     } catch {
@@ -210,6 +276,19 @@ app.registerExtension({
       setChamfer: (v) => {
         setSettings({ chamfer: !!v });
         return getStats().chamfer;
+      },
+      setCornerRadius: (v) => {
+        // 调试对照入口：0 / 默认 / 上限同取景对照；同步写入设置，保持持久值一致
+        const n = Math.round(Number(v));
+        if (!Number.isFinite(n)) return getStats().cornerRadius;
+        const r = Math.max(0, Math.min(CORNER_RADIUS_MAX, n));
+        setSettings({ cornerRadius: r });
+        try {
+          app.ui?.settings?.setSettingValue?.(CORNER_RADIUS_ID, r);
+        } catch {
+          /* 设置不可写时仅内存生效 */
+        }
+        return getStats().cornerRadius;
       },
       setBevelRatio: (v) => {
         // 调试对照入口：默认 0.6 已固化；0.35 / 0.85 仅用于对比，不写入持久设置

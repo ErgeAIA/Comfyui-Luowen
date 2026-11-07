@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { route } from '../../luowen/web/geometry/router.js';
-import { emit, measure, pointAt } from '../../luowen/web/geometry/trace.js';
+import { emit, measure, pointAt, filletRadius, DEFAULT_RADIUS } from '../../luowen/web/geometry/trace.js';
 import { createRouteCache } from '../../luowen/web/routing/routeCache.js';
 import { blockedCorridor } from '../fixtures/graphs.mjs';
 
@@ -236,4 +236,27 @@ test('trace.emit: 折线转圆角路径（moveTo + arcTo + lineTo），measure/p
   assert.equal(m.total, 200);
   const mid = pointAt(pts, m, 0.5);
   assert.ok(Math.abs(mid.x - 100) < 1e-6 && Math.abs(mid.y - 0) < 1e-6);
+});
+
+test('trace.filletRadius: 设定值只是上限，实际取相邻段三分之一', () => {
+  assert.equal(filletRadius(DEFAULT_RADIUS, 200, 200), 10, '默认 10 用满');
+  assert.equal(filletRadius(24, 200, 200), 24, '上限 24 用满');
+  assert.equal(filletRadius(24, 30, 200), 10, '短段三分之一（30/3）压过设定值');
+  assert.equal(filletRadius(10, 120, 120), 10, '两段均 ≥30 时不被夹取');
+  assert.equal(filletRadius(0, 200, 200), 0, '0 表示直角');
+  assert.equal(filletRadius(10, 1, 200), 0.5, '正半径保留 0.5 下限（默认观感不变）');
+});
+
+test('trace.emit: 半径参数进入 arcTo；0 传直角', () => {
+  const pts = [[0, 0], [200, 0], [200, 200]];
+  const radiusOf = (p) => p.ops.find((o) => o[0] === 'arcTo')[5];
+  const p24 = new Path2DStub();
+  emit(p24, pts, 24);
+  assert.equal(radiusOf(p24), 24);
+  const p0 = new Path2DStub();
+  emit(p0, pts, 0);
+  assert.equal(radiusOf(p0), 0);
+  const pDefault = new Path2DStub();
+  emit(pDefault, pts);
+  assert.equal(radiusOf(pDefault), 10);
 });

@@ -34,11 +34,15 @@ function slotOrder(a, b) {
 }
 
 // 输入引脚 x 相对节点左边缘的偏移：实测 frontend 1.55.18（node70 pos[0]=659.9998，
-// getConnectionPos(true,0)=670；node63 629.1→639 等，均为 +10）。仅用于判定走廊是否被
-// 第三方节点挡住；若宿主版本变化导致偏移不同，最坏只会多/少让开 10px。
+// getConnectionPos(true,0)=670；node63 629.1→639 等，均为 +10）。仅作为**无真实引脚
+// 信息时**的兜底口径；adapter 传入 pins 后一律用线路真实端点 x（与 router 的 eStub 一致）。
 const INPUT_PIN_X_OFFSET = 10;
 // 走廊净空判定与 router 的 hard 箱对齐（节点矩形外扩 4px）
 const LANE_HARD_PAD = 4;
+// 冲突簇重分配边界：向内侧最多下探 1 档；外侧顺延最多名义末位之后 4 档
+// （PRD §7.3「不得无限增加绕行」）。
+const MIN_STUB_STEPS = 1;
+const MAX_FORWARD_STEPS = 4;
 
 // 兼容两种输入：宿主 rects {id,x,y,w,h} 与测试 fixtures {id,pos,size}
 function nodeRect(n) {
@@ -67,7 +71,7 @@ function laneBlocked(x, y0, y1, rects, skipIds) {
   return false;
 }
 
-export function allocateLanes(links, nodes, { base = DEFAULT_BASE, pitch = DEFAULT_LANE_PITCH } = {}) {
+export function allocateLanes(links, nodes, { base = DEFAULT_BASE, pitch = DEFAULT_LANE_PITCH, pins = null } = {}) {
   const byId = nodeIndex(nodes);
   const inNodes = new Map(); // target_id -> Map<slotKey, links[]>
   const result = new Map();
@@ -110,28 +114,54 @@ export function allocateLanes(links, nodes, { base = DEFAULT_BASE, pitch = DEFAU
       .filter((e) => Math.abs(e.dy) <= 1)
       .sort((a, b) => slotOrder(a.sk, b.sk) || byLinkId(a, b));
     // 由近到远一次性编号：同节点任意两条不同引脚的竖直走廊因此不会相交。
-    // 若某个近端 lane 被第三方节点占住（host 视图里会绕到更外侧），则顺延到下一个空位，
-    // 且游标不回退——后续线只会更外，嵌套顺序仍成立。
+    // 名义阶梯（base + 序号 × pitch）全部合法时原样使用（与既有基线逐点一致）；
+    // 只要有一条被第三方节点占住，就把整组按「近→远」重排到一段连续合法位，
+    // 允许向内侧下探、外侧顺延有上限，避免旧实现单向往外走到无解 stub（BUG-003）。
     const targetRect = nodeRect(byId.get(tid));
-    const pinX = targetRect ? targetRect.x + INPUT_PIN_X_OFFSET : null;
-    let k = 0;
-    for (const e of [...ups, ...downs, ...flats]) {
-      let stub = base + k * pitch;
-      if (pinX != null) {
-        const oRect = nodeRect(byId.get(e.l.origin_id));
-        const y0 = targetRect && oRect ? Math.min(targetRect.y, oRect.y) : null;
-        const y1 = targetRect && oRect
-          ? Math.max(targetRect.y + targetRect.h, oRect.y + oRect.h)
-          : null;
-        const skipIds = new Set([String(tid), String(e.l.origin_id)]);
-        while (k < 64 && laneBlocked(pinX - stub, y0, y1, nodes, skipIds)) {
-          k += 1;
-          stub = base + k * pitch;
+    const order = [...ups, ...downs, ...flats];
+    const nominal = order.map((_, i) => base + i * pitch);
+
+    // 单条线的真实走廊口径：目标入引脚实际 x + 该线两端引脚的实际 y 跨度（adapter 传入）。
+    // 无引脚信息时退回旧口径（rect.x + 10 + 整节点 y 跨度），装载首帧与单测行为不变。
+    const geometryOf = (e) => {
+      const pin = pins ? pins.get(e.l.id) : null;
+      if (pin && Number.isFinite(pin.x)) {
+        return { pinX: pin.x, y0: pin.y0, y1: pin.y1 };
+      }
+      if (!targetRect) return { pinX: null, y0: null, y1: null };
+      const oRect = nodeRect(byId.get(e.l.origin_id));
+      return {
+        pinX: targetRect.x + INPUT_PIN_X_OFFSET,
+        y0: oRect ? Math.min(targetRect.y, oRect.y) : null,
+        y1: oRect ? Math.max(targetRect.y + targetRect.h, oRect.y + oRect.h) : null,
+      };
+    };
+    const laneFree = (e, stub) => {
+      const g = geometryOf(e);
+      if (g.pinX == null || g.y0 == null) return true;
+      const skipIds = new Set([String(tid), String(e.l.origin_id)]);
+      return !laneBlocked(g.pinX - stub, g.y0, g.y1, nodes, skipIds);
+    };
+
+    let chosen = nominal;
+    if (!nominal.every((stub, i) => laneFree(order[i], stub))) {
+      let best = null;
+      let bestCost = Infinity;
+      const startMax = base + MAX_FORWARD_STEPS * pitch;
+      for (let s0 = MIN_STUB_STEPS * pitch; s0 <= startMax; s0 += pitch) {
+        const cand = order.map((_, i) => s0 + i * pitch);
+        if (!cand.every((stub, i) => laneFree(order[i], stub))) continue;
+        const cost = cand.reduce((acc, stub, i) => acc + Math.abs(stub - nominal[i]), 0);
+        if (cost < bestCost) {
+          best = cand;
+          bestCost = cost;
         }
       }
-      result.get(e.l.id).stubIn = stub;
-      k += 1;
+      if (best) chosen = best;
     }
+    order.forEach((e, i) => {
+      result.get(e.l.id).stubIn = chosen[i];
+    });
   }
   return result;
 }

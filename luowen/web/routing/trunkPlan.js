@@ -138,6 +138,103 @@ function splitAt(pts, len) {
   return { prefix: pts, rest: [pts[pts.length - 1]] };
 }
 
+// ---------- 主干组悬停分类（DEC-021；纯函数，可单测） ----------
+
+const HOVER_EPS = 0.5;
+
+// 折线最近点：返回 {d2, s}，s 为该最近点沿折线的弧长（用于区分共享主干段与分支段）
+function nearestOnPath(pts, point) {
+  const px = point[0];
+  const py = point[1];
+  let bestD2 = Infinity;
+  let bestS = 0;
+  let acc = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const ax = pts[i - 1][0];
+    const ay = pts[i - 1][1];
+    const bx = pts[i][0];
+    const by = pts[i][1];
+    const dx = bx - ax;
+    const dy = by - ay;
+    const len2 = dx * dx + dy * dy;
+    const segLen = Math.sqrt(len2);
+    if (segLen < EPS) continue;
+    let t = ((px - ax) * dx + (py - ay) * dy) / len2;
+    t = Math.max(0, Math.min(1, t));
+    const qx = ax + t * dx;
+    const qy = ay + t * dy;
+    const d2 = (px - qx) * (px - qx) + (py - qy) * (py - qy);
+    if (d2 < bestD2) {
+      bestD2 = d2;
+      bestS = acc + t * segLen;
+    }
+    acc += segLen;
+  }
+  return { d2: bestD2, s: bestS };
+}
+
+// 同组判定：主干成员共享同一个输出引脚（路径首点坐标一致）；不新增组 ID 表
+function trunkMembersOf(trunks, id) {
+  const p0 = trunks.get(id)?.[0];
+  if (!p0) return [id];
+  const ids = [];
+  for (const [other, pts] of trunks) {
+    const q = pts?.[0];
+    if (q && Math.abs(q[0] - p0[0]) < HOVER_EPS && Math.abs(q[1] - p0[1]) < HOVER_EPS) ids.push(other);
+  }
+  return ids;
+}
+
+// 组内共享几何长度 = 各成员与首成员公共前缀的最小值（含分叉后公共走廊，DEC-010）
+function trunkSharedLength(trunks, ids) {
+  if (ids.length < 2) return Infinity;
+  const first = trunks.get(ids[0]);
+  if (!Array.isArray(first)) return 0;
+  let len = Infinity;
+  for (let i = 1; i < ids.length; i++) {
+    const other = trunks.get(ids[i]);
+    if (!Array.isArray(other)) return 0;
+    len = Math.min(len, sharedPrefixLength(first, other));
+  }
+  return Number.isFinite(len) ? len : 0;
+}
+
+// 悬停分类：命中最近折线后按弧长判定 trunk / branch。
+// - s ≤ 共享前缀长度 → 整组（part='trunk'）；
+// - 否则只该条（part='branch'）；
+// - 无主干命中 → 单例（part='branch'）。
+export function classifyHover(routes, trunks, point, tol = 8) {
+  if (!routes?.size || !point) return null;
+  let hit = null;
+  let bestD2 = Infinity;
+  for (const [id, pts] of routes) {
+    if (!Array.isArray(pts) || pts.length < 2) continue;
+    const n = nearestOnPath(pts, point);
+    if (n.d2 < bestD2) {
+      bestD2 = n.d2;
+      hit = { id, s: n.s };
+    }
+  }
+  if (!hit) return null;
+  const distance = Math.sqrt(bestD2);
+  if (distance > tol) return null;
+
+  const inTrunk = trunks?.has?.(hit.id);
+  if (inTrunk) {
+    const memberIds = trunkMembersOf(trunks, hit.id);
+    if (memberIds.length >= 2) {
+      const sharedLen = trunkSharedLength(trunks, memberIds);
+      if (hit.s <= sharedLen + HOVER_EPS) {
+        const first = trunks.get(memberIds[0]);
+        const groupPts = Array.isArray(first) ? splitAt(first, sharedLen).prefix : null;
+        return { linkId: hit.id, part: 'trunk', memberIds, groupPts, distance };
+      }
+    }
+  }
+  // 主干单成员（拓扑刚变化）与非主干线路一律按单条命中
+  return { linkId: hit.id, part: 'branch', memberIds: [hit.id], groupPts: null, distance };
+}
+
 // 主干方向上最近障碍的“净空上限”：分叉点 + stub 不得顶进前方卡片（PRD §7.2）
 function corridorLimit(pin, dir0, obstacles, stub, halfBand = 12) {
   if (!obstacles || !obstacles.length) return null;

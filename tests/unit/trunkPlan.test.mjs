@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { planTrunk, firstRun, chooseForkLength, decideMembership, pathLength } from '../../luowen/web/routing/trunkPlan.js';
+import { planTrunk, firstRun, chooseForkLength, decideMembership, pathLength, classifyHover } from '../../luowen/web/routing/trunkPlan.js';
 import { route } from '../../luowen/web/geometry/router.js';
 
 const AXIS_EPS = 1e-6;
@@ -221,4 +221,58 @@ test('planTrunk: router 返回 null 的直连成员用共线直线分支补齐�
   // 直连成员与主干共线：路径折叠成 pin → 目标，不额外绕行
   assert.deepEqual(plan.paths.get(1), [[0, 100], [200, 100]]);
   assert.equal(plan.ratios.get(1), 1);
+});
+
+test('classifyHover: 主干中点 → 整组；分叉后 → 仅该分支', () => {
+  const routes = new Map([
+    [1, [[0, 100], [80, 100], [80, 40]]],
+    [2, [[0, 100], [80, 100], [80, 160]]],
+  ]);
+  const trunks = new Map(routes);
+
+  // 共享前缀中点：整组（成员 1、2），groupPts 为共享前缀
+  assert.deepEqual(classifyHover(routes, trunks, [40, 100], 8), {
+    linkId: 1,
+    part: 'trunk',
+    memberIds: [1, 2],
+    groupPts: [[0, 100], [80, 100]],
+    distance: 0,
+  });
+  // 分叉点本身仍在共享段（弧长 80 ≤ 80）
+  assert.equal(classifyHover(routes, trunks, [80, 100], 8).part, 'trunk');
+  // 分叉后（弧长 85）只高亮该分支
+  assert.deepEqual(classifyHover(routes, trunks, [80, 95], 8), {
+    linkId: 1,
+    part: 'branch',
+    memberIds: [1],
+    groupPts: null,
+    distance: 0,
+  });
+  assert.equal(classifyHover(routes, trunks, [80, 140], 8).linkId, 2);
+  assert.equal(classifyHover(routes, trunks, [80, 140], 8).part, 'branch');
+});
+
+test('classifyHover: 无 trunk → 单例；超出阈值 → null；多组按同引脚分组', () => {
+  assert.equal(classifyHover(new Map(), new Map(), [0, 0], 8), null);
+  assert.equal(classifyHover(new Map([[5, [[200, 0], [260, 0]]]]), new Map(), [230, 0], 8).part, 'branch');
+  assert.deepEqual(classifyHover(new Map([[5, [[200, 0], [260, 0]]]]), new Map(), [230, 0], 8).memberIds, [5]);
+  // 阈值外
+  assert.equal(classifyHover(new Map([[5, [[200, 0], [260, 0]]]]), new Map(), [230, 9], 8), null);
+
+  // 两个独立组：组身份按路径首点（同一输出引脚）划分，不串组
+  const routes = new Map([
+    [1, [[0, 100], [80, 100], [80, 40]]],
+    [2, [[0, 100], [80, 100], [80, 160]]],
+    [3, [[0, 300], [80, 300], [80, 240]]],
+    [4, [[0, 300], [80, 300], [80, 360]]],
+  ]);
+  const trunks = new Map(routes);
+  assert.deepEqual(classifyHover(routes, trunks, [40, 100], 8).memberIds, [1, 2]);
+  assert.deepEqual(classifyHover(routes, trunks, [40, 300], 8).memberIds, [3, 4]);
+
+  // 主干只剩单成员（拓扑刚变化）：按单条处理，不冒充整组
+  const lone = new Map([[1, [[0, 100], [80, 100], [80, 40]]], [2, [[200, 0], [260, 0]]]]);
+  const loneTrunks = new Map([[1, [[0, 100], [80, 100], [80, 40]]]]);
+  assert.equal(classifyHover(lone, loneTrunks, [40, 100], 8).part, 'branch');
+  assert.deepEqual(classifyHover(lone, loneTrunks, [40, 100], 8).memberIds, [1]);
 });

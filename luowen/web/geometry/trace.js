@@ -2,28 +2,31 @@
  * Copyright (c) 2026 Vedran Aberle Tokić
  * SPDX-License-Identifier: MIT
  *
- * Verbatim copy from https://github.com/vtokic/comfyui-cable-management
+ * Adapted from https://github.com/vtokic/comfyui-cable-management
  * (upstream file: web/pathing/trace.js). Registered in THIRD_PARTY_NOTICES.md at repo root.
- * Modifications by LuoWen: none (attribution header prepended only).
+ * Modifications by LuoWen: fillet radius is a caller-supplied parameter (default 10).
  */
 // Trace geometry helpers: emit a filleted orthogonal polyline into a Path2D, and
 // arc-length math for the centre point and point-at-t (arrows, flow dots).
 
-const RADIUS = 10
+export const DEFAULT_RADIUS = 10
+const RADIUS = DEFAULT_RADIUS
 
-export function emit(path, pts) {
+// 实际圆角半径 = min(调用方上限, 相邻两段的各三分之一)；0 表示直角。
+// 0.5 下限仅对正半径生效，保留原有默认观感（上游行为）。
+export function filletRadius(radius, prevLen, nextLen) {
+  if (!(radius > 0)) return 0
+  return Math.max(0.5, Math.min(radius, prevLen / 3, nextLen / 3))
+}
+
+export function emit(path, pts, radius = RADIUS) {
   path.moveTo(pts[0][0], pts[0][1])
   for (let k = 1; k < pts.length - 1; k++) {
     const p = pts[k - 1], c = pts[k], n = pts[k + 1]
     // Clamp to a THIRD of the adjacent segments, not half: dense bundles have
     // 12-30px segments, and half-length fillets turn the whole trace into curve --
     // it then reads as a spline instead of a routed trace.
-    const r = Math.min(
-      RADIUS,
-      dist(p, c) / 3,
-      dist(c, n) / 3
-    )
-    path.arcTo(c[0], c[1], n[0], n[1], Math.max(0.5, r))
+    path.arcTo(c[0], c[1], n[0], n[1], filletRadius(radius, dist(p, c), dist(c, n)))
   }
   const last = pts[pts.length - 1]
   path.lineTo(last[0], last[1])
