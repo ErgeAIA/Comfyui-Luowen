@@ -97,4 +97,50 @@ description: >
 2. 帧内复用：`nodesById`、`obstacles` 数组、`endpointIndices` 索引按帧缓存，消除 `recordEndpoint`/`routeArgs` 的 O(L·N) 重建。
 3. `planBands` 走廊净空与 `solveBaseline` 采样密度按图规模降级（需用户确认视觉底线后实施）。
 
+### 2026-11-07 性能评估（优化项 2：chamfer 预筛）
+
+**改动内容**
+
+- `luowen/web/geometry/chamfer.js`：新增 `polylineBox`（导出）、`createChamferIndex`（格网 cell=256）与 `PREFILTER_MARGIN=GAP_FAR_MAX=200`；`chamferPolyline` 本体逻辑不变。
+- `luowen/web/adapters/renderLinkAdapter.js`：`chamferIndexForFrame()` 每帧建一次索引（obstacles + prevRoutes），拖拽冻结期按 `prevRoutes` 身份 + 障碍版本复用；逐线按折线包围盒外扩 200 查询近邻障碍/他线，替代原来的「每线 `rects.map` + 全量 `prevRoutes` filter/map + 逐采样点全量扫描」。
+- 正确性依据：`wrapsNode` 被绕节点整体距角点 ≤ `GAP_FAR_MAX`；`segmentClear` 采样点落在折线包围盒内，障碍判定 +6、他线判定 +10，均 ≤ 200；两种判定只返回布尔，筛选顺序不影响结果。
+
+**测量方法（同口径 A/B）**
+
+- 同一页面（chrome-devtools 独立隔离上下文页）、同一浏览器上下文，仅部署文件不同：优化前 = 提交 `529648e` 的 `chamfer.js` + `renderLinkAdapter.js`；优化后 = 当前工作区两文件。每次切换后 `reload(ignoreCache)`，校验源文件 SHA256。
+- 合成图协议：reload 后**立即**构建 500 个 `LatentBlend`（996 线），`fit` 使全部线路进入绘制范围，预热 10 帧后测 40 帧（页内 `__PERF_RUN__`，`setDirty` 逐帧驱动）；`orthogonal`、`avoidance=high`、`chamfer=true`、`bevelRatio=0.6`、`cornerRadius=10`、`lanePitch=8`、`brotherSpacing=8`。
+- 真实图协议：reload 后 `fit`，`smooth` 取几何指纹，再 `orthogonal` 测 120 帧（外加 8 预热帧）。
+- 采样时只保留 2 个页面（用户工作流页 + 测量页）；多余隔离页会显著抬高结果（本次观测到 1.5~2× 波动）。
+- 协议注意：合成图必须在 reload 后立即构建。若先在同一页面测真实图再构建合成图，`routeCache`/`trunkPrev`/`pinOffsets`/`trunkCache` 残留会改变 `bands`/`trunks` 耗时与几何签名（本次误测到 `hash=1368597097 len=61998`，清理协议后复现为 `hash=823324264 len=63091`），该数据作废。
+
+**优化前 → 优化后（ms/帧）**
+
+| 场景 | 指标 | 优化前 | 优化后 | 变化 |
+|---|---|---|---|---|
+| 合成 500 ortho（996 线） | frame avg / p95 | 358.252 / 378.2 | 131.092 / 147.9 | −63.4% |
+| | chamfer / p95 | 238.948 / 255.7 | 23.429 / 27.9 | −90.2% |
+| | 单线 chamfer 均摊 | 0.240 | 0.0235 | ≈10× |
+| | render（含 chamfer） | 326.240 | 103.596 | 非 chamfer 绘制部分 ≈87 → 80ms |
+| | begin / trunks / bands | 13.452 / 8.083 / 1.152 | 14.342 / 8.883 / 1.262 | 持平（噪声内） |
+| | chamfers / renders | 47808 / 47808 | 47808 / 47808 | 调用次数不变 |
+| | gap p50 / p95 / >33.4ms | 373.6 / 395.9 / 47/48 | 144.8 / 165.4 / 47/48 | 帧数仍全部 >33.4ms |
+| 真实 10 节点 ortho（120 帧） | frame avg / p95 | 1.477 / 2.7 | 0.799 / 1.2 | 毫秒级，差异含环境噪声 |
+| | chamfer / p95 | 0.159 / 0.5 | 0.147 / 0.3 | −7.5% |
+
+**行为不变（同一布局重放）**
+
+- 合成 500 ortho：996/996 条线逐点几何完全一致（每条线折线坐标四舍五入到 1e-3 后哈希比对，`per-link diffs 0`），总点数 5783 两侧相同，整体签名 `hash=823324264 len=63091` 一致。
+- 真实 10 节点：`routes()` 指纹 `hash=3021896999 len=524`；`verify() {ok:true,diffs:[]}`；等距带 `target 70 members [76,82,78] anchor 82 spacing 8 xs [null,806.49,814.49]`（相邻 8.00px、顺序不变）；单主干 `62:0 fork=155 merged=[79,81]`；`crossDebug().before/after.count = 0`（smooth 与 orthogonal 均验）；`bandDegraded/orderDegraded` 均为空；`node --test tests/unit/*.test.mjs` **99 pass / 0 fail**。
+
+**热点排序（优化后，合成 500 ortho）**
+
+- render 103.6（79%，其中 chamfer 23.4、非 chamfer 绘制 ≈80）> begin 14.3（trunks 8.9、predict 2.1、lanes 1.1、bands 1.3）> chamfer 23.4（17.9%）。
+- chamfer 已从 62.7% 降到 17.9%；整帧瓶颈转为「逐线绘制」而非求解。
+
+**本项结论与剩余余量**
+
+- 预筛把 chamfer 从 238.9ms/帧 降到 23.4ms/帧（−90.2%，≈10×），整帧 −63.4%；真实 10 节点图 chamfer 亦下降 7.5%，未出现小图回退。
+- 帧内复用 `nodesById`/`obstacles`/`endpointIndices` 的剩余空间上限约为 `begin` 的 14.3ms（整帧 11%），且其中 `trunks` 8.9ms 主要是组信标与合并判定，不是索引重建；预估可回收 <10ms，优先级低于绘制路径。
+- 500 节点 ortho 仍 47/48 帧 >33.4ms（≈0.13ms/线）；若继续优化，应先单独计时「逐线路径构建（emitRounded/measure）+ 命中路径」的占比，再决定是否值得改动，任何改动须仍满足逐线几何指纹一致。
+
 

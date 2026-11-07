@@ -24,6 +24,12 @@ description: >
 - **测试**：`node --test tests/unit/*.test.mjs` **99/99** 通过（2026-11-07 实跑复核，fail 0）
 - **代码**：`luowen/`（含 `routing/trunkPlan.js` 单主干共享几何、三档避障、预览、缓存、`geometry/chamfer.js` 绕障外角大斜切、`geometry/trace.js` 圆角半径 0–24（默认 10）、`routing/laneAssign.js` 输入侧按接近方向嵌套分道 + 走廊净空顺延 + 同目标等距带（`planBands`、`bandDegraded`/`orderDegraded`）、`snap/alignSnap.js` + `snap/dragSnap.js` 对齐吸附、`routing/crossings.js` + `routing/crossCleanup.js` 交叉枚举与离线清理、主干组高亮 + 组删除菜单），已装本机 custom_nodes 实测
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2、Node 24.22.1；Playwright 浏览器实测流程已打通
+- **本轮性能评估第 2 项：chamfer 预筛（2026-11-07，先量后改；已部署宿主并同口径 A/B；未提交，等用户验收）**：
+  - 改动：`geometry/chamfer.js` 新增 `polylineBox` / `createChamferIndex`（格网 cell=256，`PREFILTER_MARGIN=GAP_FAR_MAX=200`）；`adapters/renderLinkAdapter.js` 新增 `chamferIndexForFrame()`（每帧一次，指针对 `prevRoutes` 身份 + 障碍版本，拖拽冻结期复用），逐线按折线包围盒外扩 200 取近邻障碍/他线，替代「每线重建 obstacles + 全量 prevRoutes + 逐采样点全量扫描」。`chamferPolyline` 本体未改。
+  - 同口径 A/B（同页、同图、同帧数、仅部署文件不同；reload 后立即建合成图，避免残留状态污染）：500 节点 ortho（996 线）frame avg 358.252 → 131.092（−63.4%，p95 378.2 → 147.9），chamfer 238.948 → 23.429（−90.2%，p95 255.7 → 27.9，单线均摊 0.240 → 0.0235ms ≈10×）；`render`（含 chamfer）326.240 → 103.596，非 chamfer 绘制约 87 → 80ms 持平；begin/trunks/bands 在噪声内持平；chamfers/renders 两边 47808 不变。真实 10 节点 ortho 120 帧 chamfer 0.159 → 0.147（−7.5%），frame 1.477 → 0.799（毫秒级含环境噪声）。
+  - 行为不变：合成 500 ortho 996/996 条线逐点几何哈希一致（总点数 5783，整体签名 `hash=823324264 len=63091` 两侧一致）；真实图 `routes()` 指纹 `hash=3021896999 len=524`、`verify(){ok:true,diffs:[]}`、等距带 `[76,82,78] anchor 82` 间距 8、单主干 `62:0 fork=155 merged=[79,81]`、`crossDebug` before/after count 0、`bandDegraded/orderDegraded` 空；单测 99/99。
+  - 优化后热点：ortho 500 render 103.6（79%，含 chamfer 23.4）> begin 14.3（trunks 8.9）> chamfer 23.4（17.9%）；瓶颈已从求解转为逐线绘制。帧内复用 `nodesById`/obstacles/endpoint 的剩余上限≈begin 14.3ms（整帧 11%），预估可回收 <10ms，优先级低于绘制路径。500 ortho 仍 47/48 帧 >33.4ms（≈0.13ms/线）。
+  - 测量协议教训：合成图必须在 reload 后立即构建；先测真实图再建合成图会因 routeCache/trunkPrev/pinOffsets 残留改变几何签名与耗时（误测 `1368597097/61998` 已作废）。宿主两文件已恢复为仓库版（SHA256 一致）。
 - **本轮性能评估第 1 项：trunkCache 上限修复（2026-11-07，先量后改；已部署宿主并同口径 A/B；未提交，等用户验收）**：
   - 基线口径（页内 `LuoWen.perfStart/perfStop/perfReport` + `setDirty` 逐帧驱动 + 独立浏览器上下文页）：真实图 10 节点 / 合成 LatentBlend 50/200/500 节点（96/396/996 线），`avoidance=high`、`chamfer=true`、`cornerRadius=10`、`lanePitch=8`。完整方法与原始数据见 `docs/agents/performance.md` §2026-11-07。
   - 基线热点：500 节点 smooth frame 142.023ms，其中 begin 62.221 / bands 38.825 / trunks 19.904 / astar 6.49，`solveCalls ≈722/帧`；ortho 500 frame 389.869ms，其中 chamfer 231.929（62.7%）。

@@ -89,7 +89,7 @@ function pointSegDist(px, py, ax, ay, bx, by) {
   return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
 }
 
-function polyBox(pts) {
+export function polylineBox(pts) {
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
@@ -138,6 +138,109 @@ function segmentClear(ax, ay, bx, by, obstacles, others, nodePad, linePad) {
   return true;
 }
 
+// ---------- 预筛索引（性能项 2） ----------
+// 目的：把「每条线全量扫障碍、全量重建其他线包围盒」换成「每帧建一次格网，逐线按折线包围盒取近邻」。
+// 正确性前提（查询盒按 PREFILTER_MARGIN 外扩）：
+//   - wrapsNode 的被绕节点两条边距角点分别 <= GAP_NEAR_MAX / GAP_FAR_MAX，
+//     即节点整体落在角点 GAP_FAR_MAX 内 → 必在外扩盒内，不会被漏筛；
+//   - segmentClear 的斜边采样点都在折线包围盒内，障碍需落在 +nodePad、他线需落在 +linePad 内，
+//     两者都 <= PREFILTER_MARGIN。
+// 排序差异不影响结果：wrapsNode 只返回真假，segmentClear 命中即返回 false。
+export const PREFILTER_MARGIN = GAP_FAR_MAX;
+const PRE_CELL = 256;
+
+function cellSpan(minX, minY, maxX, maxY, cell) {
+  return {
+    x0: Math.floor(minX / cell),
+    y0: Math.floor(minY / cell),
+    x1: Math.floor(maxX / cell),
+    y1: Math.floor(maxY / cell),
+  };
+}
+
+// obstacles: [{ id, rect:[x,y,w,h] }]；paths: [{ id, pts }]
+// query(box, {excludeIds, selfId}) → { obstacles: [[x,y,w,h]], excludeIndices, others: [pts] }
+export function createChamferIndex({ obstacles = [], paths = [], cell = PRE_CELL } = {}) {
+  const obs = [];
+  const obsCells = new Map();
+  obstacles.forEach((o) => {
+    const rect = Array.isArray(o) ? o : o?.rect;
+    if (!Array.isArray(rect)) return;
+    const box = [rect[0], rect[1], rect[0] + rect[2], rect[1] + rect[3]];
+    const i = obs.length;
+    obs.push({ id: o && o.id != null ? String(o.id) : null, rect, box });
+    const s = cellSpan(box[0], box[1], box[2], box[3], cell);
+    for (let cx = s.x0; cx <= s.x1; cx++) {
+      for (let cy = s.y0; cy <= s.y1; cy++) {
+        const k = cx + ',' + cy;
+        let arr = obsCells.get(k);
+        if (!arr) obsCells.set(k, (arr = []));
+        arr.push(i);
+      }
+    }
+  });
+
+  const pat = [];
+  const patCells = new Map();
+  paths.forEach((p) => {
+    const pts = p?.pts;
+    if (!Array.isArray(pts) || pts.length < 2) return;
+    const box = polylineBox(pts);
+    const i = pat.length;
+    pat.push({ id: p.id != null ? String(p.id) : null, pts, box });
+    const s = cellSpan(box[0], box[1], box[2], box[3], cell);
+    for (let cx = s.x0; cx <= s.x1; cx++) {
+      for (let cy = s.y0; cy <= s.y1; cy++) {
+        const k = cx + ',' + cy;
+        let arr = patCells.get(k);
+        if (!arr) patCells.set(k, (arr = []));
+        arr.push(i);
+      }
+    }
+  });
+
+  return {
+    query(box, { excludeIds = null, selfId = null } = {}) {
+      const q = [box[0] - PREFILTER_MARGIN, box[1] - PREFILTER_MARGIN, box[2] + PREFILTER_MARGIN, box[3] + PREFILTER_MARGIN];
+      const s = cellSpan(q[0], q[1], q[2], q[3], cell);
+      const outObstacles = [];
+      const excludeIndices = [];
+      const seenObs = new Set();
+      for (let cx = s.x0; cx <= s.x1; cx++) {
+        for (let cy = s.y0; cy <= s.y1; cy++) {
+          const arr = obsCells.get(cx + ',' + cy);
+          if (!arr) continue;
+          for (const i of arr) {
+            if (seenObs.has(i)) continue;
+            seenObs.add(i);
+            const o = obs[i];
+            if (!boxesNear(q, o.box, 0)) continue;
+            outObstacles.push(o.rect);
+            if (excludeIds && o.id != null && excludeIds.has(o.id)) excludeIndices.push(outObstacles.length - 1);
+          }
+        }
+      }
+      const others = [];
+      const seenPat = new Set();
+      for (let cx = s.x0; cx <= s.x1; cx++) {
+        for (let cy = s.y0; cy <= s.y1; cy++) {
+          const arr = patCells.get(cx + ',' + cy);
+          if (!arr) continue;
+          for (const i of arr) {
+            if (seenPat.has(i)) continue;
+            seenPat.add(i);
+            const p = pat[i];
+            if (selfId != null && p.id === String(selfId)) continue;
+            if (!boxesNear(q, p.box, 0)) continue;
+            others.push(p.pts);
+          }
+        }
+      }
+      return { obstacles: outObstacles, excludeIndices, others };
+    },
+  };
+}
+
 // 单条正交折线大斜切。skip 为组内共享点集合；obstacles 为节点矩形；
 // others 为其他线路折线；excludeIndices 为本连接端点节点的下标（不作为「被绕节点」）。
 export function chamferPolyline(pts, opts = {}) {
@@ -159,7 +262,7 @@ export function chamferPolyline(pts, opts = {}) {
   const exclude = excludeIndices ? new Set(excludeIndices) : null;
   const otherBoxes = others
     .filter((p) => Array.isArray(p) && p.length >= 2)
-    .map((p) => ({ pts: p, box: polyBox(p) }));
+    .map((p) => ({ pts: p, box: polylineBox(p) }));
 
   const n = pts.length;
   const segLen = new Array(n - 1).fill(0);

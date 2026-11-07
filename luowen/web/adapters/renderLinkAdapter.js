@@ -13,7 +13,7 @@
 
 import { route } from '../geometry/router.js';
 import { emit as emitRounded, measure as measurePts, pointAt, DEFAULT_RADIUS as DEFAULT_CORNER_RADIUS } from '../geometry/trace.js';
-import { DEFAULT_BEVEL_RATIO, chamferPolyline, findSharedPoints } from '../geometry/chamfer.js';
+import { DEFAULT_BEVEL_RATIO, chamferPolyline, createChamferIndex, polylineBox, findSharedPoints } from '../geometry/chamfer.js';
 import { previewPath } from '../geometry/preview.js';
 import { obstacleHash, corridorClear } from '../geometry/obstacles.js';
 import { allocateLanes, laneHash as computeLaneHash, DEFAULT_LANE_PITCH } from '../routing/laneAssign.js';
@@ -68,6 +68,9 @@ const state = {
     trunkInfo: [],
     trunkShared: new Map(),
     prevRoutes: new Map(), // 上一帧实际绘制折线（大斜切与其他线路的净空检查用）
+    chamferIdx: null, // 斜切预筛索引（每帧一次，见 chamferIndexForFrame）
+    chamferIdxFor: null, // 索引对应的 prevRoutes 快照（身份比较；拖拽冻结期直接复用）
+    chamferIdxVer: -1, // 索引对应的障碍版本
     baseRoutes: new Map(), // 本帧清理前正交折线（离线交叉清理的输入；只读）
     effectiveRoutes: new Map(), // 本帧清理后、倒角前的折线（调试与交叉计数用）
     cleanupEnvStr: '',
@@ -173,6 +176,21 @@ function endpointIndices(originId, targetId) {
     if (String(r.id) === String(originId) || String(r.id) === String(targetId)) idx.push(i);
   });
   return idx;
+}
+
+// 斜切预筛索引：每帧构建一次（O(节点数 + 连线数)），逐线按折线包围盒取近邻障碍/他线，
+// 替代「每条线都重建 obstacles 数组 + 全量 filter/map 其他线路 + 逐采样点全量扫描」。
+// prevRoutes 在 beginFrame 整体换新，拖拽冻结期不换 → 用身份比较跨帧复用。
+function chamferIndexForFrame() {
+  const f = state.frame;
+  if (f.chamferIdx && f.chamferIdxFor === f.prevRoutes && f.chamferIdxVer === f.version) return f.chamferIdx;
+  const obstacles = f.rects.map((r) => ({ id: r.id, rect: [r.x, r.y, r.w, r.h] }));
+  const paths = [];
+  for (const [id, pts] of f.prevRoutes) paths.push({ id, pts });
+  f.chamferIdx = createChamferIndex({ obstacles, paths });
+  f.chamferIdxFor = f.prevRoutes;
+  f.chamferIdxVer = f.version;
+  return f.chamferIdx;
 }
 
 // strict（全部卡片禁行）→ semi（仅两端卡片禁行）→ loose（正交可穿卡）
@@ -1261,14 +1279,17 @@ function tryCustomRender(ctx, a, b, link, color, start_dir, end_dir, opts) {
   let drawPts = pts;
   if (orthogonal && cfg.chamfer) {
     const tChamfer = perfBegin();
+    const idx = chamferIndexForFrame();
+    const near = idx.query(polylineBox(pts), {
+      excludeIds: new Set([String(link.origin_id), String(link.target_id)]),
+      selfId: link.id,
+    });
     drawPts = chamferPolyline(pts, {
       ratio: cfg.bevelRatio,
       skip: state.frame.trunkShared.get(link.id) ?? null,
-      obstacles: state.frame.rects.map((r) => [r.x, r.y, r.w, r.h]),
-      others: [...state.frame.prevRoutes]
-        .filter(([id]) => id !== link.id)
-        .map(([, p]) => p),
-      excludeIndices: endpointIndices(link.origin_id, link.target_id),
+      obstacles: near.obstacles,
+      others: near.others,
+      excludeIndices: near.excludeIndices,
     });
     perfAdd('chamfer', tChamfer);
     perfCount('chamfers');
