@@ -952,6 +952,32 @@ export function getCrossDebug() {
 
 // ---------- 每帧前置（由 drawConnections 链式回调触发） ----------
 
+// BUG-006：按现存 link 集合清理所有以 linkId 为键的状态表。
+// 只删已消失的 link，不清空整表——未受影响的线路保留缓存与几何。
+function pruneStaleLinkState(links) {
+  const live = new Set(links.map((l) => String(l && l.id)));
+  const dropDead = (map) => {
+    if (!map || typeof map.keys !== 'function') return;
+    for (const key of [...map.keys()]) {
+      if (!live.has(String(key))) map.delete(key);
+    }
+  };
+  dropDead(state.routes);
+  dropDead(state.lastGoodRoutes);
+  dropDead(state.frame.prevRoutes);
+  dropDead(state.frame.baseRoutes);
+  dropDead(state.frame.effectiveRoutes);
+  dropDead(state.endpoints);
+  dropDead(state.pinOffsets);
+  dropDead(state.cleanup.routes);
+  dropDead(state.frame.bands);
+  dropDead(state.frame.orderCtx);
+  if (state.hover) {
+    const ids = state.hover.part === 'trunk' ? (state.hover.memberIds || []) : [state.hover.linkId];
+    if (!ids.length || ids.some((id) => !live.has(String(id)))) state.hover = null;
+  }
+}
+
 export function beginFrame(canvas) {
   const tBegin = perfBegin();
   const graph = canvas?.graph;
@@ -967,6 +993,15 @@ export function beginFrame(canvas) {
   if (state.routes.size) state.lastGoodRoutes = new Map(state.routes);
 
   const rects = nodeRects(graph);
+  const allLinks = graphLinks(graph);
+  // BUG-006：链路增删不改变节点矩形，旧实现只在 obstacleHash 变化时清理 state.routes，
+  // 已删除的链路会作为幽灵条目留在路由/端点/悬停状态里。按现存 link 集合做差集清理，
+  // 并把拓扑纳入帧指纹；不递增 obstacle 版本，未受影响链路的缓存仍然有效。
+  const topologyHash = computeLinksHash(graph);
+  if (topologyHash !== state.frame.linksHashStr) {
+    state.frame.linksHashStr = topologyHash;
+    pruneStaleLinkState(allLinks);
+  }
   const oh = obstacleHash(rects);
   if (oh !== state.frame.obstacleHashStr) {
     state.frame.obstacleHashStr = oh;
@@ -1006,11 +1041,11 @@ export function beginFrame(canvas) {
   const pins = endpointsToPins(planned);
   const tLanes = perfBegin();
   const lh =
-    computeLaneHash(graphLinks(graph), rects) + '|' + computeLinksHash(graph) +
+    computeLaneHash(allLinks, rects) + '|' + topologyHash +
     '|p' + state.settings.lanePitch + pinsHash(pins);
   if (lh !== state.frame.laneHashStr) {
     state.frame.laneHashStr = lh;
-    state.frame.lanes = allocateLanes(graphLinks(graph), rects, { pitch: state.settings.lanePitch, pins });
+    state.frame.lanes = allocateLanes(allLinks, rects, { pitch: state.settings.lanePitch, pins });
     state.frame.baseRoutes.clear();
     state.frame.effectiveRoutes.clear();
     invalidateCleanup('lane-hash');

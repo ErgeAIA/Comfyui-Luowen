@@ -140,3 +140,28 @@ description: >
 - **行为不变证据**：真实图没有「同目标 up 组 ≥2 成员」的成带场景（73 up 单成员、74 down 单成员、75 up 单成员），`routes()` 逐点未变；指纹（10 线、3 位小数、FNV-1a）`0xb0fa2c54`；`verify()` `{ok:true,diffs:[]}`；单测 99/99（fail 0）。
 - **预防规则**：凡把「rank 序号」映射到坐标的阶梯，先判定该组的嵌套镜像侧；`up`/`down` 共用同一斜率公式等于把方向语义写死。新增阶梯/排序必须带同组两两交叉预检，且「全部候选失败」必须显式降级，不许静默回退。
 - **状态**：已部署宿主（SHA256 与仓库一致 `4065A7400AD6188C10F4385293D04C99D5BFBC33EE114A081C7A704E37B1B443`），未提交 git，交用户验收；未宣称已修复。
+
+## BUG-006: 仅删除连线时路由状态表残留幽灵条目
+
+- **日期**：2026-11-07（阶段 3 生命周期测试发现；仅记录，未改代码、未提交 git）
+- **现象**：删除 link 79（不移动任何节点）后，图 `links=8`，但 `LuoWen.status().routed=9`、`LuoWen.routes()` 仍含 79；随后在原 origin/target 重连生成 link 83，图 `links=9`，而 `routes=10`。在旧 path 上注入 pointermove 可命中 `{linkId:79, part:'branch', members:[79]}`；节点移动使障碍版本变化后 `routed` 回落、悬停命中变 `null`。
+- **判定依据（为何是「已知缺陷」而非「通过」）**：`getStats().routed = state.routes.size`（`renderLinkAdapter.js:1635`）与 `routes()` 调试快照均把已删除链路计入；悬停分类读 `state.routes`，可命中不存在的链路。图数据未变（`verify()` `{ok:true,diffs:[]}`）、幽灵线不可见（`renderLink` 只遍历现存链接，高亮条件 `state.hover.linkId === link.id` 永不成立），故不阻断主流程。
+- **根因**：`beginFrame` 仅在 `obstacleHash` 变化时清理路由状态——`renderLinkAdapter.js:969-985`（`if (oh !== state.frame.obstacleHashStr) { ... state.routes.clear(); ... }`）。删除链路不改节点矩形，hash 不变；`tryCustomRender` 的 bypass（`renderLinkAdapter.js:1204`）只删除当前 link 的条目（且只在本次渲染该 link 时才执行），被删 link 不会再被遍历，因此条目永久残留，直到下一次节点几何变化。`lastGoodRoutes`（同文件 L967）在清理前快照 `state.routes`，也会复制幽灵条目，但仅作等距带端点一致时的回退源，未观察到几何影响。
+- **复现步骤**：加载 10 节点基线 → 删除 link 79（`graph.removeLink` 或原生删除）→ 等待 800ms 并 `setDirty` 两次 → 读 `status().routed`（期望 8，实测 9）→ 在旧路径中点注入 pointermove → 读 `status().hover`（实测 `{linkId:79,...}`）；移动任一节点后再读，`routed` 恢复为现存链路数。
+- **验证限制**：① 幽灵只存在于内存状态表，不可见、不写工作流 JSON；② 悬停命中只通过合成 pointermove 复现，未用真实鼠标；③ 未测多链路连续删除、子图内删除、`crossCleanup=true` 下的交互；④ 重连后 trunk 与等距带需要第二次 `setDirty` 才恢复，属刷新时序，与幽灵条目一并待修。
+- **预防规则**：状态失效指纹必须覆盖「拓扑维度」（现存 link 集合/端点对），不能只用节点矩形 hash；删除链路时应在同一帧按现存 link 集合做差集清理，而不是依赖几何变化兜底。调试/悬停表与可见绘制表应分离或同源，禁止「统计口径」包含已不存在的对象。
+- **状态**：仅登记，本轮按约束未改功能代码；交后续修复与用户验收。矩阵见 [compatibility-matrix.md](./compatibility-matrix.md) §5.1。
+
+### 修复与验证（2026-11-07，阶段 3 补丁轮）
+
+- **改动范围**：只改适配器层 [renderLinkAdapter.js](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/adapters/renderLinkAdapter.js)，未改几何、lane 分配与等距带算法。
+- **修复**：
+  1. 新增 `pruneStaleLinkState(links)`（[L955-979](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/adapters/renderLinkAdapter.js#L955-L979)）：以现存 link 集合做差集，清理 `state.routes`、`lastGoodRoutes`、`prevRoutes`、`baseRoutes`、`effectiveRoutes`、`endpoints`、`pinOffsets`、`cleanup.routes`、`frame.bands`、`frame.orderCtx`；悬停引用的链路已消失时同步清空 `state.hover`。只删消失项，不清空整表，未受影响链路缓存与几何保留。
+  2. `beginFrame` 新增拓扑指纹 `computeLinksHash(graph)` 比对（[L996-1004](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/adapters/renderLinkAdapter.js#L996-L1004)），拓扑变化即触发差集清理；不递增 `obstacleVersion`，不触发几何重算。拓扑哈希原本已用于 lane 指纹，本次只计算一次并同时服务失效检测与 lane 指纹（未增加每帧哈希次数）；`allLinks` 复用给 lane 指纹与分配，避免二次遍历。
+- **修前/修后（同一 suite.mjs，宿主 0.43.2 + 1.55.18）**：
+  - suite 先删节点 68、再删 link 79（节点矩形不变）：修前 `links 8 / routed 9 / routes 9` → 修后 `links 8 / routed 8 / routes 8`。
+  - 重连（新 link 83）：修前 `links 9 / routed 10 / routes 10` → 修后 `links 9 / routed 9 / routes 9`。
+  - 其余步骤 `routed/rects/routes/bands/bandDegraded/orderDegraded` 全部同值；深度 diff 仅 4 处目标计数与 3 处视口命中坐标噪声（同一步 `fp` 与 `routed` 一致）。
+- **最小复现**：`.verify/p3/probe16.mjs`（只删连线不动节点：`nodes 10 / links 9 / routed 9 / routes 9`；`routes()` 不含 79）、`probe19.mjs`（先删节点 68 再删 link 79：`8/8/8`）。旧路径中点注入 pointermove 后 `status().hover=null`；重连生成 link 83 后 `links 10 / routed 10 / routes 10`；节点坐标逐项未变；`obstacleVersion` 保持 1，证明清理由拓扑指纹触发而非几何兜底。
+- **验证限制**：① 幽灵仍只存在于内存状态表，未写入工作流；② 悬停用合成 pointermove，未用真实鼠标；③ 未覆盖子图内删连线、`crossCleanup=true`、真实鼠标删除；④ 链路增删后主干/等距带仍需一次额外重绘（`setDirty`），属 LiteGraph 刷新时序，本次未改。
+- **状态**：已修复并完成宿主实测，待用户验收。
