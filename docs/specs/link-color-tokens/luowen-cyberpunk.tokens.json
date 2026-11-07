@@ -21,15 +21,15 @@
       "latent": 327.1
     },
     "luminance": {
-      "hi": 0.780,
+      "hi": 0.82,
       "lo": 0.712,
       "video": 0.662
     },
-    "chroma": 0.11,
+    "chroma": 0.14,
     "neutralChroma": 0.02,
     "neutralLuminance": {
       "scalar": 0.66,
-      "struct": 0.60,
+      "struct": 0.6,
       "unknown": 0.72
     }
   },

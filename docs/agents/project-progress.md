@@ -26,7 +26,16 @@ description: >
 - **代码**：`luowen/`（含 `routing/trunkPlan.js` 单主干共享几何、三档避障、预览、缓存、`geometry/chamfer.js` 绕障外角大斜切、`geometry/trace.js` 圆角半径 0–24（默认 10）、`routing/laneAssign.js` 输入侧按接近方向嵌套分道 + 走廊净空顺延 + 同目标等距带（`planBands`、`bandDegraded`/`orderDegraded`）、`snap/alignSnap.js` + `snap/dragSnap.js` 对齐吸附、`routing/crossings.js` + `routing/crossCleanup.js` 交叉枚举与离线清理、主干组高亮 + 组删除菜单），已装本机 custom_nodes 实测
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2、Node 24.22.1；Playwright 浏览器实测流程已打通
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2、Node 24.22.1；Playwright 浏览器实测流程已打通
-- **本轮 B：连线配色 token + 主题接入渲染层（2026-11-08，新增 `luowen/web/colors/` 两文件 + 生成器 + 适配器/设置接线；已部署宿主实测；未提交，等用户验收）**：
+- **本轮动效 v2（2026-11-08，DEC-040；改 `linkColors.js`/`renderLinkAdapter.js`/`index.js` + cyberpunk token 重调；已部署宿主实测；未提交，等用户验收）**：
+  - 前置调研（conventions §2.11）：执行事件（api-DTg5QMcw.js，`executing` payload=display_node||node，success/error/interrupted 透传）；宿主动画开关 id=`Comfy.Appearance.DisableAnimations`；1.55.18 无可用原生流动效（bundle 取证）；合成 `selectItems.add` 不生效须真实点击；设置持久化在服务端。
+  - 第一性原理裁决（DEC-040）：动效唯一语义=正在发生的数据流；三模式（全图/仅选中/仅执行中，默认全图）；`DisableAnimOnRun` 默认开、优先于一切模式（张力如实写入 tooltip）；spec §6.1「不发光不脉冲」修订为显式线型（微基准全过预算：500 线 dash 0.18 / glow 0.15 / pulse 0.08 ms/帧）；cyberpunk 重调（chroma 0.11→0.14、hi 0.82，CVD 最差 0.0223 过门槛，hex 与 dark 拉开：CLIP #D1C951 vs #C1BA59 等）；空闲零重绘（仅执行中模式空闲自停）+ 宿主开关闸门 + WCAG 2.2.2 口径（用户设置即暂停机制）。
+  - 实现：`shouldAnimate` 纯门禁（单测 10 断言）；适配器三线型绘制 + 帧级缓存（selectedIds/hostAnimOff 每帧清零）；index.js「动效」独立设置组 7 项（启用/模式/线型/虚线长度/间距/流速/生成时禁用）+ api 事件订阅。
+  - 验收：单测 **110/110**；宿主 `anim-v2-accept.mjs` 全绿——mock 队列事件链（start→running、executing 70、success→复位）全程 verify ok；`仅选中` 视觉证据 `v2-selected-70.png`（KSampler 白框、仅其 5 线虚线行进，其余实线）；三线型截图 `v2-style-glow/pulse.png`；reduced-motion 与宿主开关强制实线 `v2-reduced.png`/`v2-host-anim-off.png`；设置还原（宿主 comfy.settings.json 的 LuoWen 键保持用户原值）。
+  - 性能（performance.md §2026-11-08）：线型微基准全过预算；同页成对 A/B——每绘成本 dash=solid（9.60 vs 9.69ms），动效代价=绘制频率（开启=持续 60fps ≈ 每秒 render 占用 58% 帧预算），「生成时禁用」正中此害；协议教训：scale ≤0.4 闸门会让「动效开」测量退化为双绘开销，须 scale>0.4 成对同页测。
+  - 真实排队：后端 400（宿主缺 z_image_turbo 模型，PromptExecutionError）→ 执行事件未触发；事件逻辑由 mock 覆盖（同一 api 派发路径），用户有可运行工作流时可自行验证「生成时禁用」。
+  - 插曲（如实记录）：index.js 结构编辑两轮返工（Python heredoc 转义匹配失败 → 切片式重写；`
+n` 拼接错误 + 旧条目尾巴残留 → 定点修复），`node --check` + 全量单测兜底。
+- **本轮 B：连线配色 token + 主题接入渲染层（2026-11-08，新增 `luowen/web/colors/` 两文件 + 生成器 + 适配器/设置接线；已部署宿主实测；已随 `65d005d` 提交）**：
   - 单一来源：`docs/specs/link-color-tokens/materialize.mjs` 生成 `luowen/web/colors/materialized.js`（62 类型→hex × 两主题 + flow + context；运行时零 OKLCH 计算）；`linkColors.js` 纯函数模块（setTheme/resolveLinkColor/flowParams，可 Node 单测）。
   - 适配器：stroke 优先级 `resolveLinkColor ?? 原生 color ?? #94a3b8`；流向=虚线沿路径行进（dash 7/gap 13/speed 48/opacity 0.92，token 透传），三重闸门（用户开关/reduced-motion/缩放>0.4），rAF 循环仅在开启时驱动 setDirty；`colorDebug()` 验收入口。
   - 设置：`LuoWen.ColorTheme`（off/dark/cyberpunk，默认 off）+ `LuoWen.FlowAnim`（默认 off），线路外观组；设置存服务端 `comfy.settings.json`，探针测后已还原用户原值。

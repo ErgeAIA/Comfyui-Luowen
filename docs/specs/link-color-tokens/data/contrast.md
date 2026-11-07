@@ -24,25 +24,20 @@
 
 | token | hex | L | C | H | 画布对比度 | 卡片对比度 | 门槛 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| link.image | #7EBDFB | 0.78 | 0.11 | 248.8 | 9.86:1 | 8.43:1 | PASS |
-| link.video | #5A98D3 | 0.662 | 0.11 | 248.8 | 6.41:1 | 5.48:1 | PASS |
-| link.latent | #DD9EDC | 0.78 | 0.11 | 327.1 | 9.33:1 | 7.98:1 | PASS |
-| link.conditioning | #CE9550 | 0.712 | 0.11 | 69.8 | 7.5:1 | 6.42:1 | PASS |
-| link.clip | #C1BC64 | 0.78 | 0.11 | 105.3 | 9.94:1 | 8.5:1 | PASS |
-| link.vae | #F69B96 | 0.78 | 0.11 | 22.9 | 9.38:1 | 8.02:1 | PASS |
-| link.model | #A395E1 | 0.712 | 0.11 | 291.4 | 7.42:1 | 6.34:1 | PASS |
-| link.mask | #75B476 | 0.712 | 0.11 | 144.8 | 7.98:1 | 6.82:1 | PASS |
-| link.audio | #57CEBE | 0.78 | 0.11 | 182.9 | 10.25:1 | 8.76:1 | PASS |
-| link.mesh3d | #36B4C9 | 0.712 | 0.11 | 211.2 | 7.96:1 | 6.81:1 | PASS |
+| link.image | #77CBFF | 0.82 | 0.14 | 248.8 | 10.99:1 | 9.4:1 | PASS |
+| link.video | #4398E4 | 0.662 | 0.14 | 248.8 | 6.39:1 | 5.47:1 | PASS |
+| link.latent | #F4A3F3 | 0.82 | 0.14 | 327.1 | 10.62:1 | 9.08:1 | PASS |
+| link.conditioning | #D9902B | 0.712 | 0.14 | 69.8 | 7.44:1 | 6.37:1 | PASS |
+| link.clip | #D1C951 | 0.82 | 0.14 | 105.3 | 11.37:1 | 9.73:1 | PASS |
+| link.vae | #FF9E99 | 0.82 | 0.14 | 22.9 | 9.9:1 | 8.46:1 | PASS |
+| link.model | #A491F2 | 0.712 | 0.14 | 291.4 | 7.38:1 | 6.31:1 | PASS |
+| link.mask | #65B969 | 0.712 | 0.14 | 144.8 | 8.12:1 | 6.94:1 | PASS |
+| link.audio | #29E1CC | 0.82 | 0.14 | 182.9 | 11.89:1 | 10.17:1 | PASS |
+| link.mesh3d | #00B8D4 | 0.712 | 0.14 | 211.2 | 8.22:1 | 7.03:1 | PASS |
 | link.scalar | #89939E | 0.66 | 0.02 | 250 | 6.28:1 | 5.37:1 | PASS |
 | link.struct | #77818C | 0.6 | 0.02 | 250 | 4.95:1 | 4.23:1 | PASS |
 | link.unknown | #9BA6B1 | 0.72 | 0.02 | 250 | 7.92:1 | 6.77:1 | PASS |
 
-- 色盲全矩阵最差：link.video / link.model @ ΔE 0.0236（门槛 0.02）
-- 相邻色相最差：audio(182.9) / mesh3d(211.2) @ ΔE 0.0539
+- 色盲全矩阵最差：link.video / link.model @ ΔE 0.0223（门槛 0.02）
+- 相邻色相最差：audio(182.9) / mesh3d(211.2) @ ΔE 0.0702
 - 连线覆盖：4388 条，显式 4388、规则 0、回落 0
-
-## 输出类型外推（object_info 208 类）
-
-- 回落 link.unknown：9 类 / 212 槽
-- *(203)、NLFPRED(2)、FACE_LANDMARKS(1)、simple,sgm_uniform,karras,exponential,ddim_uniform,beta,normal,linear_quadratic,kl_optimal,AYS SDXL,AYS SD1,AYS SVD,GITS[coeff=1.2],LTXV[default],OSS FLUX,OSS Wan,OSS Chroma(1)、default,comfy,comfy_chunked(1)、unipc,unipc/beta,dpm++,dpm++/beta,dpm++_sde,dpm++_sde/beta,euler,euler/beta,longcat_distill_euler,deis,lcm,lcm/beta,res_multistep,er_sde,flowmatch_causvid,flowmatch_distill,flowmatch_pusa,multitalk,sa_ode_stable,rcm,vibt_unipc(1)、UNIANIMATE_POSE(1)、MTVCRAFTERMOTION(1)、LYNXIP(1)

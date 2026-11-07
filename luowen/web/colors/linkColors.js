@@ -58,3 +58,23 @@ export function flowParams({ enabled = false, scale = 1, reducedMotion = false }
   const gap = Number(f.gap) || 13;
   return { dash, gap, speed: Number(f.speed) || 48, opacity: Number.isFinite(Number(f.opacity)) ? Number(f.opacity) : 0.92, period: dash + gap };
 }
+
+// 动效门禁（v2，DEC-040）：mode=all/selected/executing；生成时禁用开关优先于一切。
+// 返回 true = 该线本帧可动（具体线型由适配器绘制）；false = 画实线。
+export function shouldAnimate({ mode = 'all', link, selectedIds, executingNode, queueRunning = false, disableAnimOnRun = true, enabled = false, scale = 1, reducedMotion = false, hostAnimationsDisabled = false } = {}) {
+  if (!enabled) return false;
+  if (!themeId) return false;
+  if (reducedMotion || hostAnimationsDisabled) return false;
+  if (!(Number(scale) > 0.4)) return false;
+  if (queueRunning && disableAnimOnRun) return false;
+  const touches = (id) => link && id != null && (String(link.origin_id) === String(id) || String(link.target_id) === String(id));
+  if (mode === 'selected') {
+    if (!selectedIds || !selectedIds.size) return false;
+    let hit = false;
+    for (const id of selectedIds) if (touches(id)) { hit = true; break; }
+    if (!hit) return false;
+  } else if (mode === 'executing') {
+    if (executingNode == null || !touches(executingNode)) return false;
+  }
+  return true;
+}

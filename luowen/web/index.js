@@ -12,6 +12,7 @@ import {
   getCrossDebug,
   runCrossCleanup,
   getColorDebug,
+  setQueueState,
   CORNER_RADIUS_MAX,
 } from './adapters/renderLinkAdapter.js';
 import { DEFAULT_RADIUS } from './geometry/trace.js';
@@ -28,6 +29,12 @@ const CHAMFER_ID = 'LuoWen.Chamfer';
 const CORNER_RADIUS_ID = 'LuoWen.CornerRadius';
 const COLOR_THEME_ID = 'LuoWen.ColorTheme';
 const FLOW_ID = 'LuoWen.FlowAnim';
+const ANIM_MODE_ID = 'LuoWen.AnimMode';
+const FLOW_STYLE_ID = 'LuoWen.FlowStyle';
+const FLOW_DASH_ID = 'LuoWen.FlowDash';
+const FLOW_GAP_ID = 'LuoWen.FlowGap';
+const FLOW_SPEED_ID = 'LuoWen.FlowSpeed';
+const DISABLE_ANIM_ON_RUN_ID = 'LuoWen.DisableAnimOnRun';
 const SNAP_ID = 'LuoWen.SnapAlign';
 const CROSS_CLEANUP_ID = 'LuoWen.CrossCleanup';
 
@@ -260,7 +267,7 @@ app.registerExtension({
       category: ['LuoWen', '线路外观', 'WireStyle'],
       sortOrder: 80,
       tooltip: {
-        value: 'orthogonal：A* 路由的正交折线。\nsmooth：同一骨架的平滑圆角。\nnative：ComfyUI 原生渲染。',
+        value: 'orthogonal：A* 路由的正交折线。\nsmooth：同一骨架的平滑圆角。\native：ComfyUI 原生渲染。',
         class: TIP_CLASS,
       },
       type: 'combo',
@@ -337,17 +344,106 @@ app.registerExtension({
     },
     {
       id: FLOW_ID,
-      name: '流向动效',
-      category: ['LuoWen', '线路外观', 'FlowAnim'],
-      sortOrder: 52,
+      name: '启用动效',
+      category: ['LuoWen', '动效', 'FlowAnim'],
+      sortOrder: 100,
       tooltip: {
         value:
-          '虚线沿连线行进，表达数据从源流向目标。\n仅配色主题开启时生效。\n默认关闭。\n系统开启减少动态效果时自动改为实线。\n缩放不大于 40% 时自动关闭。',
+          '动效总开关（默认关闭）。\n仅配色主题开启时生效。\n系统开启减少动态效果时自动改为实线。\n缩放不大于 40% 时自动关闭。',
         class: TIP_CLASS,
       },
       type: 'boolean',
       defaultValue: false,
       onChange: (v) => setSettings({ flowAnim: !!v }),
+    },
+    {
+      id: ANIM_MODE_ID,
+      name: '动效模式',
+      category: ['LuoWen', '动效', 'AnimMode'],
+      sortOrder: 90,
+      tooltip: {
+        value:
+          '全部连线：所有连线一起动。\n仅选中：只动与选中节点相连的线。\n仅执行中：只动与正在执行的节点相连的线。\n空闲时零开销。',
+        class: TIP_CLASS,
+      },
+      type: 'combo',
+      options: [
+        { text: '全部连线', value: 'all' },
+        { text: '仅选中', value: 'selected' },
+        { text: '仅执行中', value: 'executing' },
+      ],
+      defaultValue: 'all',
+      onChange: (v) => setSettings({ animMode: v }),
+    },
+    {
+      id: FLOW_STYLE_ID,
+      name: '动效线型',
+      category: ['LuoWen', '动效', 'FlowStyle'],
+      sortOrder: 80,
+      tooltip: {
+        value:
+          '虚线行进：虚线沿连线从源向目标移动。\n发光：连线带恒定光晕。\n脉冲：连线宽度按流速节律呼吸。',
+        class: TIP_CLASS,
+      },
+      type: 'combo',
+      options: [
+        { text: '虚线行进', value: 'dash' },
+        { text: '发光', value: 'glow' },
+        { text: '脉冲', value: 'pulse' },
+      ],
+      defaultValue: 'dash',
+      onChange: (v) => setSettings({ flowStyle: v }),
+    },
+    {
+      id: FLOW_DASH_ID,
+      name: '虚线长度',
+      category: ['LuoWen', '动效', 'FlowDash'],
+      sortOrder: 70,
+      tooltip: { value: '虚线行进线型的实线段长度（屏幕像素）。', class: TIP_CLASS },
+      type: 'slider',
+      attrs: { min: 0, max: 30, step: 1 },
+      defaultValue: 7,
+      onChange: (v) => setSettings({ flowDash: Number(v) }),
+    },
+    {
+      id: FLOW_GAP_ID,
+      name: '虚线间距',
+      category: ['LuoWen', '动效', 'FlowGap'],
+      sortOrder: 65,
+      tooltip: { value: '虚线行进线型的空隙长度（屏幕像素）。', class: TIP_CLASS },
+      type: 'slider',
+      attrs: { min: 0, max: 40, step: 1 },
+      defaultValue: 13,
+      onChange: (v) => setSettings({ flowGap: Number(v) }),
+    },
+    {
+      id: FLOW_SPEED_ID,
+      name: '流速',
+      category: ['LuoWen', '动效', 'FlowSpeed'],
+      sortOrder: 60,
+      tooltip: {
+        value:
+          '虚线行进速度（屏幕像素/秒）。\n脉冲线型下数值越大呼吸越快。',
+        class: TIP_CLASS,
+      },
+      type: 'slider',
+      attrs: { min: 6, max: 200, step: 2 },
+      defaultValue: 48,
+      onChange: (v) => setSettings({ flowSpeed: Number(v) }),
+    },
+    {
+      id: DISABLE_ANIM_ON_RUN_ID,
+      name: '生成时禁用动效',
+      category: ['LuoWen', '动效', 'DisableAnimOnRun'],
+      sortOrder: 40,
+      tooltip: {
+        value:
+          '工作流运行期间暂停全部动效，结束后自动恢复。\n与宿主「禁用动画」开关独立；\n若想让「仅执行中」模式在运行时可视化数据流，请关闭本项。',
+        class: TIP_CLASS,
+      },
+      type: 'boolean',
+      defaultValue: true,
+      onChange: (v) => setSettings({ disableAnimOnRun: !!v }),
     },
     {
       id: CROSS_CLEANUP_ID,
@@ -390,6 +486,19 @@ app.registerExtension({
     }
     setSnapEnabled(!!readSetting(SNAP_ID, true));
     if (!baseline) baseline = snapshotGraph();
+
+    // 队列执行事件 → 动效「生成时禁用」与「仅执行中」模式（DEC-040；事件名取证 api-DTg5QMcw.js）
+    try {
+      const api = app.api;
+      api.addEventListener('execution_start', () => setQueueState({ running: true, executingNode: null }));
+      api.addEventListener('executing', (e) => setQueueState({ running: true, executingNode: e.detail ?? null }));
+      const onQueueEnd = () => setQueueState({ running: false, executingNode: null });
+      api.addEventListener('execution_success', onQueueEnd);
+      api.addEventListener('execution_error', onQueueEnd);
+      api.addEventListener('execution_interrupted', onQueueEnd);
+    } catch {
+      /* api 不可订阅时，「生成时禁用」与执行中模式退化为无信号（其余动效可用） */
+    }
 
     window.LuoWen = {
       status: () => getStats(),

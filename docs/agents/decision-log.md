@@ -16,7 +16,21 @@ description: >
 > 格式：`## DEC-NNN: 标题`，新条目置顶，NNN 三位递增。
 > 字段：`- **日期**：` / `- **背景**：` / `- **决策**：` / `- **验证**：`
 
-## DEC-039: 连线配色 token 与主题接入渲染层（B 项落地口径）
+## DEC-040: 动效系统 v2——以「执行」为第一信号、以帧预算为约束（第一性原理审查）
+
+- **日期**：2026-11-08
+- **背景**：B 项上线后用户提出五点：动效模式细化（全图/仅选中）、生成时禁用（默认开，运行时关结束自动恢复）、两主题颜色近同的疑问、动效独立设置组（间距/流速/发光/脉冲）、第一性原理审查。前置调研（file:line 级）：① api 执行事件在 `api-DTg5QMcw.js`——websocket 分支 `executing`→`dispatchCustomEvent('executing', display_node||node)`，`execution_start/error/interrupted/cached/success/progress` 原样透传，运行时 `api.addEventListener` 可订阅；② 宿主动画开关 id=`Comfy.Appearance.DisableAnimations`（boolean，settings-BoUVXjXn.js 定义、GraphView-C7jM5DM_.js 消费）；③ 原生 flow 动效：bundle 静态检索无 `renderLink` 定义（仅 1 处且为 `linkConnector.renderLinks`），运行时方法存在（探针实证）但 flow 分支无证据——**按「1.55.18 无可用原生流动效」处理，我方 dash 是唯一实现**；④ 线型原型微基准（33/500 线，独立 canvas）：solid 0.05/0.05、dashed 0.04/0.18、shadowBlur 发光 0.02/0.15、光晕双描边 0.02/0.12、脉冲（宽度振荡）0.01/0.08 ms/帧——**全部远低于预算（≤1ms@33 线 / ≤5ms@500 线）**，三种线型全部可提供。
+- **决策**：
+  1. **动效唯一语义 =「正在发生的数据流」**。据此定义三模式：`全图`（现状）/`仅选中`（只动与选中节点相连的线）/`仅执行中`（只动与当前执行节点相连的线；空闲时零动画零重绘）。模式默认 `全图`（保持现行为）；`仅执行中` 是信息量最高形态，但受第 2 条开关节制。
+  2. **生成时禁用开关 `LuoWen.DisableAnimOnRun` 默认开**：队列运行期间（`execution_start`→`success/error/interrupted`）所有模式的动效一律暂停，结束后自动恢复。已知张力并接受：开关开 + 模式「仅执行中」= 运行时也静止（用户若要执行可视化，把本开关关掉即可）——两个设置正交，语义如实写进 tooltip。
+  3. **spec §6.1「不脉冲、不发光」修订为**：装饰性动效默认不提供；「发光（shadowBlur 恒定光晕）/脉冲（宽度振荡）」作为显式线型提供，须过帧预算（本次微基准已过）与对比度门槛（发光后的有效颜色=描边色叠加光晕，门槛按描边色本身继续适用）。原禁令的理由（噪声与眩晕）由「默认虚线行进 + 三重闸门 + 用户可选」承接。
+  4. **两主题近同的裁决**：实测六头部类型 hex 差 <0.01（dark `#C1BA59` vs cyber `#C1BC64` 等）——色相族固定、仅 L/C 微调导致肉眼难辨。裁决：**重调 cyberpunk**（提高色度做霓虹感、拉开明度带），重跑 `verify.mjs --strict` 全部门槛，过则重物化；门槛过不了则合并为单主题（不留两个假主题）。
+  5. **空闲零重绘**：动效 rAF 循环仅在「主题开 && FlowAnim 开 && 模式下存在该动的线 && 页面可见 && 非(开关开且运行中)」时驱动 setDirty；`仅执行中` 模式空闲时循环自停。宿主开关 `Comfy.Appearance.DisableAnimations=true` 时我方动效一并关闭（附加闸门）。
+  6. **WCAG 2.2.2（无限动画可暂停）**：本扩展动效完全由用户设置控制启停（总开关即暂停机制）且尊重 prefers-reduced-motion，以此作为合规口径记录。
+- **验证**：本条目所引微基准与取证均落 `.verify/p5/coexist/anim-v2-*.json` 与 conventions §2.11；实现后的逐项验收见 progress 本轮条目与 performance.md §2026-11-08。
+- **结果**：已实现并宿主验收（单测 110/110；mock 队列事件链与三模式/三线型/双闸门全绿；cyberpunk 重调过全部门槛并重物化；数据见 progress 本轮条目与 performance.md §2026-11-08），待用户验收。
+
+## DEC-039: 连线配色 token 与主题接入渲染层（B 项落地口径）: 连线配色 token 与主题接入渲染层（B 项落地口径）
 
 - **日期**：2026-11-08
 - **背景**：DEC-029/spec 已定「类型轴 + 三级 token + 接入点=renderLink 的 stroke」，验收材料齐（62 类覆盖 100%、对比度/ΔE 过门槛）；A 项（smooth Bezier）验收通过后按执行序开工 B。

@@ -13,7 +13,7 @@
 
 import { route } from '../geometry/router.js';
 import { emitBezier, measure as measurePts, pointAt, DEFAULT_RADIUS as DEFAULT_CORNER_RADIUS } from '../geometry/trace.js';
-import { resolveLinkColor, flowParams, setTheme as setLinkColorTheme, themeInfo } from '../colors/linkColors.js';
+import { resolveLinkColor, shouldAnimate, setTheme as setLinkColorTheme, themeInfo } from '../colors/linkColors.js';
 import { DEFAULT_BEVEL_RATIO, chamferPolyline, createChamferIndex, polylineBox, findSharedPoints } from '../geometry/chamfer.js';
 import { previewPath } from '../geometry/preview.js';
 import { obstacleHash, corridorClear } from '../geometry/obstacles.js';
@@ -57,7 +57,7 @@ const state = {
   wrappedRenderRef: null,
   originalDrawConnections: null,
   wrappedDrawRef: null,
-  settings: { enabled: true, style: 'orthogonal', avoidance: 'standard', chamfer: true, bevelRatio: DEFAULT_BEVEL_RATIO, cornerRadius: DEFAULT_CORNER_RADIUS, trunkCap: null, lanePitch: DEFAULT_LANE_PITCH, brotherSpacing: DEFAULT_BROTHER_SPACING, crossCleanup: false, colorTheme: 'off', flowAnim: false },
+  settings: { enabled: true, style: 'orthogonal', avoidance: 'standard', chamfer: true, bevelRatio: DEFAULT_BEVEL_RATIO, cornerRadius: DEFAULT_CORNER_RADIUS, trunkCap: null, lanePitch: DEFAULT_LANE_PITCH, brotherSpacing: DEFAULT_BROTHER_SPACING, crossCleanup: false, colorTheme: 'off', flowAnim: false, animMode: 'all', flowStyle: 'dash', flowDash: 7, flowGap: 13, flowSpeed: 48, disableAnimOnRun: true },
   frame: {
     obstacleHashStr: '',
     version: 0,
@@ -990,6 +990,9 @@ export function beginFrame(canvas) {
 
   // 大斜切需要与其他线路保持净空：以上一帧实际绘制折线为参照。
   state.frame.prevRoutes = new Map(state.routes);
+  // 帧级缓存清零（选中集合 / 宿主动画开关，每帧重取；DEC-040）
+  state.frame.selectedIds = null;
+  state.frame.hostAnimOff = null;
   // 等距带撞上限时的回退源：保留上一帧已绘制折线（跨障碍版本仍有效，仅作最后合法位置）
   if (state.routes.size) state.lastGoodRoutes = new Map(state.routes);
 
@@ -1376,12 +1379,25 @@ function tryCustomRender(ctx, a, b, link, color, start_dir, end_dir, opts) {
   ctx.strokeStyle = stroke;
   ctx.lineJoin = 'miter';
   ctx.lineCap = 'round';
-  // 流向动效（spec §6，默认关闭）：虚线沿路径行进（源→目标）；reduced-motion / 缩放 ≤0.4 强制实线。
-  const flow = flowParams({ enabled: cfg.flowAnim, scale: app?.canvas?.ds?.scale ?? 1, reducedMotion: reducedMotionPref() });
-  if (flow) {
-    ctx.setLineDash([flow.dash, flow.gap]);
-    ctx.lineDashOffset = -((performance.now() / 1000) * flow.speed) % flow.period;
-    ctx.globalAlpha = flow.opacity;
+  // 流向动效 v2（DEC-040）：唯一语义=正在发生的数据流。三模式门禁 + 生成时禁用 + 三线型。
+  const scaleNow = app?.canvas?.ds?.scale ?? 1;
+  const animate = shouldAnimate({
+    mode: cfg.animMode, link, selectedIds: selectedNodeIdsThisFrame(), executingNode: state.queue.executingNode,
+    queueRunning: state.queue.running, disableAnimOnRun: cfg.disableAnimOnRun,
+    enabled: cfg.flowAnim, scale: scaleNow, reducedMotion: reducedMotionPref(), hostAnimationsDisabled: hostAnimationsDisabled(),
+  });
+  if (animate) {
+    const period = cfg.flowDash + cfg.flowGap;
+    if (cfg.flowStyle === 'glow') {
+      ctx.shadowColor = stroke;
+      ctx.shadowBlur = 8;
+    } else if (cfg.flowStyle === 'pulse') {
+      ctx.lineWidth = width * (1 + 0.45 * Math.sin((performance.now() / 1000) * (Math.PI * 2 * cfg.flowSpeed) / 60));
+    } else {
+      ctx.setLineDash([cfg.flowDash, cfg.flowGap]);
+      ctx.lineDashOffset = -((performance.now() / 1000) * cfg.flowSpeed) % period;
+      ctx.globalAlpha = 0.92;
+    }
   }
   ctx.stroke(path);
   if (hovered) {
@@ -1662,6 +1678,12 @@ export function setSettings(partial) {
     setLinkColorTheme(id === 'off' ? null : id);
   }
   if ('flowAnim' in partial) partial.flowAnim = !!partial.flowAnim;
+  if ('animMode' in partial) partial.animMode = partial.animMode === 'selected' || partial.animMode === 'executing' ? partial.animMode : 'all';
+  if ('flowStyle' in partial) partial.flowStyle = partial.flowStyle === 'glow' || partial.flowStyle === 'pulse' ? partial.flowStyle : 'dash';
+  if ('flowDash' in partial) { const n = Number(partial.flowDash); partial.flowDash = Number.isFinite(n) ? Math.max(0, Math.min(30, n)) : prev.flowDash; }
+  if ('flowGap' in partial) { const n = Number(partial.flowGap); partial.flowGap = Number.isFinite(n) ? Math.max(0, Math.min(40, n)) : prev.flowGap; }
+  if ('flowSpeed' in partial) { const n = Number(partial.flowSpeed); partial.flowSpeed = Number.isFinite(n) ? Math.max(6, Math.min(200, n)) : prev.flowSpeed; }
+  if ('disableAnimOnRun' in partial) partial.disableAnimOnRun = !!partial.disableAnimOnRun;
   if ('brotherSpacing' in partial) {
     const n = Number(partial.brotherSpacing);
     partial.brotherSpacing = Number.isFinite(n) ? Math.max(0, Math.min(64, n)) : prev.brotherSpacing;
@@ -1687,9 +1709,15 @@ function reducedMotionPref() {
 let flowRaf = 0;
 function flowLoopTick() {
   flowRaf = 0;
-  const on = state.installed && state.settings.flowAnim && state.settings.colorTheme !== 'off';
+  const cfg = state.settings;
+  const on = state.installed && cfg.flowAnim && cfg.colorTheme !== 'off';
   if (!on) return;
-  app?.canvas?.setDirty?.(false, true);
+  // 空闲零重绘：仅当存在「本帧该动的线」才驱动重绘（DEC-040 第 5 条）
+  let hasWork = true;
+  if (cfg.queueRunning && cfg.disableAnimOnRun) hasWork = false;
+  else if (cfg.animMode === 'executing') hasWork = state.queue.executingNode != null;
+  else if (cfg.animMode === 'selected') hasWork = (app?.canvas?.selectedItems?.size ?? 0) > 0;
+  if (hasWork && !document.hidden) app?.canvas?.setDirty?.(false, true);
   flowRaf = requestAnimationFrame(flowLoopTick);
 }
 
@@ -1699,6 +1727,33 @@ function syncFlowLoop() {
 }
 
 // 调试/验收入口：当前主题 + 现存连线按类型的解析结果与条数
+// 队列运行时状态（api 事件驱动，index.js 订阅；不持久化）
+state.queue = { running: false, executingNode: null };
+
+export function setQueueState({ running, executingNode } = {}) {
+  if (running != null) state.queue.running = !!running;
+  if (executingNode !== undefined) state.queue.executingNode = executingNode == null ? null : String(executingNode);
+  syncFlowLoop();
+  app?.canvas?.setDirty?.(false, true);
+}
+
+function selectedNodeIdsThisFrame() {
+  if (state.frame.selectedIds) return state.frame.selectedIds;
+  const sel = app?.canvas?.selectedItems;
+  const ids = new Set();
+  if (sel && typeof sel.forEach === 'function') sel.forEach((n) => { if (n && n.id != null) ids.add(String(n.id)); });
+  state.frame.selectedIds = ids;
+  return ids;
+}
+
+function hostAnimationsDisabled() {
+  if (state.frame.hostAnimOff != null) return state.frame.hostAnimOff;
+  let v = false;
+  try { v = app?.ui?.settings?.getSettingValue?.('Comfy.Appearance.DisableAnimations') === true; } catch { /* 宿主设置不可读时按未禁用 */ }
+  state.frame.hostAnimOff = v;
+  return v;
+}
+
 export function getColorDebug() {
   const g = app?.canvas?.graph;
   const links = g?.links ? [...g.links.values()] : [];
@@ -1710,7 +1765,13 @@ export function getColorDebug() {
     byType[t].n += 1;
   }
   const id = state.settings.colorTheme !== 'off' ? state.settings.colorTheme : null;
-  return { theme: state.settings.colorTheme, flowAnim: !!state.settings.flowAnim, info: themeInfo(id), byType };
+  return {
+    theme: state.settings.colorTheme, flowAnim: !!state.settings.flowAnim,
+    animMode: state.settings.animMode, flowStyle: state.settings.flowStyle,
+    queue: { running: state.queue.running, executingNode: state.queue.executingNode },
+    disableAnimOnRun: !!state.settings.disableAnimOnRun,
+    info: themeInfo(id), byType,
+  };
 }
 
 export function getStats() {

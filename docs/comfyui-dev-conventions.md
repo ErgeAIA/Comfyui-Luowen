@@ -423,3 +423,11 @@ Icon = ""                      # ≤400x400 正方形；Banner 21:9 可选
 - 本机源码（行号基准）：`nodes.py`（加载与契约分发）、`comfy_execution/{caching,graph,validation}.py`（执行/缓存/校验）、`execution.py`（调度入口）、`server.py`（路由）、`comfy/comfy_types/node_typing.py`（类型与选项声明全集）、`comfy_api/latest/_io.py`（V3）。
 - 本机活体范例（交叉验证基准）：KJNodes（注册表模式+设置项+HTTP API）、VHS（瘦入口+docstring 注入+自定义 widget）、WanVideoWrapper（required/optional 分级聚合）、Impact-Pack（key≠类名解耦）、GGUF（最小骨架+库模式守卫+TITLE 派生）、Easy-Use（动态 WEB_DIRECTORY）、rgthree（⚠️ 0.43.2 上已损坏，仅作前端写法参考）。
 - 官方文档（2025-11 抓取有效）：walkthrough `/custom-nodes/walkthrough`；V1 参考 `/custom-nodes/backend/server_overview`；输入参数全集 `/custom-nodes/backend/more_on_inputs`；JS `/custom-nodes/js/javascript_overview`、`/javascript_hooks`、`/widgets-migration`；Registry `/registry/specifications`、`/registry/publishing`、`/registry/cicd`、`/registry/standards`；V3 `/custom-nodes/v3_migration` + issue `Comfy-Org/ComfyUI#8580` + `blog.comfy.org/p/dependency-resolution-and-custom`；测试 `github.com/Comfy-Org/ComfyUI-test-framework`；总索引 `docs.comfy.org/llms.txt`。
+
+### 2.11 队列执行事件与宿主动画开关（1.55.18 实装取证，2026-11-08）
+
+- **执行事件**（`api-DTg5QMcw.js`，websocket→`dispatchCustomEvent`）：`executing` payload 为 `t.data.display_node||t.data.node`；`execution_start / execution_error / execution_interrupted / execution_cached / execution_success / progress / progress_state / executed / promptQueued / logs / b_preview / notification` 原样透传 `t.data`；`status` 事件携带 `queue_remaining`。运行时 `app.api.addEventListener(事件名, cb)` 订阅（api 继承 EventTarget，探针实证）。络纹用 `execution_start/executing/execution_success/execution_error/execution_interrupted` 驱动「生成时禁用动效」与「仅执行中」模式（`luowen/web/index.js` setup）。
+- **宿主动画开关**：id = `Comfy.Appearance.DisableAnimations`（boolean，默认 `matchMedia('(prefers-reduced-motion: reduce)')`；定义见 `settings-BoUVXjXn.js`，消费见 `GraphView-C7jM5DM_.js` minimap）。tooltip 即「关闭大多数 CSS 动画和过渡效果。当显示 GPU 也用于生成时，可加快推理速度。」。络纹把它作为动效附加闸门：宿主开 → 我方动效也停（每帧读一次，帧级缓存）。
+- **原生 flow 动效**：bundle 静态检索无 `renderLink` 定义（全资产仅 1 处字符串且为 `linkConnector.renderLinks` 读取器）；运行时 `canvas.renderLink/drawConnections` 方法存在（探针实证、络纹包装生效中）但 flow 分支无静态证据——**按「1.55.18 无可用原生流动效」处理**，络纹 dash 行进是唯一动效实现。
+- **实测注意**：合成选中用 `canvas.selectItems.add(node)` 在 1.55.18 不生效（无选中框，截图验证），选中态必须真实指针点击；ComfyUI 设置持久化在服务端 `user/default/comfy.settings.json`（非 localStorage），探针 `setSettingValue` 会写用户设置，测后必须还原。
+

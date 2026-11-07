@@ -66,3 +66,31 @@ test('linkColors: 流向动效门槛——enabled/reduced-motion/缩放三重闸
   assert.equal(flowParams({ enabled: true, scale: 0.4 }), null, '缩放 ≤0.4 强制实线');
   assert.ok(flowParams({ enabled: true, scale: 0.41 }), '0.41 放行');
 });
+
+test('linkColors.shouldAnimate: 三模式 × 生成时禁用 × 外部闸门', async () => {
+  const { shouldAnimate } = await import('../../luowen/web/colors/linkColors.js');
+  const link = { origin_id: 62, target_id: 67 };
+  const base = { mode: 'all', link, enabled: true, scale: 1 };
+  // 主题未开（显式重置：前序用例可能改过模块级主题）
+  setTheme(null);
+  assert.equal(shouldAnimate(base), false, '主题关闭时一律不动');
+  setTheme('luowen-dark');
+  assert.equal(shouldAnimate(base), true, 'all 模式：启用即动');
+  // selected：命中/未命中
+  assert.equal(shouldAnimate({ ...base, mode: 'selected', selectedIds: new Set(['67']) }), true, '选中端点命中');
+  assert.equal(shouldAnimate({ ...base, mode: 'selected', selectedIds: new Set(['70']) }), false, '未触及选中节点');
+  assert.equal(shouldAnimate({ ...base, mode: 'selected', selectedIds: new Set() }), false, '无选中不动');
+  // executing：执行节点命中/未命中/空闲
+  assert.equal(shouldAnimate({ ...base, mode: 'executing', executingNode: '62' }), true);
+  assert.equal(shouldAnimate({ ...base, mode: 'executing', executingNode: '70' }), false);
+  assert.equal(shouldAnimate({ ...base, mode: 'executing', executingNode: null }), false, '空闲零动画');
+  // 生成时禁用开关：优先于一切模式
+  assert.equal(shouldAnimate({ ...base, queueRunning: true, disableAnimOnRun: true }), false, '运行中全停');
+  assert.equal(shouldAnimate({ ...base, mode: 'executing', executingNode: '62', queueRunning: true, disableAnimOnRun: true }), false, '开关赢过执行模式');
+  assert.equal(shouldAnimate({ ...base, queueRunning: true, disableAnimOnRun: false }), true, '显式关闭开关则运行中仍动');
+  // 外部闸门
+  assert.equal(shouldAnimate({ ...base, reducedMotion: true }), false);
+  assert.equal(shouldAnimate({ ...base, hostAnimationsDisabled: true }), false, '宿主禁用动画=开 → 我方停');
+  assert.equal(shouldAnimate({ ...base, scale: 0.4 }), false, '缩放 0.4 停');
+  assert.equal(shouldAnimate({ ...base, scale: 0.41 }), true);
+});

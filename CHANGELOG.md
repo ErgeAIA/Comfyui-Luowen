@@ -9,8 +9,8 @@
 
 ### 新增
 
-- 连线配色主题 `LuoWen.ColorTheme`（关闭/暗色/Cyberpunk）：按连线数据类型着色，62 类语义映射（对比度与色盲 ΔE 已过门槛，见 `docs/specs/link-color-tokens/`）；默认关闭，行为与原生一致
-- 流向动效 `LuoWen.FlowAnim`（默认关闭）：虚线沿连线从源到目标行进；系统「减少动态效果」或缩放不大于 40% 时自动实线
+- 连线配色主题 `LuoWen.ColorTheme`（关闭/暗色/Cyberpunk）：按连线数据类型着色，62 类语义映射（对比度与色盲 ΔE 已过门槛，见 `docs/specs/link-color-tokens/`）；默认关闭，行为与原生一致；Cyberpunk 主题按 DEC-040 重调（提高色度，与暗色主题拉开可见差异）
+- 动效系统 v2（DEC-040）：`LuoWen.FlowAnim`（总开关，默认关）+ 独立「动效」设置组——模式（全部连线/仅选中/仅执行中）、线型（虚线行进/发光/脉冲）、虚线长度/间距/流速、`LuoWen.DisableAnimOnRun`（默认开：工作流运行期间暂停全部动效，结束自动恢复）；reduced-motion、宿主「禁用动画」、缩放 ≤40% 三重闸门；空闲零重绘
 
 - smooth 样式拐角由圆弧拼接改为贝塞尔曲线（PRD §5.1 真 Bezier）：控制点=角点、切距沿用 `LuoWen.CornerRadius`（0–24px，默认 10px，0 为直角）；骨架路径与命中几何不变；同机 A/B 帧耗时较圆角折线略优（`docs/agents/performance.md` §2026-11-07）
 
