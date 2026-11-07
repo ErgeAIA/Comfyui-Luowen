@@ -16,6 +16,19 @@ description: >
 > 格式：`## DEC-NNN: 标题`，新条目置顶，NNN 三位递增。
 > 字段：`- **日期**：` / `- **背景**：` / `- **决策**：` / `- **验证**：`
 
+## DEC-033: 手动意图保护——含 Reroute 链的连接不参与主干合并与等距带
+
+- **日期**：2026-11-07
+- **背景**：PRD 原则 6 / 场景 E / F-010 / §6.1（L243）/ §8.4（L420）/ AT-018 / §9.2 要求「手工意图优先」；§8.4 明确 MVP 保守策略：包含原生 Reroute 链的连接默认不参与跨目标自动合并，无法确定意图时保持原生路径。此前 `planTrunks` / `planBands` 遍历 `graphLinks` 时未排除带 Reroute 链的 link。
+- **决策**：
+  1. **判定层**：前端 1.55.18 的 Reroute 挂在单条 Link 上（`link.parentId` 非空即含链，见 `docs/comfyui-dev-conventions.md` §2.6）；在 adapter 新增 `carriesReroute(link)`，不改 `graphRead`、不写图数据。
+  2. **主干**：`planTrunks` 遍历时跳过带 Reroute 链的 link，使其不并入主干组、不共用 `sharedPrefixLength` / `splitAt` 公共前缀；同组其余普通 link 仍可自行成组。
+  3. **等距带**：`planBands` 分组时把带链 link 计入 `manual` 但不入 `members`；若排除后可平移走廊成员 `< 2` 且组内有手动成员，则整组跳过，不写 `bandDegraded` / `orderDegraded`，避免虚假降级；`orderCtx` 因不进入阶梯而不会生成。
+  4. **不改**：`laneAssign`（只错开走廊、不共享几何）、`trunkPlan` 几何、`opts.reroute` 中间段原生直通、`crossCleanup`（默认关闭、消交叉非合并）、`spacing` / `k` 上限 / 降级语义、原生工作流数据。
+- **验证**：见 `docs/agents/project-progress.md` 本轮条目。无 Reroute 真实图指纹 `0xb0fa2c54`（524 字符）、38 点最大偏差 6.7e-5、主干 `62:0 fork=155 merged=[79,81]`、等距带 `[76,82,78] xs [null,806.49,814.49]`、交叉 0、`verify()` ok、单测 99/99；现场 A/B（link 79 与 78 各建一条 Reroute，测试后 reload 还原、`reroutesSize=0`）：旧版 `trunks [62:0 merged [79,81]]`、`bands [76,82,78]`，补丁版 `trunks []`、`bands []`；两版 79/81/78/82/76 路线逐点一致、交叉 0、无新增降级；冻结探针（68→(1204,630)、65 y=835）复现 `cross-pivot1-k4 steps4`、82/78 `fallback:'prev'`。
+- **已知限制**：本次现场样本中旧版的主干/成带计划未改变可见几何（锚点使段端点与整条计划不一致），因此以 `status().trunks/bands` 结构差异 + 路线逐点一致作为对比证据；未覆盖多 Reroute 长链、子图内 Reroute、经典画布。
+- **结果**：未提交 git，交用户验收。
+
 ## DEC-032: 等距带阶梯改为方向感知 + 候选兄弟交叉预检（P0 + P0.5）
 
 - **日期**：2026-11-07

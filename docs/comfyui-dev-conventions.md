@@ -147,6 +147,7 @@
 - **连线的悬停/命中读“渲染产物”**：`renderLink` 不是自己注册命中区；`_renderAllLinkSegments` 在绘制后 `renderedPaths.add(link)`（`LGraphCanvas.ts:6430`），命中测试 `queryRenderedLinkSegmentsAtPoint` 遍历 `canvas.renderedPaths`，用 `ctx.isPointInStroke(segment.path, x*dpr, y*dpr)` 判断线条（`src/lib/litegraph/src/canvas/hitTesting.ts`）。因此接管绘制时**必须**写入 `link.path`，否则整条线的 shift/alt 点击与右键菜单命中都会丢失。
 - **`over_link_center` 只表示中心点 8×8 悬停**：`_getLinkCentreOnPos` 遍历 `renderedPaths` 比较 `_pos` 周围 `8×8`（`LGraphCanvas.ts:5196-5204`、`:3549-3553`）；它不负责整条线的高亮。整线悬停高亮需扩展自行实现（络纹用 pointermove + 折线距离）。
 - **`renderLink` 参数**：`(ctx, a, b, link, skip_border, flow, color, start_dir, end_dir, opts)`，方向用 `LinkDirection` 枚举 `NONE=0/UP=1/DOWN=2/LEFT=3/RIGHT=4/CENTER=5`（`types/globalEnums.ts`）；`opts.reroute` 表示共享段，`opts.disabled` 表示 bypass。批量绘制入口是 `_renderAllLinkSegments`（`LGraphCanvas.ts:6299`），非直接调用 `renderLink`。
+- **Reroute 链挂在单条 Link 上，不是独立图形节点**：`LLink.getReroutes(graph, link)` 在 `link.parentId === undefined` 时返回空数组，否则从 `graph.reroutes.get(link.parentId)` 沿 `reroute.parentId` 回溯（`LLink.ts:326-332`；`parentId` getter/setter `LLink.ts:214-219`）；`LGraph.reroutes` 是 `reroutesInternal` 的只读 getter（`LGraph.ts:709-712`），创建入口 `LGraph.createReroute`（`LGraph.ts:2038`），绘制的逐段遍历在 `LGraphCanvas.ts:6299`。判定「连接含手动 Reroute 链」用 `link.parentId !== undefined`；`opts.reroute` 只表示链内共享段，不能用来判定整条 Link 是否带链。运行时实测 1.55.18：`graph.reroutes` 为 `Map`（无链时 size 0），`link.parentId` 在无链时为 `null`、建链后为数字。
 
 ### 2.7 节点拖动挂载点与磁吸可行性（3A-0 查证，2026-11-06）
 

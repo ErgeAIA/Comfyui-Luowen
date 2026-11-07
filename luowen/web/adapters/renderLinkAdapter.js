@@ -303,6 +303,13 @@ function solveBaseline(link, ep, lanes, clearance) {
   return { pts: solved.pts, mode: solved.mode };
 }
 
+// 手动意图保护（PRD §8.4 / F-010 / AT-018）：前端 1.55.18 的 Reroute 挂在单条 Link 上，
+// link.parentId 非空即该链含用户手动放置的锚点（LLink.getReroutes 从该 id 起链）。
+// 含 Reroute 链的连接不参与跨目标主干合并与同目标成带；独立线段仍走单线管线。
+function carriesReroute(link) {
+  return link?.parentId != null;
+}
+
 function planTrunks(graph, canvas, epMap) {
   state.frame.trunks = new Map();
   state.frame.trunkShared = new Map();
@@ -323,6 +330,7 @@ function planTrunks(graph, canvas, epMap) {
     if (!l || l.id == null || l.id < 0) continue;
     const ep = epMap.get(l.id);
     if (!ep) continue;
+    if (carriesReroute(l)) continue; // 手动 Reroute 链不进主干组，也不共用主干前缀
     const lanes = state.frame.lanes?.get(l.id) ?? { stubOut: DEFAULT_STUB, stubIn: DEFAULT_STUB };
     const key = `${l.id}|${ep.ax}|${ep.ay}|${ep.bx}|${ep.by}|${lanes.stubOut}|${lanes.stubIn}|${ep.sd}>${ep.ed}|${state.settings.avoidance}|${state.settings.style}`;
     if (!state.cache.get(key, state.frame.version)) {
@@ -513,13 +521,16 @@ function planBands(graph) {
     const ty = Number.isFinite(tn?.pos?.[1]) ? tn.pos[1] : ep.by;
     const dir = oy - ty < -1 ? 'up' : oy - ty > 1 ? 'down' : 'flat';
     const gk = `${l.target_id}|${dir}`;
-    if (!groups.has(gk)) groups.set(gk, []);
-    groups.get(gk).push({ l, ep, dir });
+    if (!groups.has(gk)) groups.set(gk, { members: [], manual: 0 });
+    const g = groups.get(gk);
+    if (carriesReroute(l)) { g.manual += 1; continue; } // 手动 Reroute 链不成带（PRD §8.4 / F-010）
+    g.members.push({ l, ep, dir });
   }
 
   const laneOf = (id) => state.frame.lanes.get(id) ?? { stubOut: DEFAULT_STUB, stubIn: DEFAULT_STUB };
 
-  for (const [, members] of groups) {
+  for (const [, g] of groups) {
+    const members = g.members;
     if (members.length < 2) continue;
     const dir = members[0].dir;
 
@@ -554,6 +565,9 @@ function planBands(graph) {
     // 阶梯成员 = 有目标侧竖段的成员。纯直线成员（共线直连，例如 L76）没有走廊可平移，
     // 保持自身直线；只要它的引脚 y 位于阶梯外侧就不会与阶梯相交（相交由帧末校验兜底）。
     const ladder = members.filter((m) => m.pts && m.ap);
+    // 排除手动 Reroute 成员后本组只剩 1 条可平移走廊线：不再构成阶梯，也不写虚假降级；
+    // 手动线保持独立解（PRD §8.4「若无法确定用户意图，就保持原生路径」）。
+    if (ladder.length < 2 && g.manual) continue;
 
     // 4) 以任一成员为枢轴生成阶梯：x_r = pivotX + s·(r - p)·dirToNode·spacing；
     //    k>0 时整梯再向外挪。逐个试（成员数很小，纯几何、零次 A*），取第一个全部通过

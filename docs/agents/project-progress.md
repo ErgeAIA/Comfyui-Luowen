@@ -19,11 +19,17 @@ description: >
 
 - **当前分支**：main
 - **阶段**：阶段 0–2 已完成并由用户验收（阶段 2 提交 `8614a8a`）；阶段 3 **尚未开始**——3A（拖动对齐吸附）、3B（交叉枚举与离线清理，默认关闭）属 PRD §4.2 P1 增强，不计入阶段 3 交付；3C 顺序抽头已实现后按用户决定撤除（DEC-019）；P0 主干组交互已按 DEC-021 新口径（组高亮 + 组删除）实现，**2026-11-07 用户验收通过**；BUG-002 连线抖动修复与 BUG-003 等距带方案 A 同日验收通过（代码改动均未提交）
-- **最近提交**：`70daba3`（文档与协作契约对齐：README/CHANGELOG 对账、AGENTS 增量、术语与经验库、LICENSE）、`603a1b5`（3B 交叉枚举 + 离线交叉清理，默认关闭）、`b6dab5c`（3A 拖动对齐吸附 + DOM 提示线覆盖层）、`8614a8a`（阶段 2 输入走廊嵌套、绕障外角大斜切、合法最晚分叉）
-- **工作区**：多笔代码与文档改动未提交（含组交互、BUG-002/003、等距带、圆角设置、设置界面与提示框、模板示例设置清理）；提交时必须路径限定、与文档分开
+- **最近提交**：`29fc015`（等距带阶梯方向感知 + 候选兄弟交叉预检）、`70daba3`（文档与协作契约对齐：README/CHANGELOG 对账、AGENTS 增量、术语与经验库、LICENSE）、`603a1b5`（3B 交叉枚举 + 离线交叉清理，默认关闭）、`b6dab5c`（3A 拖动对齐吸附 + DOM 提示线覆盖层）、`8614a8a`（阶段 2 输入走廊嵌套、绕障外角大斜切、合法最晚分叉）
+- **工作区**：本轮未提交改动为 `luowen/web/adapters/renderLinkAdapter.js` 与 `docs/`（手动意图保护）；此前已验收未提交的组交互、BUG-002/003、等距带、圆角设置、设置界面与提示框、模板示例设置清理仍在工作区；提交时必须路径限定、与文档分开
 - **测试**：`node --test tests/unit/*.test.mjs` **99/99** 通过（2026-11-07 实跑复核，fail 0）
 - **代码**：`luowen/`（含 `routing/trunkPlan.js` 单主干共享几何、三档避障、预览、缓存、`geometry/chamfer.js` 绕障外角大斜切、`geometry/trace.js` 圆角半径 0–24（默认 10）、`routing/laneAssign.js` 输入侧按接近方向嵌套分道 + 走廊净空顺延 + 同目标等距带（`planBands`、`bandDegraded`/`orderDegraded`）、`snap/alignSnap.js` + `snap/dragSnap.js` 对齐吸附、`routing/crossings.js` + `routing/crossCleanup.js` 交叉枚举与离线清理、主干组高亮 + 组删除菜单），已装本机 custom_nodes 实测
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2、Node 24.22.1；Playwright 浏览器实测流程已打通
+- **本轮手动意图保护：含 Reroute 链的连接不参与合并/成带（2026-11-07，仅改 `renderLinkAdapter.js`；已部署宿主实测；未提交，等用户验收）**：
+  - 口径：PRD 原则 6 / 场景 E / F-010 / §6.1（L243）/ §8.4（L420）/ AT-018 / §9.2；判定依据前端 1.55.18 `link.parentId`（见 `docs/comfyui-dev-conventions.md` §2.6）。
+  - 改动：新增 `carriesReroute()`；`planTrunks` 跳过带链 link；`planBands` 将带链 link 计入 `manual` 但不入成员，排除后可平移成员 `< 2` 时整组跳过且不写虚假降级。`laneAssign` / `trunkPlan` / `opts.reroute` 直通 / `crossCleanup` / spacing / k 上限 / 降级语义未动。
+  - 现场 A/B（link 79 于源引脚、link 78 于 (700,760) 各建一条 Reroute；测试后 reload 还原，`reroutesSize=0`）：旧版 `trunks:[{62:0, merged:[79,81]}]`、`bands:[{target:70, members:[76,82,78], xs:[null,806.49,814.49]}]`；补丁版 `trunks:[]`、`bands:[]`。两版 79/81/78/82/76 路线逐点一致（79 末段起于锚点），交叉 0，无 `bandDegraded/orderDegraded`。
+  - 回归：无 Reroute 真实图指纹 `0xb0fa2c54`（524 字符）、38 点最大偏差 6.7e-5、`verify(){ok:true,diffs:[]}`、`nodeDiff=[]`；单主干 `62:0 fork=155 merged=[79,81]`；等距带 `[76,82,78] anchor 82 pivot0 shift0 xs [null,806.49,814.49]` 间距 8；四线 75=822.493 / 82=806.493 / 78=814.493 / 76 直线 y=393；嵌套反转 73=1228.905 / 74=1220.905 gap 8；交叉 0。
+  - 冻结探针（已还原）：68→(1204,630)、65 y=835，target 70 记录 `cross-pivot1-k4 steps4`，82/78 `fallback:'prev'`，帧末记 `cross`；单测 99/99。
 - **本轮 P0 + P0.5：等距带阶梯方向感知 + 候选兄弟交叉预检（2026-11-07，仅改 `planBands`；已部署宿主实测；未提交，等用户验收）**：
   - 改动：`planBands` 分组时把 `dir` 挂到成员；阶梯新增 `approachSign = dir === 'up' ? -1 : 1`，`required = pivotX + approachSign·(r-p)·dirToNode·spacing`（down/flat 逐点不变）；`k=0..4 × pivot` 枚举内新增候选（含直线成员）同组两两 `pathsCross` 预检，交叉候选不提交，全部失败才 `markOrderDegraded`。`laneAssign`、`trunkPlan`、`shiftCorridor`、spacing、k 上限与降级语义未动。
   - 现场：65（VAE解码）y=515→895 步长 20 共 20 帧，73/74 竖段 x 恒 1228.905/1220.905、gap 8、交叉 0、`orderDegraded` 空；y=815 起同属 `65|up` 成带 `{pivot:0,shift:0,xs:[1228.91,1220.91]}`。旧公式（s=+1，74 走廊 1236.905）同布局交叉 2，新代码 0。
