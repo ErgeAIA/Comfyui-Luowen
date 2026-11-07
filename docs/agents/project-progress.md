@@ -26,7 +26,11 @@ description: >
 - **代码**：`luowen/`（含 `routing/trunkPlan.js` 单主干共享几何、三档避障、预览、缓存、`geometry/chamfer.js` 绕障外角大斜切、`geometry/trace.js` 圆角半径 0–24（默认 10）、`routing/laneAssign.js` 输入侧按接近方向嵌套分道 + 走廊净空顺延 + 同目标等距带（`planBands`、`bandDegraded`/`orderDegraded`）、`snap/alignSnap.js` + `snap/dragSnap.js` 对齐吸附、`routing/crossings.js` + `routing/crossCleanup.js` 交叉枚举与离线清理、主干组高亮 + 组删除菜单），已装本机 custom_nodes 实测
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2、Node 24.22.1；Playwright 浏览器实测流程已打通
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2、Node 24.22.1；Playwright 浏览器实测流程已打通
-- **本轮动效 v2（2026-11-08，DEC-040；改 `linkColors.js`/`renderLinkAdapter.js`/`index.js` + cyberpunk token 重调；已部署宿主实测；未提交，等用户验收）**：
+- **本轮 C：§14.2 fixture 2→10 组（2026-11-08，新增 `tests/unit/fixtures14.test.mjs`；纯离线单测，未动功能代码；未提交，等用户验收）**：
+  - 10 组对照 PRD §14.2 清单全部落地，每组记录 拓扑类别/主要约束/可接受代价范围，断言结构属性（正交、不穿卡、分道不共线、合并类别、交叉计数、绕行比 ≤1.25）而非像素快照：F1 同水平 2/3/5 目标全合并、F2 垂直堆叠合并、F3 集中+远端部分合并（绕行保护 ratio>1.25，场景=远端在源正下方——并入即大幅绕行才触发保护，与 trunkPlan.test member-9 语义一致）、F4 四方向不强制合并、F5 双墙夹击绕行、F6 96px 通道 strict 穿越、F7 含 Reroute 链不参与合并（DEC-033）、F8 交叉枚举（X/共线重叠检出、touch 不计）、F9 短距端口错位 lane 不共线、F10 折叠/加宽/整组平移后重解约束保持。
+  - **契约澄清（fixture 编写三坑，已写进文件头注释）**：① `route()` 的 obstacles 是 `[x,y,w,h]` 不是 XYXY；② 端点恰好落在障碍边缘会令三档全 null（生产引脚在卡内 ~8px，先例见 routing.test「右边界内 9px」）；③ 三档 null 的两个合法出口——同轴无阻挡=规范直连按设计 null（适配器自绘直线）、同 y 直线走廊对膨胀障碍无碰=clearH 快捷 null（clearH 已验即正确路线）——都不是失败。
+  - 单测 **120/120**（fixtures14 新增 10 项）。
+- **本轮动效 v2（2026-11-08，DEC-040；改 `linkColors.js`/`renderLinkAdapter.js`/`index.js` + cyberpunk token 重调；已部署宿主实测；已随 `57ec488` 提交）**：
   - 前置调研（conventions §2.11）：执行事件（api-DTg5QMcw.js，`executing` payload=display_node||node，success/error/interrupted 透传）；宿主动画开关 id=`Comfy.Appearance.DisableAnimations`；1.55.18 无可用原生流动效（bundle 取证）；合成 `selectItems.add` 不生效须真实点击；设置持久化在服务端。
   - 第一性原理裁决（DEC-040）：动效唯一语义=正在发生的数据流；三模式（全图/仅选中/仅执行中，默认全图）；`DisableAnimOnRun` 默认开、优先于一切模式（张力如实写入 tooltip）；spec §6.1「不发光不脉冲」修订为显式线型（微基准全过预算：500 线 dash 0.18 / glow 0.15 / pulse 0.08 ms/帧）；cyberpunk 重调（chroma 0.11→0.14、hi 0.82，CVD 最差 0.0223 过门槛，hex 与 dark 拉开：CLIP #D1C951 vs #C1BA59 等）；空闲零重绘（仅执行中模式空闲自停）+ 宿主开关闸门 + WCAG 2.2.2 口径（用户设置即暂停机制）。
   - 实现：`shouldAnimate` 纯门禁（单测 10 断言）；适配器三线型绘制 + 帧级缓存（selectedIds/hostAnimOff 每帧清零）；index.js「动效」独立设置组 7 项（启用/模式/线型/虚线长度/间距/流速/生成时禁用）+ api 事件订阅。
