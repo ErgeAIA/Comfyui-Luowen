@@ -167,6 +167,17 @@ description: >
 - **状态**：已修复并完成宿主实测，待用户验收。
 - **提交（2026-11-07）**：随 `d546e39` 提交并 push；仍待用户验收。
 
+### 真实鼠标删除复测（2026-11-07，待办 2「阶段 3 剩余验收」轮）
+
+- **方式**：Playwright 真实鼠标事件（非 `setPos`/合成 PointerEvent）——移动到 link 76 最长段中点。图→屏换算用适配器 `eventGraphPoint`（`renderLinkAdapter.js:1130-1136`）的反演式 `client=(graph+ds.offset)·scale+rect`（scale=0.9；旧 probe4 口径 `graph·scale+offset` 仅在 scale=1 时凑巧成立，本轮已废弃）。
+- **结果**：`status().hover` 命中 `{linkId:76, part:'branch', members:[76]}` → 右键菜单 `隐藏连线 / Add Node / Add Reroute / Delete / Convert to Set/Get` → 点击 `Delete` → `links 9 / routed 9`（相等，无幽灵）、`hover=null`；`verify()` 如实报 `link-removed: 76`（ok:false 属预期，主动删除不是篡改）；Ctrl+Z 后 `links 10 / routed 10`、`verify() ok:true`。
+- **覆盖闭环**：本条目验证限制 ②（悬停用合成 pointermove）与 ③（真实鼠标删除、`crossCleanup=true` 下删线）在本轮全部补上真实鼠标证据；记录 `.verify/p3/stage3r-run3.json`（S6 节）、截图 `s3r_06_*.png`。
+
+### 用户验收（2026-11-07，DEC-037 委托口径）
+
+- AI 交付对照表（`.verify/p4/mirror-user-steps.mjs` 复刻用户控制台步骤：rebase → 两数对账 → 真实鼠标删线 → 对账 → hover → `verify()` → undo → extra/properties 探针 → 真实拖动）：删线后 `routed==links`（9/9）、`hover=null`、`verify()` 如实报 `link-removed: 78`、undo 后 `ok:true`，**用户确认通过，结案**。
+- 附带口径澄清（非缺陷）：删线后 `verify()` 报 `link-removed` 属如实报告；步骤②删线后做后续探针前需 Ctrl+Z 或 `rebase()`（undo 会自动 rebase，见 BUG-007 同名小节）。
+
 ## BUG-007: verify() 快照盲区——不含 graph.extra / node.properties / 节点坐标
 
 - **日期**：2026-11-07（第三方共存源码级分析暴露；对应矩阵 C6/Z4 验收盲区）
@@ -192,3 +203,14 @@ description: >
 - **预防规则**：数据不变性自检必须覆盖工作流可序列化的扩展位（`extra` / `node.properties`），并显式排除宿主自有键；坐标等用户态变化只报告、不判失败。
 - **状态**：已部署宿主（仓库与宿主 SHA256 一致 `8BEA51F999FF4C1B351AA7884F8C9DF975F2E8AF03636E838A4D0BE94FA7B9E5`），未提交 git，待用户验收；未宣称已修复。
 - **提交（2026-11-07）**：随 `ebbc038` 提交并 push；仍待用户验收。
+
+### 真实鼠标删除复测与 undo 自动 rebase 口径（2026-11-07，待办 2「阶段 3 剩余验收」轮）
+
+- **真实鼠标删除**：右键 link 76 分支段（hover 先命中 `{linkId:76, part:'branch'}`）→ 菜单 `Delete` → `verify()` `{ok:false, diffs:["link-count: 10 -> 9","link-removed: 76"]}`——如实报告用户主动删除，属预期行为；Ctrl+Z 撤销后 `ok:true`。真实鼠标主干右键组删除（link 79/81 一次事务删除 2 条）同轮通过，undo 恢复 `ok:true`。
+- **口径注记（新发现，非缺陷）**：ComfyUI 的撤销 = `loadGraphData` 恢复快照，会触发本插件 `afterConfigureGraph()`（[index.js:333-336](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/index.js#L333-L336)）重建基线——**每次 Ctrl+Z 后 baseline 自动跟随撤销后的状态**。因此「undo 后 verify ok:true」只证明「与撤销后状态一致」，不能证明「与最初基线一致」；用户手工验收时若先做过删除/撤销，应先 `LuoWen.rebase()` 再判定。
+- **自动化脚本注意事项**：undo 链可能把已删除的粘贴节点复活（撤销「删除节点」）；验收脚本终态需孤儿清扫 + 强制 `rebase()`（`.verify/p3/stage3-remaining.mjs` finalSweep），否则 `FINAL` 的 ok 会建立在被污染的基线上。
+
+### 用户验收（2026-11-07，DEC-037 委托口径）
+
+- 对照表确认：`extra.probe_vendor` → `extra-added` 检出、`node.properties` → `node-prop(9)-added: fake.vendor` 检出、删除后均恢复 `ok:true`、真实拖动只进 `moved` 不判失败；宿主自有键不误报引用 `.verify/p4/verify-ab.mjs` 既有 A/B（ds/linkExtensions 均 ok）。**用户确认通过，结案**。
+- 真实第三方（Cable Management / Zip Ties）的键名、写入时序与保存路径仍留待待办 1 运行时验证（矩阵 §5.4 缺口保持，不因本验收关闭）。

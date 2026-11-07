@@ -125,6 +125,20 @@ description: >
 | 拖动节点 70（+90,+60） | `73@65 cross-pivot1-k4 solved`、`74@65 cross-pivot1-k4 prev`、`73@65 cross solved`、`74@65 cross solved`；中间帧另见 `pivot1-k4-r0 / r2`（74 prev） | 拖动使 65 的输入带（73/74）候选阶梯 k=0..4 全部被交叉预检拒绝，回退 `fallback:'prev'`；帧末独立求解后转为 `cross` | **确定性降级，非瞬时抖动**：拖动到 x≈705 起出现，鼠标释放后保留；重新加载同一拖动后布局仍复现同 4 条 |
 | 子图转换后返回根图 | `85@70 cross-pivot1-k4 prev`、`86@70 cross-pivot1-k4 prev`、`85@70 cross prev`、`86@70 cross prev`（link id 随转换新建） | `convertToSubgraph` 重连外部输入，生成新链路 85/86 后对 target 70 重新求解；干净页面仅子图内部时 `inside.bandDegraded=[]`，返回根图才出现 | **确定性重算**：同一拓扑转换可稳定复现；属 DEC-028 显式降级路径，`verify()` 因根图被用户主动转换（10→9 节点）而预期为 `ok:false`，非插件写图 |
 
+### 4.5 待办 2 四类验收（2026-11-07，真实鼠标轮；脚本 `.verify/p3/stage3-remaining.mjs`，记录 `stage3r-run3.json`）
+
+宿主 0.43.2 + 1.55.18，默认模板（10 节点 / 10 链路），Vue 节点模式，ds.scale=0.9。全部用 Playwright 真实鼠标/键盘事件（非 `setPos` / 合成 PointerEvent）；图→屏换算统一用适配器 `eventGraphPoint` 反演式 `client=(graph+ds.offset)·scale+rect`。终态清扫后 `verify() ok:true`、10 节点 / 10 链路 / 10 路由一致；单测 99/99。
+
+| 类 | 步骤 | 结果 |
+|---|---|---|
+| 真实鼠标拖拽（S1） | pointerdown+move×6+up 拖节点 67（170,290 → 203.3,320） | `verify() ok:true`、`moved` 只含 67（位置变化不判失败）；拖后 `routed==links` 无幽灵、`bandDegraded/orderDegraded` 0；Ctrl+Z 精确还原 |
+| 真实右键链路菜单与组删除（S2/S3） | hover 引导：主干点命中 `{linkId:79, part:'trunk', members:[79,81]}` → 右键 | 主干菜单首项「删除这一组（2 条）」（后随 隐藏连线/Add Node/Add Reroute/Delete/Convert to Set/Get）；点击后 10→8 链路、单事务（verify 报 `link-removed: 79/81`）、Ctrl+Z 一次恢复 `ok:true`。分支点命中 `{linkId:79, part:'branch'}` → 右键菜单**无**组删除项（S6 的 link 76 分支菜单同证） |
+| 节点折叠（S4） | 点击节点 67 折叠箭头 → 折叠 → 再展开 | 折叠态 `links 10 / routed 10`（无幽灵）、`verify ok:true`；展开后 `routes()` 几何指纹与折叠前一致（geoRestored=true） |
+| 复制粘贴（S5） | 选中节点 67 → Ctrl+C / Ctrl+V → 删除粘贴件 | 粘贴后 `nodes 11`、`verify` 如实报 `node-added: 72`、`routed==links` 无幽灵；删除粘贴件后 10/10 恢复、`verify ok:true` |
+| `crossCleanup=true` 生命周期（S7） | 设置开启 → `setPos` 构造布局（6 对交叉）→ 真实拖动 67 → 合成删线 → undo → 关闭还原 | 清理运行 2→3→5 次、epoch 逐级失效重建；删线后 `routed==links` 无幽灵；本轮布局 6 对交叉未采纳（`lastReason:'pairs-not-decreased'`，总长增幅超 15% 拒绝，保守语义符合 DEC-017）；关闭后布局还原、`verify ok:true` |
+
+**口径注记（本轮新发现，非缺陷）**：ComfyUI 撤销 = `loadGraphData` 恢复快照 → 触发本插件 `afterConfigureGraph()`（`index.js:333-336`）重建基线，即**每次 Ctrl+Z 后 `verify()` 基线自动跟随撤销后状态**；自动化脚本若在删除后 undo，可能复活已删粘贴件，终态需孤儿清扫 + `rebase()`。详见 debug-log BUG-007 同名小节。
+
 ## 5. 已知缺陷与缺口
 
 ### 5.1 BUG-006：仅删连线时路由状态表残留幽灵条目（已修复，待验收）
@@ -140,11 +154,12 @@ description: >
 | 项 | 状态 | 说明 |
 |---|---|---|
 | 其他 ComfyUI / 前端版本组合 | 未验证 | 只实测 0.43.2 + 1.55.18 |
-| 节点折叠 | 未验证 | 未构造折叠态 |
-| 复制 / 粘贴 | 未验证 | PRD §9.4 有要求，不在本轮清单 |
+| 节点折叠 | **已验证（2026-11-07 §4.5 S4）** | 折叠态无幽灵、verify ok；展开后几何指纹还原 |
+| 复制 / 粘贴 | **已验证（2026-11-07 §4.5 S5）** | 粘贴 node-added 如实报告、无幽灵；删除粘贴件还原 |
 | Cable Management / NKD Reroutes / Zip Ties / rgthree | 未做运行时验证（源码级见 §5.4） | 未安装到宿主，只有源码级冲突面判定 |
-| 真实鼠标拖拽 | 未验证 | 拖动为 `setPos` 注入；与既有 BUG-002/003 验证限制一致 |
-| `crossCleanup=true` 生命周期 | 未验证 | 本轮保持默认关闭 |
+| 真实鼠标拖拽 | **已验证（2026-11-07 §4.5 S1–S3/S6）** | 真实 pointer 拖动 + 右键链路菜单（组删除/单删）；此前 BUG-002/003 的 `setPos` 限制在拖拽维度补齐 |
+| `crossCleanup=true` 生命周期 | **已验证（2026-11-07 §4.5 S7）** | epoch 失效重算、删线无幽灵；清理保守拒绝路径（pairs-not-decreased）符合 DEC-017 |
+| 子图内删线/折叠/粘贴、经典画布四类 | 未验证 | §4.5 仅覆盖根图 + Vue 节点模式 |
 | 50/200/500 节点性能 | 已测（引用） | 见 [performance.md](./performance.md) §2026-11-07，不重测 |
 
 ### 5.3 待确认项
@@ -196,6 +211,7 @@ description: >
 ## 6. 复现入口
 
 - 主脚本：`.verify/p3/suite.mjs`；只向 stdout 输出 JSON，需重定向到 `.verify/p3/suite-run-*.log` 后解析（`suite-out.json` 为旧会话遗留，已过期）。运行前宿主须在 8188 且页面可访问。
+- 待办 2 四类验收：`.verify/p3/stage3-remaining.mjs`（§4.5；真实鼠标拖拽/右键菜单/折叠/粘贴/crossCleanup 生命周期；输出重定向后解析，截图 `s3r_*.png`；坐标换算用适配器反演式，见 §4.5 口径注记）。
 - 修前对照：`.verify/p3/renderLinkAdapter-prefix.js`（HEAD 版），对应 `suite-run-prefix.log`；修后对应 `suite-run-fixed.log`、`suite-run-fixed2.log`。
 - BUG-006 最小复现：`.verify/p3/probe16.mjs`（只删连线、节点全保留，10→9）、`probe19.mjs`（先删节点再删连线，8/8/8）。
 - 回归数据探针：`probe20.mjs`（默认布局）、`probe21.mjs`（2B 布局降级记录）、`probe22.mjs`（默认布局修正字段）、`probe23.mjs`（历史 BUG-005 布局六项）、`probe24.mjs`（pivot=0 段四线/双线核对）。输出均在 `.verify/p3/probe*-run-20261107.log`。

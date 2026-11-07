@@ -18,13 +18,24 @@ description: >
 ## 当前状态
 
 - **当前分支**：main
-- **阶段**：阶段 0–2 已完成并由用户验收（阶段 2 提交 `8614a8a`）；阶段 3 **首轮兼容性与生命周期测试已完成，BUG-006 已修复并完成宿主实测（待用户验收）；verify() 快照口径 BUG-007 已补并完成宿主实测（待用户验收）**（结论见 `docs/agents/compatibility-matrix.md`），其余阶段 3 交付项（复制粘贴、节点折叠、第三方冲突扩展、发布材料与包）仍未开始；3A（拖动对齐吸附）、3B（交叉枚举与离线清理，默认关闭）属 PRD §4.2 P1 增强，不计入阶段 3 交付；3C 顺序抽头已实现后按用户决定撤除（DEC-019）；P0 主干组交互已按 DEC-021 新口径（组高亮 + 组删除）实现，**2026-11-07 用户验收通过**；BUG-002 连线抖动修复与 BUG-003 等距带方案 A 同日验收通过（已随 `ad01899` 提交）；阶段 3 的 BUG-006 修复与 `verify()` 快照补强（BUG-007）已随 `d546e39`、`ebbc038` 提交并 push，仍待用户验收
+- **阶段**：阶段 0–2 已完成并由用户验收（阶段 2 提交 `8614a8a`）；阶段 3 **首轮兼容性与生命周期测试已完成，BUG-006 已修复并完成宿主实测（待用户验收）；verify() 快照口径 BUG-007 已补并完成宿主实测（待用户验收）**（结论见 `docs/agents/compatibility-matrix.md`），其余阶段 3 交付项（复制粘贴、节点折叠、第三方冲突扩展、发布材料与包）仍未开始；3A（拖动对齐吸附）、3B（交叉枚举与离线清理，默认关闭）属 PRD §4.2 P1 增强，不计入阶段 3 交付；3C 顺序抽头已实现后按用户决定撤除（DEC-019）；P0 主干组交互已按 DEC-021 新口径（组高亮 + 组删除）实现，**2026-11-07 用户验收通过**；BUG-002 连线抖动修复与 BUG-003 等距带方案 A 同日验收通过（已随 `ad01899` 提交）；阶段 3 的 BUG-006 修复与 `verify()` 快照补强（BUG-007）已随 `d546e39`、`ebbc038` 提交并 push，**2026-11-07 按 DEC-037 委托口径验收通过（结案）**；**待办 2（阶段 3 剩余验收：节点折叠、复制粘贴、真实鼠标拖拽与菜单、crossCleanup=true 四类）已完成真实鼠标宿主实测并经用户确认验收（2026-11-07，DEC-037 委托口径）**；下一步为待办 1 第三方运行时共存验证（用户已批准安装，2026-11-07）
 - **最近提交**：`ebbc038`（fix(verify)：快照纳入 graph.extra / node.properties，坐标仅报 moved）、`5146c82`（第三方共存文档与规范）、`d546e39`（BUG-006 幽灵条目修复）、`01d8df7`（Reroute 手动意图保护）、`29fc015`（等距带阶梯方向感知 + 候选兄弟交叉预检）、`8d55a0b`（chamfer 预筛）、`9f93d3c`（trunkCache 上限 64→4096）、`ad01899`（阶段 2 代码：等距带/组交互/圆角）、`529648e`（文档与契约对齐）、`70daba3`（README/CHANGELOG/LICENSE 对齐）
 - **工作区**：干净（2026-11-07 提交收尾后核验）；`origin/main` = `ebbc038`，本地无未推送提交。`.verify/p3`、`.verify/p4` 实测脚本与截图按忽略规则不入库
 - **测试**：`node --test tests/unit/*.test.mjs` **99/99** 通过（2026-11-07 实跑复核，fail 0）
 - **本轮提交收尾（2026-11-07）**：文档与代码分三笔提交后，又追加 6 笔功能/修复提交并已 push；提交链 `529648e`（文档）→ `ad01899`（阶段 2 代码）→ `9f93d3c`（trunkCache 上限）→ `8d55a0b`（chamfer 预筛）→ `29fc015`（等距带方向感知）→ `01d8df7`（Reroute 手动意图保护）→ `d546e39`（BUG-006）→ `5146c82`（共存文档）→ `ebbc038`（verify 快照）；工作区干净，本地无未推送提交
 - **代码**：`luowen/`（含 `routing/trunkPlan.js` 单主干共享几何、三档避障、预览、缓存、`geometry/chamfer.js` 绕障外角大斜切、`geometry/trace.js` 圆角半径 0–24（默认 10）、`routing/laneAssign.js` 输入侧按接近方向嵌套分道 + 走廊净空顺延 + 同目标等距带（`planBands`、`bandDegraded`/`orderDegraded`）、`snap/alignSnap.js` + `snap/dragSnap.js` 对齐吸附、`routing/crossings.js` + `routing/crossCleanup.js` 交叉枚举与离线清理、主干组高亮 + 组删除菜单），已装本机 custom_nodes 实测
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2、Node 24.22.1；Playwright 浏览器实测流程已打通
+- **本轮待办 2：阶段 3 剩余验收——四类真实鼠标宿主实测（2026-11-07，只新增测试脚本与文档、未改功能代码；已按 DEC-037 委托口径验收）**：
+  - 脚本 `.verify/p3/stage3-remaining.mjs`（Playwright 真实鼠标/键盘事件，非 `setPos`/合成 PointerEvent）；宿主 0.43.2 + 1.55.18，默认模板 10 节点/10 链路，Vue 节点模式，ds.scale=0.9；记录 `.verify/p3/stage3r-run3.json`、截图 `s3r_*.png`；矩阵新增 §4.5，复现入口已登记。
+  - S1 真实拖拽：拖节点 67（170,290→203.3,320），`verify ok` 且 `moved` 只含 67；拖后 `routed==links` 无幽灵、降级 0；Ctrl+Z 精确还原。
+  - S2/S3 真实右键链路菜单：hover 引导——主干点命中 `{linkId:79, part:'trunk', members:[79,81]}` → 右键菜单首项「删除这一组（2 条）」→ 单事务删 2 条（`link-removed: 79/81` 如实报告）→ Ctrl+Z 一次恢复 `ok:true`；分支点命中 `part:'branch'` → 菜单无组删除项（S6 的 link 76 分支菜单同证：隐藏连线/Add Node/Add Reroute/Delete/Convert to Set/Get）。
+  - S4 节点折叠：点折叠箭头 → 折叠态 `links 10 / routed 10` 无幽灵、`verify ok`；展开后 `routes()` 几何指纹还原（geoRestored=true）。
+  - S5 复制粘贴：Ctrl+C/V → `node-added: 72` 如实报告、无幽灵；点选粘贴件删除后 10/10 恢复、`verify ok:true`。
+  - S7 crossCleanup=true 生命周期：开启→`setPos` 构造 6 对交叉→真实拖动→删线→undo→关闭还原；清理 runs 2→3→5、epoch 逐级失效重建；删线后 `routed==links` 无幽灵；6 对交叉未采纳（`lastReason:'pairs-not-decreased'`，总长增幅超 15% 拒绝，保守语义符合 DEC-017）。
+  - 两个新口径（非缺陷；落 debug-log BUG-006/007「真实鼠标删除复测」小节 + 经验 process P7）：① 图→屏换算必须用适配器 `eventGraphPoint`（`renderLinkAdapter.js:1130-1136`）反演式 `client=(graph+ds.offset)·scale+rect`，旧 probe4 式 `graph·scale+offset` 仅 scale=1 成立（本轮 run1 两次右键落节点菜单即此因）；② ComfyUI 撤销=`loadGraphData`→触发 `afterConfigureGraph`（`index.js:333-336`）重建基线，undo 后 `verify ok` 只代表与撤销后状态一致，且 undo 链可能复活已删粘贴件（终态需孤儿清扫+`rebase()`）。
+  - 终态：清扫孤儿 72 + `rebase()` 后 `verify ok:true`、10 节点/10 链路/10 路由一致；单测 99/99（fail 0，2026-11-07 实跑）。
+  - 未覆盖：子图内四类、经典画布四类、多选粘贴（矩阵 §5.2 已注「子图内删线/折叠/粘贴、经典画布四类未验证」）。
+  - 验收对照表：`.verify/p4/mirror-user-steps.mjs` 复刻用户控制台步骤全绿（rebase→对账→真实删线→对账→hover→`verify` 如实报 `link-removed: 78`→undo 恢复→extra/properties 检出→真实拖动 `moved` 有记录）；见 debug-log BUG-006/007「用户验收」小节。
 - **本轮第三方扩展共存分析（源码级，2026-11-07；未安装到宿主、未改宿主依赖，已随 `5146c82` 提交）**：
   - 边界：按 AGENTS.md 目标环境锁定，四个扩展只浅克隆到临时目录 `C:\Users\GigaByte\AppData\Local\Temp\luowen-coexist\` 做源码取证，未装进 `D:\AIGC\ComfyUI_windows_portable\ComfyUI\custom_nodes`。
   - 环境事实纠正：宿主 `custom_nodes\rgthree-comfy` 目录已存在，但 2026-11-07 运行中的服务未加载它（`/extensions` 无其前端资源、`/object_info/Reroute` 返回 `{}`）；矩阵 §1 原「四者均未安装」已改为准确描述，未改动宿主。

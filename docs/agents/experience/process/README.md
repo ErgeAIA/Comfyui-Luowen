@@ -64,6 +64,15 @@ description: >
 - **反例**：`verify()` 只比 `nodeCount + link 元组`，第三方写 `extra.zipTies` 仍报 `ok:true`。
 - **事实源**：BUG-007；DEC-034；提交 `ebbc038`。
 
+## P7 · 真实鼠标验收的两个硬口径：坐标反演式与 undo 自动 rebase
+
+- **主张**：① Playwright 真实鼠标打链路/画布目标时，图→屏换算必须用被测代码自己的反演式（本项目为 `client=(graph+ds.offset)·scale+rect`，即 `eventGraphPoint` 的逆），不能用 `graph·scale+offset`（仅 scale=1 凑巧成立）；② 宿主撤销（Ctrl+Z）经 `loadGraphData` 会触发扩展的 `afterConfigureGraph`，`verify()` 基线自动跟随撤销后状态，undo 后的 ok 不能当「与最初基线一致」的证据。
+- **适用**：任何 ComfyUI 前端扩展的自动化验收；凡宿主有「撤销=整图重载」机制且扩展在加载时重建基线/缓存的场景。
+- **Why**：本轮两次右键落到节点菜单、一次验收 FINAL 建立在复活节点上，都是这两个口径没对齐——前者把 hover/命中测成了 miss（假阴性），后者把污染终态判成 ok（假阳性）。
+- **How**：先读被测代码的坐标换算函数再写脚本，换算式与它逐项对偶；hover 引导取点（移动→读 `status().hover`→命中再右键），不盲点坐标；涉及粘贴/删除/undo 的脚本终态做孤儿清扫 + 强制 `rebase()`；undo 复活已删对象视为正常语义，记入口径而非当缺陷。
+- **反例**：`mid*scale+offset` 在 scale=0.9 的页面上偏 40px，右键弹出节点菜单还以为「菜单未注入」；删线后 Ctrl+Z 撤销的是上一步「删除粘贴件」，终态多出孤儿节点却报 ok。
+- **事实源**：`renderLinkAdapter.js:1130-1136`（eventGraphPoint）；`index.js:333-336`（afterConfigureGraph 重建基线）；`.verify/p3/stage3-remaining.mjs` 与 `stage3r-run1..3.json`；debug-log BUG-006/BUG-007「真实鼠标删除复测」小节。
+
 ## 🟢 参数（仅本项目）
 
 - 验证宿主 ComfyUI 0.43.2 + 前端 1.55.18 + Node 24.22.1（Windows portable）。
