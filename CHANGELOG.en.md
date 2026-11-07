@@ -32,6 +32,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Changed
 
 - Settings panel expanded to seven entries: enable, alignment snap, wire style, corner radius, node avoidance, obstacle-corner bevel, offline cross cleanup (experimental)
+- Links that traverse native Reroute chains no longer join trunk merging or equal-spacing bands, preserving manual intent (F-010 / AT-018)
+- `verify()` snapshots now include `graph.extra` and `node.properties`; node position changes are reported in `moved` and do not affect `ok`
+- Performance: trunk cache limit raised from 64 to 4096, preventing full-table clears from triggering whole-graph replanning every frame on large graphs; bevel candidates are pre-filtered with unchanged output geometry
 
 ### Fixed
 
@@ -42,5 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Link mid-sections no longer pass underneath their own endpoint cards; overlapping nodes no longer fall back to Bezier curves (strict→semi→loose orthogonal tiers)
 - Link jitter from trunk/independent state flipping every frame while dragging (BUG-002): fixed the empty node-table cache that kept endpoint prediction from ever taking effect
 - Silent failure of equal-spacing bands (BUG-003): eligibility no longer depends on the solution result of the links being admitted; links are solved independently first, then ordered into a band by target-pin y
+- Equal-spacing bands misjudged direction when upper and lower pins are interleaved; candidates now follow the y-step direction of target pins
+- Ghost entries left in the routing state table after deleting only a link (BUG-006): stale entries are pruned by diffing against existing links, and hover references are invalidated
 
 [Unreleased]: https://github.com/ErgeAIA/Comfyui-Luowen/commits/main

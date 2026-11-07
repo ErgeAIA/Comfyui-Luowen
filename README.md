@@ -13,10 +13,10 @@ ComfyUI 智能连线路由扩展：用更清晰的线路样式、空间感知的
 | PRD | v1.0 需求基线，见 [docs/prd/luowen-prd-v1.0.md](docs/prd/luowen-prd-v1.0.md) |
 | 开发基线 | ✅ 已建立并验证：[docs/comfyui-dev-conventions.md](docs/comfyui-dev-conventions.md) |
 | 宿主验证 | ✅ ComfyUI 0.43.2 + 前端 1.55.18（Windows portable），已装 `custom_nodes` 实测 |
-| 性能 | ⬜ 已纳入验收维度，基准未执行；落点见 [docs/agents/performance.md](docs/agents/performance.md) |
-| 阶段 3 | ⬜ 未开始：兼容性矩阵、生命周期与冲突测试、性能基准、发布材料 |
+| 性能 | ⬜ 已测部分 A/B（chamfer 预筛后 500 节点 ortho 131.09ms），未达交互帧率；数据见 [docs/agents/performance.md](docs/agents/performance.md) |
+| 阶段 3 | 🟡 进行中：兼容性矩阵与生命周期 L1–L12 已实测；第三方共存仅源码级（19 条冲突面）；发布材料未做 |
 
-> 3A（拖动对齐吸附）与 3B（交叉枚举 + 离线交叉清理）属于 PRD §4.2 的 P1 增强，不是阶段 3 交付物；顺序抽头（3C）经 A/B 实测无可见差异，已撤除。P0 剩余欠账是手动意图保护；`smooth` 改真 Bezier 排在 P0 之后。
+> 3A（拖动对齐吸附）与 3B（交叉枚举 + 离线交叉清理）属于 PRD §4.2 的 P1 增强，不是阶段 3 交付物；顺序抽头（3C）经 A/B 实测无可见差异，已撤除。P0 欠账：Reroute 手动意图保护已实现待验收，手动锚点未做；`smooth` 改真 Bezier 排在 P0 之后。
 
 ## 已实现能力
 
@@ -47,10 +47,10 @@ ComfyUI 智能连线路由扩展：用更清晰的线路样式、空间感知的
 
 ## 已知限制
 
-- 手动意图保护未实现：Reroute 排除合并、手动锚点（F-010/AT-018）
-- 经典画布与 Nodes 2.0 兼容性未验证（F-014）；对齐吸附仅实现 Vue 节点拖动模式
-- 子图、折叠节点、撤销重做、复制粘贴等生命周期测试未覆盖（AT-021/023/025）
-- 与 Cable Management / NKD Reroutes / Zip Ties 的冲突测试未做；性能基准（PRD §14.5）未执行，性能验收口径已建立在 [docs/agents/performance.md](docs/agents/performance.md)
+- 手动意图保护：Reroute 链排除合并与等距带已实现（`01d8df7`），待用户验收；手动锚点（F-010/AT-018）未做
+- 经典画布仅单轮实测（`Comfy.VueNodes.Enabled=false` 切换通过），未做完整矩阵；对齐吸附仅实现 Vue 节点拖动模式
+- 节点折叠、复制粘贴、真实鼠标拖拽与删除未覆盖（AT-021/023/025）；子图、撤销重做、组操作、窗口尺寸切换已实测通过
+- 第三方共存只做源码级分析（19 条冲突面：无交集 8 / 可能冲突 8 / 确定冲突 3），未安装运行时验证；宿主 `rgthree-comfy` 目录存在但服务未加载；真实鼠标菜单与拖拽、节点折叠、复制粘贴、`crossCleanup=true` 未测；性能未见基线数据支撑达标
 - PRD §14.2 的 10 组算法固定样本目前只做了 2 组
 - `smooth` 是本项目自有的圆角折线，不是 PRD §5.1 描述的 Bezier；用户已定排期在 P0 欠账之后
 - 连线配色 token 规格已出（[docs/specs/link-color-tokens/](docs/specs/link-color-tokens/spec.md)），尚未接入代码
@@ -113,7 +113,8 @@ ComfyUI 智能连线路由扩展：用更清晰的线路样式、空间感知的
 | [docs/comfyui-dev-conventions.md](docs/comfyui-dev-conventions.md) | ComfyUI 开发约定（spec-of-record，file:line 可复核） |
 | [docs/specs/link-color-tokens/](docs/specs/link-color-tokens/spec.md) | 连线配色 token 规格与验收材料（尚未接入代码） |
 | [docs/specs/trunk-group-interaction/](docs/specs/trunk-group-interaction/spec.md) | 主干组交互规格：组高亮 + 组删除（DEC-021） |
-| [docs/agents/performance.md](docs/agents/performance.md) | 性能验收口径、待测场景与测量入口 |
+| [docs/agents/performance.md](docs/agents/performance.md) | 性能验收口径、待测场景、A/B 原始数据与热点排序 |
+| [docs/agents/compatibility-matrix.md](docs/agents/compatibility-matrix.md) | 兼容性矩阵、生命周期 L1–L12、第三方共存 19 条冲突面（源码级） |
 | [GLOSSARY.md](GLOSSARY.md) | 项目术语表 |
 | [CHANGELOG.md](CHANGELOG.md) / [CHANGELOG.en.md](CHANGELOG.en.md) | 变更日志（Keep a Changelog） |
 | [docs/agents/project-progress.md](docs/agents/project-progress.md) | 当前阶段、进度与已知未完成项 |

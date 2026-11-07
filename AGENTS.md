@@ -77,6 +77,7 @@ YOU MUST 性能与视觉效果并列为验收维度；性能结论须附测量�
 - 查 AGENTS 自身变更 → 见 docs/agents/agents-changelog.md：契约改动的「旧值 → 处置 → 新值」
 - 同领域可复用做法 → 见 docs/agents/experience/：按领域分的可复用经验沉淀
 - 性能验收 / 查基准方法 → 见 docs/agents/performance.md：验收维度、待测场景、测量入口与已记录数据
+- 查兼容性与生命周期验收 / 第三方共存冲突面 → 见 docs/agents/compatibility-matrix.md：宿主×前端×节点模式矩阵、L1–L12、19 条源码级冲突面（未做运行时验证）
 - 查连线配色 token → 见 docs/specs/link-color-tokens/：类型轴 + 三级 token，取证与验收材料齐全，尚未接入代码
 - 查主干组交互口径 → 见 docs/specs/trunk-group-interaction/：组高亮 + 组删除（DEC-021），非组选中
 

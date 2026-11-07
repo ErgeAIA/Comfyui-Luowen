@@ -28,3 +28,4 @@ description: >
 - `Conventions 无性能结论落点约定 → update → 新增「性能结论有固定落点」行（写 docs/agents/performance.md，三要素齐全才可下结论，只追加）`
 - `References 缺性能验收指针 → update → 新增「性能验收 / 查基准方法 → 见 docs/agents/performance.md」`
 - `References 缺连线配色与组交互规格指针 → update → 新增两条：docs/specs/link-color-tokens/（尚未接入代码）、docs/specs/trunk-group-interaction/（组高亮 + 组删除，DEC-021 口径）`
+- `References 缺兼容性与第三方共存指针 → update → 新增「查兼容性与生命周期验收 / 第三方共存冲突面 → 见 docs/agents/compatibility-matrix.md」：该文档已成阶段 3 验收与 19 条冲突面的唯一落点，此前只能靠 project-progress 反查`

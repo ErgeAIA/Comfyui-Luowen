@@ -16,6 +16,42 @@ description: >
 > 格式：`## DEC-NNN: 标题`，新条目置顶，NNN 三位递增。
 > 字段：`- **日期**：` / `- **背景**：` / `- **决策**：` / `- **验证**：`
 
+## DEC-036: 第三方共存只做源码级取证，运行时验证单列待批
+
+- **日期**：2026-11-07
+- **背景**：阶段 3 需要回答 Cable Management / NKD Reroutes / Zip Ties / rgthree-comfy 的共存冲突，但 AGENTS.md 目标环境锁定明确「不动宿主环境依赖」，安装第三方扩展属红线操作。
+- **决策**：
+  1. 共存分析限定为源码级：只把扩展浅克隆到临时目录读源码，不装进 `D:\AIGC\ComfyUI_windows_portable\ComfyUI\custom_nodes`，不改宿主依赖。
+  2. 结论按「无交集 / 可能冲突 / 确定冲突」三档落 `docs/agents/compatibility-matrix.md` §5.4，共 19 条（8 / 8 / 3）；「确定冲突」为 NKD 双路由引擎、NKD Shift 双磁吸、Zip Ties 分段重绘。全部标注「未做运行时验证」。
+  3. 运行时验证（安装位置、依赖、影响面、回滚与逐装逐卸步骤）写入 `docs/specs/third-party-coexistence/spec.md` §6，等用户单独批准后才可执行。
+  4. 环境事实纠偏：宿主 `rgthree-comfy` 目录已存在但服务未加载，矩阵原「四者均未安装」改为准确描述；不因此改动宿主。
+- **验证**：源码取证带 `file:line`（见 project-progress 本轮条目与矩阵 §5.4）；无运行时数据，不作为「已兼容」结论。
+- **结果**：文档随 `5146c82` 提交；运行时验证仍缺，保持待批。
+
+## DEC-035: 性能优化只做两项、先量后改、同页面 A/B
+
+- **日期**：2026-11-07
+- **背景**：`docs/agents/performance.md` 建台账后，500 节点图仍远低于交互帧率；需要在不改几何的前提下压成本，且未测量不得宣称改善。
+- **决策**：
+  1. 以实测热点排序决定顺序，只做两项：`trunkCache` 上限 64→4096（消除每帧整表清空导致的整图重规划）、chamfer 预筛（把斜切候选粗筛放到几何计算前）。
+  2. 两项都不改可见几何：trunkCache 只改容量与注释；chamfer 预筛只提前排除不可能命中斜切的角，输出折线需与优化前逐点一致。
+  3. 验收口径：同一宿主、同一页面、同一布局做 A/B，记录帧时分布与热点；原始数据与复现入口写入 `docs/agents/performance.md`，结论必须附测量方法与样本。
+  4. 后续候选按收益排序为帧内复用（`nodesById`/`obstacles`/endpoint 索引）→ bands 采样降级，未经测量不提前实施。
+- **验证**：chamfer 预筛后 500 节点 ortho 131.09ms；trunkCache 修复后 500 节点仍 47/48 帧 >33.4ms，说明距达标仍远，未宣称性能达标。数据见 `docs/agents/performance.md`。
+- **结果**：两项分别随 `9f93d3c`、`8d55a0b` 提交。
+
+## DEC-034: verify() 快照纳入 extra / node.properties，坐标只报 moved
+
+- **日期**：2026-11-07
+- **背景**：共存分析暴露 `verify()` 盲区（矩阵 C6/Z4）——快照只比 kind/nodeCount/节点 id/link 元组，第三方写 `graph.extra` 或 `node.properties` 时自检仍报 `ok:true`。
+- **决策**：
+  1. `snapshotGraph` 增加 `extra`（按非宿主键过滤后做键深排序规范化）、每节点 `properties` 规范化 JSON、节点坐标（3 位小数，兼容宿主 Float64Array）。
+  2. 宿主自有 extra 键固定排除十项：`ds / frontendVersion / linkExtensions / linkPresentation / reroutes / workflowRendererVersion / BlueprintDescription / BlueprintSearchAliases / linearMode / linearData`。
+  3. 坐标变化只写入 `verify().moved`，不计入 `ok/diffs`，避免用户拖动导致误报；`diffs` 新增 `extra-*`、`node-prop(id)-*` 键级差与节点 id 集合差。
+  4. 不改图数据、不改路由几何；本插件自身不得写 `graph.extra` / `node.properties`。
+- **验证**：`.verify/p4/verify-ab.mjs` 合成写入 A/B——修前三类写入均 `ok:true`，修后分别报 `extra-added` / `node-prop-added`，删除后恢复；宿主键写入保持 `ok:true`；节点位移只进 `moved`。单测 99/99、`suite.mjs` 16 个 verify 全 ok，见 debug-log BUG-007。
+- **结果**：随 `ebbc038` 提交；真实第三方写入时序仍待运行时验证。
+
 ## DEC-033: 手动意图保护——含 Reroute 链的连接不参与主干合并与等距带
 
 - **日期**：2026-11-07

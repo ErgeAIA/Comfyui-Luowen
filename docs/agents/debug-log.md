@@ -165,6 +165,7 @@ description: >
 - **最小复现**：`.verify/p3/probe16.mjs`（只删连线不动节点：`nodes 10 / links 9 / routed 9 / routes 9`；`routes()` 不含 79）、`probe19.mjs`（先删节点 68 再删 link 79：`8/8/8`）。旧路径中点注入 pointermove 后 `status().hover=null`；重连生成 link 83 后 `links 10 / routed 10 / routes 10`；节点坐标逐项未变；`obstacleVersion` 保持 1，证明清理由拓扑指纹触发而非几何兜底。
 - **验证限制**：① 幽灵仍只存在于内存状态表，未写入工作流；② 悬停用合成 pointermove，未用真实鼠标；③ 未覆盖子图内删连线、`crossCleanup=true`、真实鼠标删除；④ 链路增删后主干/等距带仍需一次额外重绘（`setDirty`），属 LiteGraph 刷新时序，本次未改。
 - **状态**：已修复并完成宿主实测，待用户验收。
+- **提交（2026-11-07）**：随 `d546e39` 提交并 push；仍待用户验收。
 
 ## BUG-007: verify() 快照盲区——不含 graph.extra / node.properties / 节点坐标
 
@@ -190,3 +191,4 @@ description: >
 - **验证限制**：第三方扩展仍未安装，A/B 为合成写入；真实 Cable Management / Zip Ties 的键名、写入时序与保存路径未运行时验证（矩阵 §5.4 缺口保留）。
 - **预防规则**：数据不变性自检必须覆盖工作流可序列化的扩展位（`extra` / `node.properties`），并显式排除宿主自有键；坐标等用户态变化只报告、不判失败。
 - **状态**：已部署宿主（仓库与宿主 SHA256 一致 `8BEA51F999FF4C1B351AA7884F8C9DF975F2E8AF03636E838A4D0BE94FA7B9E5`），未提交 git，待用户验收；未宣称已修复。
+- **提交（2026-11-07）**：随 `ebbc038` 提交并 push；仍待用户验收。

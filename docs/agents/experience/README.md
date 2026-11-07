@@ -33,13 +33,16 @@ description: >
 | R4 | 成组/成带的准入不得依赖待准入对象自身的求解结果，否则会静默永不生效 | [routing/README.md](./routing/README.md) |
 | P1 | PRD 阶段编号与 P1 增强必须分开记账，增强不得冒充阶段交付 | [process/README.md](./process/README.md) |
 | P2 | 文档里的测试数与参数只能来自实跑或源码常量 | [process/README.md](./process/README.md) |
+| P4 | 兼容性结论必须写明取证层级，源码级不得写成「已兼容」 | [process/README.md](./process/README.md) |
+| P5 | 性能优化先量后改、同页面 A/B；宣称几何不变要给逐点对比 | [process/README.md](./process/README.md) |
+| P6 | 数据不变性自检必须覆盖 `graph.extra` / `node.properties`，坐标只报 moved | [process/README.md](./process/README.md) |
 
 ## 主题索引
 
 | 主题 | 内容 | 条目数 |
 |---|---|---|
 | routing | 正交路由几何、主干/分叉、走廊分道、斜切表达、等距带 | 🔴3 / 🟡2 / 🟢4 |
-| process | 阶段记账、可复核事实、文档同步纪律 | 🔴2 / 🟡1 / 🟢1 |
+| process | 阶段记账、可复核事实、文档同步纪律、取证层级、性能 A/B、自检覆盖 | 🔴5 / 🟡1 / 🟢1 |
 
 ## 外送汇总的前置条件
 

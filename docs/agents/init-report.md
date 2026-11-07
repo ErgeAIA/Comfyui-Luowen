@@ -104,4 +104,24 @@ description: >
 - 工作区仍有他轮代码改动未提交；提交时必须路径限定，把本轮文档与代码改动分开。
 - 性能线已建立落点，阶段 3 基准执行后按 `docs/agents/performance.md` 的待测场景逐项落数据。
 
+## 2026-11-07 · 增量维护（提交收尾后 · 兼容性与性能线落定）
+
+| 项 | 结果 |
+|---|---|
+| 前置检查 | 状态 B（`AGENTS.md` 已存在；根目录无 `CLAUDE.md` / `.claude/` / `.cursorrules` / `GEMINI.md`，无需迁移） |
+| 仓库卫生 | `.gitignore` / `CHANGELOG.md` / `README.md` 均存在，本轮无需委托 shuxu / changelog-manager / git-manager |
+| Git 检查 | `origin/main` = `ebbc038`；工作区干净，本地无未推送提交 |
+| Codegraph | 1.6.2 已安装，索引存在；本轮未执行建立/同步 |
+| 决策保全 | 既有 Conventions 全保留；本轮新增 3 条 DEC（034–036），未改动旧条目 |
+| 契约增量 | 仅 `References` 增 1 条：兼容性与第三方共存 → `docs/agents/compatibility-matrix.md`；`agents-changelog.md` 留痕 1 行 |
+| 杂音扫描 | 按 §6b N1–N6 逐段扫描：命中 0；未把提交流水、性能数据或共存叙事写入契约 |
+| 性能落点 | `docs/agents/performance.md` 已含 A/B 原始数据与热点排序；结论仍标「未达标」 |
+| 过程文档 | `project-progress.md` / `decision-log.md` / `debug-log.md` / `GLOSSARY.md` 本轮同步，均只追加 |
+| 待补 | 第三方运行时共存验证（需用户单独批准安装）、发布材料、阶段 3 剩余项 |
+
+### 建议
+
+- 下一会话先读 `docs/handoff/` 最新一份，再动手；不要把源码级共存结论当作运行时已验证。
+- 性能数据只反映当前宿主与当前页面布局，换环境需重测，不可跨环境比较。
+
 
