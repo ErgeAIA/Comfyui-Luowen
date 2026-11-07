@@ -9,7 +9,7 @@
 - **仓库内位置**：
   - `luowen/web/geometry/router.js`（上游 `web/pathing/router.js`）
   - `luowen/web/geometry/trace.js`（上游 `web/pathing/trace.js`）
-- **修改情况**：`trace.js` 未修改（仅前置归属头）；`router.js` 由 LuoWen 增加可选 `strict` 与 `blockRects` 选项（节点框整体/定向禁行，默认关闭，不影响上游行为），其余逻辑逐字保留。文件头已注明修改范围。
+- **修改情况**：`trace.js` 由 LuoWen 把固定 `RADIUS=10` 改为调用方可传参的圆角半径上限（默认 10 保持不变，夹取规则 `min(设定值, 相邻段各 1/3)` 未变），其余逻辑逐字保留；`router.js` 由 LuoWen 增加可选 `strict` 与 `blockRects` 选项（节点框整体/定向禁行，默认关闭，不影响上游行为），其余逻辑逐字保留。文件头已注明修改范围。
 - **许可文本**：`luowen/LICENSES/cable-management-MIT.txt`（含复用范围说明）
 - **用途**：阶段 1 起作为正交路由（A*）与折线描边/中点几何内核。
 

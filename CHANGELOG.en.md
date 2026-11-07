@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Node avoidance with low / standard / high clearance (8 / 16 / 24 graph px); obstacle-hash versioning + route cache invalidation
 - Per-pin lane staggering for multiple links (default pitch 8 graph px, base 24)
 - Master switch and per-link degradation: off restores ComfyUI native rendering instantly; per-link failures or A* budget exhaustion degrade to native
-- 95 frontend unit tests (`node --test tests/unit/*.test.mjs`): orthogonality, avoidance, reverse connections, lanes, cache, trace geometry, trunks and crossing enumeration
+- 99 frontend unit tests (`node --test tests/unit/*.test.mjs`): orthogonality, avoidance, reverse connections, lanes, cache, trace geometry, trunks, equal-spacing bands and crossing enumeration
 - Multi-target trunks (phase 2): output-port grouping into fully merged / partially merged / fully independent; the port emits one shared trunk, then each connection branches independently
 - Merge decisions with per-link detour protection and two-threshold hysteresis; falls back to independent paths when members or space are insufficient
 - Latest legal fork: the fork point is placed as late as possible without entering the nearest target, hitting a card, or losing a visible separation before the pins
@@ -22,13 +22,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Large bevel at outer obstacle corners (orthogonal style only; T-junctions, forks, shared corridors and pin segments stay square)
 - Drag alignment snap (P1 enhancement): while dragging a single node, snaps to pin rows of connected neighbours, 10 graph px to enter / 15 graph px to leave, with a DOM guide-line overlay
 - Crossing enumeration and offline cross cleanup (P1 enhancement, off by default): after 400 ms idle, re-solves only crossing link pairs; accepted only when the crossing count strictly decreases and total length grows by ≤15%
+- Equal-spacing bands for links sharing a target: each link is solved independently, then ordered into a band by target-pin y with a constant 8 graph px spacing; violating links are re-solved with constraints, otherwise the previous frame is frozen and `orderDegraded` is reported
+- Trunk group interaction (DEC-021): hovering a trunk highlights the whole group and lists its members; the link menu offers "delete this group" on trunk segments but not on branches
+- Corner-radius setting: `smooth` corner radius 0–24 graph px, default 10
 - Port stubs shrink with connection distance (short links no longer fold back)
 - Trunk diagnostics: `LuoWen.status().trunks` / `trunkDebug`
 - `docs/routing-algorithm.md`; MIT-reused Cable Management geometry kernel registered in `THIRD_PARTY_NOTICES.md`
 
 ### Changed
 
-- Settings panel expanded to six entries: enable, alignment snap, wire style, node avoidance, obstacle-corner bevel, offline cross cleanup (experimental)
+- Settings panel expanded to seven entries: enable, alignment snap, wire style, corner radius, node avoidance, obstacle-corner bevel, offline cross cleanup (experimental)
 
 ### Fixed
 
@@ -37,5 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Links stay orthogonal while dragging a node (two-bend preview) instead of reverting to Bezier curves
 - Hovering anywhere on a link now highlights the whole line (previously only the centre dot responded)
 - Link mid-sections no longer pass underneath their own endpoint cards; overlapping nodes no longer fall back to Bezier curves (strict→semi→loose orthogonal tiers)
+- Link jitter from trunk/independent state flipping every frame while dragging (BUG-002): fixed the empty node-table cache that kept endpoint prediction from ever taking effect
+- Silent failure of equal-spacing bands (BUG-003): eligibility no longer depends on the solution result of the links being admitted; links are solved independently first, then ordered into a band by target-pin y
 
 [Unreleased]: https://github.com/ErgeAIA/Comfyui-Luowen/commits/main

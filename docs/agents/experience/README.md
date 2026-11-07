@@ -2,7 +2,7 @@
 title: 可复用经验库
 type: experience-index
 project: comfyui-luowen
-updated: 2026-11-06
+updated: 2026-11-07
 description: >
   从本项目开发过程蒸馏出的可复用经验总索引。
   AI 在本文件新增或修改任何条目后，必须同步更新 frontmatter 的 updated 字段为当日日期（YYYY-MM-DD）。
@@ -30,6 +30,7 @@ description: >
 |---|---|---|
 | R1 | 多目标共享主干不需要「顺序抽头」：单主干 + 分叉后公共走廊已天然实现 | [routing/README.md](./routing/README.md) |
 | R2 | 同目标多引脚走廊按「首个接近方向」嵌套，禁止按 target_slot 升序摊开 | [routing/README.md](./routing/README.md) |
+| R4 | 成组/成带的准入不得依赖待准入对象自身的求解结果，否则会静默永不生效 | [routing/README.md](./routing/README.md) |
 | P1 | PRD 阶段编号与 P1 增强必须分开记账，增强不得冒充阶段交付 | [process/README.md](./process/README.md) |
 | P2 | 文档里的测试数与参数只能来自实跑或源码常量 | [process/README.md](./process/README.md) |
 
@@ -37,7 +38,7 @@ description: >
 
 | 主题 | 内容 | 条目数 |
 |---|---|---|
-| routing | 正交路由几何、主干/分叉、走廊分道、斜切表达 | 🔴2 / 🟡1 / 🟢3 |
+| routing | 正交路由几何、主干/分叉、走廊分道、斜切表达、等距带 | 🔴3 / 🟡2 / 🟢4 |
 | process | 阶段记账、可复核事实、文档同步纪律 | 🔴2 / 🟡1 / 🟢1 |
 
 ## 外送汇总的前置条件

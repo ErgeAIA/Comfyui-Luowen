@@ -2,7 +2,7 @@
 title: Routing Algorithm
 type: algorithm-doc
 project: 络纹（LuoWen）
-updated: 2026-11-06
+updated: 2026-11-07
 description: >
   阶段 1 线路绘制/路由管线说明：挂载点、每帧流程、几何内核（MIT 复用）、
   lane 分配、缓存与降级矩阵。PRD §16.1 要求的算法说明文档（seed，随阶段 2/3 扩写）。
@@ -65,7 +65,7 @@ drawConnections(ctx, graph)
 | **严格模式**（LuoWen 修改项） | `strict:true` 时真实节点框**禁行**（不再按 8× 代价穿行）；只有无解才返回 null | router.js:189 |
 | **定向禁行**（LuoWen 修改项） | `blockRects:[i,...]` 只让指定障碍下标禁行，其余硬框仍为 8× 代价（semi 档用） | router.js:66-75, 195 |
 | 输出 | 图坐标折线 `[start, ...bends, end]`，全程正交；平凡情形返回 null | router.js:38 |
-| 圆角描边 | `emit(path, pts)`，圆角半径 10，钳制到相邻段 1/3 | trace.js |
+| 圆角描边 | `emit(path, pts, cornerRadius)`，半径上限来自 `LuoWen.CornerRadius`（0–24px，默认 10px），实际半径取上限与相邻两段各 1/3 的较小值；`0` 为直角 | trace.js |
 | 中点/命中锚 | `measure(pts)` → 弧长；`pointAt(pts, m, 0.5)` → `{x,y,angle}` | trace.js |
 
 `route()` 的输入由适配层提供：`start/end` 为引脚端点，`startDir/endDir` 由 `renderLink` 的 `start_dir/end_dir`（0-5）经 `DIR_NAME` 映射（`renderLinkAdapter.js:27`），障碍为 `toRawRects(nodeRects, [origin_id, target_id])`（`obstacles.js:13`，两端节点自身排除）。
@@ -120,12 +120,13 @@ drawConnections(ctx, graph)
 - 合流成员 < 2、或 T 不满足（共同前缀 < 16px / 越过最近目标 / 顶进迎面卡片）→ 完全独立；
 - 每次规划结果按组签名（几何版本 + lane 指纹 + 成员端点）缓存；节点移动导致版本变化时全部重算，静止时零 A*。
 
-### 命中与选择语义（PRD §8.3 降级形态）
+### 命中与选择语义（DEC-021 口径）
 
-- **主干段重合**：同组所有成员在 `pin → fork` 上共用同一条路径，悬停主干按原生单线语义命中其中一条连接；
-- **公共走廊重合**（DEC-010）：分叉后仍共用的一段同样按单线语义命中其中一条，真正分歧后的分支段才各自命中原生 link；
-- **分支区段独立**：分叉后各自保留 `path`/`_pos`，悬停分支只高亮该条连接；删除仍由 ComfyUI 原生按单条 Link 处理；
-- **未实现**“点主干选中整组/组删除”（需要自建选择状态与原生多选 API，风险高）；主干段的命中归属不稳定是 DEC-009 的已知代价，阶段 3 再评估组级选择。
+- **目标口径**：悬停共享主干段高亮整组（主干 + 全部分支）；悬停分支段只高亮该分支，主干保持常态；共享主干段右键出现「删除这一组（N 条）」并保留单条删除，分支段只有单条删除；整组删除一次事务、一条 undo。
+- **命中归属**：原生命中读渲染产物（`hitTesting.ts:41-55`），络纹写 `link.path` 后命中跟随实际折线；同一坐标落在共享主干上时，原生按遍历顺序返回其中一条，不表达组。组语义由 `classifyHover(routes, trunks, point, tol)` 按弧长判定（`trunkPlan.js`）：落在分叉前共享前缀 → `part='trunk'`，落在分歧后 rest → `part='branch'`；无 trunk 回退单例。
+- **为什么不做组选中**：宿主前端可选中类型不含 link（`selectionState.ts:7`），`selectedItems` 为 `Set<Positionable>`（`LGraphCanvas.ts:746`），`deleteSelected()` 不处理链路（`:4787-4821`），且无批量链路删除接口（`:6760-6775`）。组高亮与组删除由络纹自建，不改 Link 数据。
+- **删除**：整组删除逐成员 `graph.removeLink(id)` + `layoutStore.deleteLinkLayout(id)`，用 `emitBeforeChange + graph.beforeChange … graph.afterChange + emitAfterChange` 包住（与 `deleteSelected` 同型），只留一条 undo；Reroute 包裹成员按真实 link id 删除，reroute 仅在 `totalLinks===0` 时回收（`LLink.ts:582-590`）。
+- **未实现**：键盘 Delete 的组语义（保持原生单条）；对端节点联动高亮（不做）。
 
 调试：`LuoWen.status().trunks` / `trunkDebug`（endpoints、版本、组数、候选数）、`LuoWen.routes()`。
 调试对照：`LuoWen.setTrunkCap(72)` 可临时回到旧上限口径（默认 `null` = 合法最晚分叉），仅用于截图对照。
@@ -294,7 +295,7 @@ drawConnections(ctx, graph)
 3. **smooth 样式**直接用圆角折线近似，未做原生贝塞尔式的张力参数。
 4. **两个节点互相重叠**时，被盖住的引脚在几何上无净空路径：semi 仍保证不穿自己卡片；若两端卡片互相覆盖，loose 保持正交但可能从卡片下穿过（不再出现曲线）。这是刻意取舍：正交一致性优先于几何上不可能的净空。
 5. 拖拽预览不考虑障碍（每帧只做两次折线），可能短暂压过节点；松手即恢复 A* 结果。这是为守住 PRD §10.1 的取舍。
-6. **主干组选择未实现**：主干段共用几何，点主干只命中其中一条连接（原生单线语义），不是 §8.1 的“选中整组”；按 §8.3 以分支段独立命中降级，不留下不可选线段。组级选择/删除留待阶段 3 评估。
+6. **主干组选择未实现（口径已按 DEC-021 修订）**：宿主前端不支持链路选中，故不做“选中整组”；改为组高亮（悬停主干段整组、分支段单条）与共享主干段右键整组删除，分支段保留原生单条删除。键盘 Delete 仍为原生单条语义。
 7. 主干仅对**同输出端口且同帧可见**的连线生效；离屏成员不参与规划（视口外不渲染）。
 6. 命中测试跟随依赖前端 1.55.18 的「读渲染产物」实现；升级前端须重跑 `docs/phase0/drawing-api-notes.md` 的验证清单。
 8. **近共线容差仅 3px**：超过 3px 的引脚高差仍走 A* 台阶，竖直段贴近目标侧；「对称台阶」美学规则与磁吸对齐未实现（阶段 3 候选）。

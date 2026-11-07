@@ -14,6 +14,7 @@ YOU MUST 改 AGENTS.md 前先读、改后追加 docs/agents/agents-changelog.md
 YOU MUST 改某领域代码前先读 docs/agents/experience/<领域>/（存在时）
 YOU MUST 每次只推进一个阶段，完成即停，等用户验证
 YOU MUST 术语用法先对齐 GLOSSARY.md，新术语先入表再使用
+YOU MUST 性能与视觉效果并列为验收维度；性能结论须附测量方法、样本布局与数据并写入 docs/agents/performance.md，未测量不得宣称达标
 禁止自行宣称已修复，修复结果须由用户验证
 禁止整文件重写既有文件，只做最小精确补丁
 禁止修改 Link ID、origin/target slot、节点数据或创建/移动 Reroute（PRD §9.2）
@@ -60,6 +61,7 @@ YOU MUST 术语用法先对齐 GLOSSARY.md，新术语先入表再使用
 | 开发结论须可复核 | 新的 ComfyUI 契约结论写入 docs/comfyui-dev-conventions.md，附源码 file:line，≥2 个成熟节点交叉验证（[n/7] 标注） |
 | 目标环境锁定 | 开发与验证只用 D:\AIGC\ComfyUI_windows_portable（0.43.2）；不动 TE 实例；不改宿主环境依赖 |
 | 模板为起点 | 新节点代码从 template/ComfyUI-Luowen/ 起步，契约写法对齐 nodes/example.py 注释 |
+| 性能结论有固定落点 | 写 docs/agents/performance.md；方法、样本、数据齐全才可下结论，只追加不删历史；效果与性能同时验收 |
 
 ## References
 
@@ -74,6 +76,9 @@ YOU MUST 术语用法先对齐 GLOSSARY.md，新术语先入表再使用
 - 反复踩坑排查 → 见 docs/agents/debug-log.md：BUG-NNN 格式的根因与预防规则
 - 查 AGENTS 自身变更 → 见 docs/agents/agents-changelog.md：契约改动的「旧值 → 处置 → 新值」
 - 同领域可复用做法 → 见 docs/agents/experience/：按领域分的可复用经验沉淀
+- 性能验收 / 查基准方法 → 见 docs/agents/performance.md：验收维度、待测场景、测量入口与已记录数据
+- 查连线配色 token → 见 docs/specs/link-color-tokens/：类型轴 + 三级 token，取证与验收材料齐全，尚未接入代码
+- 查主干组交互口径 → 见 docs/specs/trunk-group-interaction/：组高亮 + 组删除（DEC-021），非组选中
 
 ## Self-Maintenance
 

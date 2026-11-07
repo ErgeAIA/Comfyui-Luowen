@@ -2,7 +2,7 @@
 title: AGENTS.md Changelog
 type: agents-changelog
 project: 络纹（LuoWen）
-updated: 2026-11-06
+updated: 2026-11-07
 description: >
   AGENTS.md 的变更记录，AGENTS.md 每改动一次就追加一行，不随日常开发更新。
   只追加，不删除或改写历史。AI 在本文件新增或修改任何条目后，必须同步更新 frontmatter 的 updated 字段为当日日期（YYYY-MM-DD）。
@@ -24,3 +24,7 @@ description: >
 - `Commands 表「前端单元测试」来源列「阶段 1 引入（glob 必需…）」 → update（N4 删日期化出处，保留规则本体） → 现为「glob 必需：Windows 上 node --test 传目录会 MODULE_NOT_FOUND」`
 - `Toolchain 表缺前端单测运行时 → update（事实回填） → 新增「Node（前端单测运行时） | 24.22.1 | PATH（node --version）」`
 - `References 缺路由算法现状文档指针 → update → 新增「改路由几何 / 核对阶段 1–2 实现现状与实测记录 → 见 docs/routing-algorithm.md」：该文档为阶段 1–2 实现与实测的 spec-of-record，此前只能靠 project-progress 反查`
+- `Permissions 无性能验收义务 → update → 新增「YOU MUST 性能与视觉效果并列为验收维度；性能结论须附测量方法、样本布局与数据并写入 docs/agents/performance.md，未测量不得宣称达标」：用户 2026-11-07 明确将性能纳入验收`
+- `Conventions 无性能结论落点约定 → update → 新增「性能结论有固定落点」行（写 docs/agents/performance.md，三要素齐全才可下结论，只追加）`
+- `References 缺性能验收指针 → update → 新增「性能验收 / 查基准方法 → 见 docs/agents/performance.md」`
+- `References 缺连线配色与组交互规格指针 → update → 新增两条：docs/specs/link-color-tokens/（尚未接入代码）、docs/specs/trunk-group-interaction/（组高亮 + 组删除，DEC-021 口径）`

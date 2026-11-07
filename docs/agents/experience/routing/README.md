@@ -2,7 +2,7 @@
 title: 路由几何经验
 type: experience-domain
 project: comfyui-luowen
-updated: 2026-11-06
+updated: 2026-11-07
 description: >
   正交线路绘制、多目标主干/分叉、输入侧走廊与斜切表达的可复用经验。
   AI 在本文件新增或修改任何条目后，必须同步更新 frontmatter 的 updated 字段为当日日期（YYYY-MM-DD）。
@@ -37,9 +37,27 @@ description: >
 - **反例**：把普通阶梯切成 45°、或给所有转角加微倒角，会让线团重新模糊并违背用户预期。
 - **事实源**：阶段 2 提交 `8614a8a`；`luowen/web/geometry/chamfer.js`；GLOSSARY「绕障外角大斜切」。
 
+## R4 · 准入门槛不能依赖「待准入对象自身」的求解结果
+
+- **主张**：任何「成组 / 成带 / 合并」机制的准入条件，只能由与该对象求解无关的外部事实决定（同 target、同方向、目标引脚 y、语义归属等）；不能用「各自求解后的间距、长度、交叉数」再回头判断谁能入组。
+- **适用**：先独立求解、再事后归并的批处理几何——等距带、走廊合并、成组避障、批量对齐、离线优化的收益判定。
+- **Why**：准入依赖求解结果，求解结果又随全局障碍版本变化，缓存与准入会在同一帧同时失效，机制便不是「偶发不生效」而是「在部分布局下永不生效」——表现为静默失效，且没有报错可查。
+- **How**：准入只读稳定的拓扑/语义事实；入组后的顺序与间距由组内成员的目标引脚序计算；质量兜底交给「违例线受限重解 + 帧末校验」，而不是回退去收紧准入条件。
+- **反例**：以「原走廊间距 ≤16px」作为准入阈值——其他线一动、避障档位一换，间距就跨过阈值，组永远凑不齐，且日志无从定位。
+- **事实源**：BUG-003 根因；DEC-030 方案 A。
+
+## R5 · 等距带要看「目标引脚序」，且只允许受限重解 + 帧末冻结
+
+- **主张**：同目标多线的等间距，应由目标侧引脚顺序决定，而不是各线自己算出来的位置决定；顺序确定后只对违例线做小幅受限重解，仍不满足就冻结上一帧并显式上报降级。
+- **适用**：多线同目标的渲染层需要视觉等距；运行在拖动热路径，不能做全图重规划。
+- **Why**：按目标引脚 y 全序排序天然消除组内交叉；只重解违例线，代价与违例数成正比而非与组大小成正比；冻结上一帧比逐帧抖动更可接受，且降级状态可被验收脚本读到。
+- **How**：各线独立求解 → 按目标引脚 y 全序排序成带 → 间距取 `min(brotherSpacing, 相邻引脚 y 差)` → 仅对不满足者受限重解 → 仍不满足则复用上一帧几何并置 `orderDegraded`。
+- **反例**：整组每帧重规划——拖动时逐帧抖动，且直接违反「热路径禁止全图重规划」。
+- **事实源**：DEC-030；`luowen/web/routing/laneAssign.js`；宿主实测 VAE 从 x=841 左拖到 300，24 个关键点间距恒 8 图 px、交叉计数 0、`orderDegraded` 全程为空。
+
 ## 🟢 参数（仅本项目）
 
-- lane 默认 pitch 8 图 px、基线 24（`luowen/web/routing/laneAssign.js` `DEFAULT_LANE_PITCH` / `DEFAULT_BASE`）。
+- lane 默认 pitch 8 图 px、基线 24；同目标等距带默认间距 8 图 px（`luowen/web/routing/laneAssign.js` `DEFAULT_LANE_PITCH` / `DEFAULT_BASE` / `brotherSpacing`）。
 - 节点避障净空 low 8 / standard 16 / high 24 图 px（`luowen/web/index.js` 设置项）。
 - 对齐吸附 10 图 px 进入 / 15 图 px 脱离；离线交叉清理静止 400ms 触发、总长增幅上限 15%（`luowen/web/index.js` 设置项 tooltip）。
-- 绕障外角斜切默认比例 0.6（`docs/routing-algorithm.md` 实测记录）。
+- 绕障外角斜切默认比例 0.6；`smooth` 圆角半径默认 10、范围 0–24（`geometry/trace.js` `DEFAULT_RADIUS`、`adapters/renderLinkAdapter.js` `CORNER_RADIUS_MAX`）。

@@ -1,0 +1,447 @@
+{
+  "meta": {
+    "source": "http://127.0.0.1:8188/object_info + D:/AIGC/ComfyUI_windows_portable/ComfyUI/custom_nodes/ComfyUI-Browser-Templates 内 612 份官方模板",
+    "capturedAt": "2026-11-07",
+    "hostVersion": "ComfyUI v0.43.2",
+    "frontendVersion": "comfyui-frontend-package 1.55.18",
+    "nodeClasses": 2318,
+    "totalOutputSlots": 3712,
+    "distinctOutputTypes": 208,
+    "workflowsParsed": 612,
+    "workflowLinks": 4388
+  },
+  "linkTypesInWorkflows": [
+    {
+      "type": "IMAGE",
+      "count": 1564,
+      "workflows": 490
+    },
+    {
+      "type": "VIDEO",
+      "count": 399,
+      "workflows": 233
+    },
+    {
+      "type": "CONDITIONING",
+      "count": 365,
+      "workflows": 77
+    },
+    {
+      "type": "STRING",
+      "count": 310,
+      "workflows": 98
+    },
+    {
+      "type": "MODEL",
+      "count": 260,
+      "workflows": 78
+    },
+    {
+      "type": "INT",
+      "count": 260,
+      "workflows": 86
+    },
+    {
+      "type": "LATENT",
+      "count": 240,
+      "workflows": 77
+    },
+    {
+      "type": "VAE",
+      "count": 169,
+      "workflows": 76
+    },
+    {
+      "type": "CLIP",
+      "count": 149,
+      "workflows": 75
+    },
+    {
+      "type": "MASK",
+      "count": 88,
+      "workflows": 27
+    },
+    {
+      "type": "AUDIO",
+      "count": 86,
+      "workflows": 56
+    },
+    {
+      "type": "FLOAT",
+      "count": 49,
+      "workflows": 24
+    },
+    {
+      "type": "MESH",
+      "count": 43,
+      "workflows": 9
+    },
+    {
+      "type": "BOOLEAN",
+      "count": 38,
+      "workflows": 16
+    },
+    {
+      "type": "FILE_3D_GLB",
+      "count": 31,
+      "workflows": 27
+    },
+    {
+      "type": "CLIP_VISION",
+      "count": 27,
+      "workflows": 17
+    },
+    {
+      "type": "CLIP_VISION_OUTPUT",
+      "count": 24,
+      "workflows": 14
+    },
+    {
+      "type": "SIGMAS",
+      "count": 23,
+      "workflows": 17
+    },
+    {
+      "type": "SAMPLER",
+      "count": 21,
+      "workflows": 17
+    },
+    {
+      "type": "RECRAFT_COLOR",
+      "count": 20,
+      "workflows": 7
+    },
+    {
+      "type": "GUIDER",
+      "count": 16,
+      "workflows": 12
+    },
+    {
+      "type": "NOISE",
+      "count": 16,
+      "workflows": 12
+    },
+    {
+      "type": "ARRAY",
+      "count": 13,
+      "workflows": 11
+    },
+    {
+      "type": "VOXEL",
+      "count": 12,
+      "workflows": 6
+    },
+    {
+      "type": "*",
+      "count": 12,
+      "workflows": 8
+    },
+    {
+      "type": "ELEVENLABS_VOICE",
+      "count": 10,
+      "workflows": 6
+    },
+    {
+      "type": "FILE_3D_FBX",
+      "count": 10,
+      "workflows": 10
+    },
+    {
+      "type": "COMBO",
+      "count": 10,
+      "workflows": 3
+    },
+    {
+      "type": "SVG",
+      "count": 9,
+      "workflows": 9
+    },
+    {
+      "type": "AUDIO_ENCODER_OUTPUT",
+      "count": 9,
+      "workflows": 2
+    },
+    {
+      "type": "FILE_3D",
+      "count": 8,
+      "workflows": 8
+    },
+    {
+      "type": "FISHAUDIO_VOICE",
+      "count": 7,
+      "workflows": 4
+    },
+    {
+      "type": "FILE_3D_OBJ",
+      "count": 7,
+      "workflows": 5
+    },
+    {
+      "type": "TRACKS",
+      "count": 6,
+      "workflows": 1
+    },
+    {
+      "type": "BACKGROUND_REMOVAL",
+      "count": 5,
+      "workflows": 2
+    },
+    {
+      "type": "DICT",
+      "count": 5,
+      "workflows": 4
+    },
+    {
+      "type": "RECRAFT_CONTROLS",
+      "count": 5,
+      "workflows": 5
+    },
+    {
+      "type": "CONTROL_NET",
+      "count": 5,
+      "workflows": 4
+    },
+    {
+      "type": "LUMA_REF",
+      "count": 4,
+      "workflows": 1
+    },
+    {
+      "type": "RECRAFT_V3_STYLE",
+      "count": 4,
+      "workflows": 4
+    },
+    {
+      "type": "BOUNDING_BOX",
+      "count": 4,
+      "workflows": 4
+    },
+    {
+      "type": "MHR_POSE_DATA",
+      "count": 4,
+      "workflows": 1
+    },
+    {
+      "type": "WAN_CAMERA_EMBEDDING",
+      "count": 4,
+      "workflows": 3
+    },
+    {
+      "type": "SPLAT",
+      "count": 3,
+      "workflows": 1
+    },
+    {
+      "type": "PIXVERSE_TEMPLATE",
+      "count": 3,
+      "workflows": 3
+    },
+    {
+      "type": "LATENT_OPERATION",
+      "count": 3,
+      "workflows": 3
+    },
+    {
+      "type": "SAM3D_BODY_MODEL",
+      "count": 3,
+      "workflows": 1
+    },
+    {
+      "type": "AUDIO_ENCODER",
+      "count": 3,
+      "workflows": 2
+    },
+    {
+      "type": "SHAPE_SUBDIVIDES",
+      "count": 2,
+      "workflows": 2
+    },
+    {
+      "type": "MOGE_MODEL",
+      "count": 2,
+      "workflows": 2
+    },
+    {
+      "type": "MOGE_GEOMETRY",
+      "count": 2,
+      "workflows": 2
+    },
+    {
+      "type": "GEMINI_INPUT_FILES",
+      "count": 2,
+      "workflows": 1
+    },
+    {
+      "type": "KREA_STYLE_REF",
+      "count": 2,
+      "workflows": 1
+    },
+    {
+      "type": "STYLE_MODEL",
+      "count": 2,
+      "workflows": 1
+    },
+    {
+      "type": "MODEL_PATCH",
+      "count": 2,
+      "workflows": 2
+    },
+    {
+      "type": "LATENT_UPSCALE_MODEL",
+      "count": 2,
+      "workflows": 2
+    },
+    {
+      "type": "LOAD3D_CAMERA",
+      "count": 1,
+      "workflows": 1
+    },
+    {
+      "type": "LAYERS",
+      "count": 1,
+      "workflows": 1
+    },
+    {
+      "type": "COLOR",
+      "count": 1,
+      "workflows": 1
+    },
+    {
+      "type": "OPENAI_CHAT_CONFIG",
+      "count": 1,
+      "workflows": 1
+    },
+    {
+      "type": "UPSCALE_MODEL",
+      "count": 1,
+      "workflows": 1
+    },
+    {
+      "type": "SAM3_TRACK_DATA",
+      "count": 1,
+      "workflows": 1
+    }
+  ],
+  "topPairs": [
+    {
+      "pair": "IMAGE + VIDEO",
+      "count": 164
+    },
+    {
+      "pair": "IMAGE + STRING",
+      "count": 86
+    },
+    {
+      "pair": "CONDITIONING + MODEL",
+      "count": 77
+    },
+    {
+      "pair": "CONDITIONING + LATENT",
+      "count": 76
+    },
+    {
+      "pair": "CONDITIONING + VAE",
+      "count": 76
+    },
+    {
+      "pair": "LATENT + MODEL",
+      "count": 76
+    },
+    {
+      "pair": "LATENT + VAE",
+      "count": 76
+    },
+    {
+      "pair": "MODEL + VAE",
+      "count": 76
+    },
+    {
+      "pair": "IMAGE + INT",
+      "count": 76
+    },
+    {
+      "pair": "CLIP + CONDITIONING",
+      "count": 71
+    },
+    {
+      "pair": "CLIP + MODEL",
+      "count": 71
+    },
+    {
+      "pair": "CLIP + LATENT",
+      "count": 70
+    },
+    {
+      "pair": "CLIP + VAE",
+      "count": 70
+    },
+    {
+      "pair": "IMAGE + MODEL",
+      "count": 68
+    },
+    {
+      "pair": "CONDITIONING + IMAGE",
+      "count": 67
+    },
+    {
+      "pair": "IMAGE + LATENT",
+      "count": 67
+    },
+    {
+      "pair": "IMAGE + VAE",
+      "count": 66
+    },
+    {
+      "pair": "CLIP + IMAGE",
+      "count": 64
+    },
+    {
+      "pair": "CLIP + VIDEO",
+      "count": 32
+    },
+    {
+      "pair": "INT + VIDEO",
+      "count": 31
+    },
+    {
+      "pair": "CONDITIONING + VIDEO",
+      "count": 31
+    },
+    {
+      "pair": "MODEL + VIDEO",
+      "count": 31
+    },
+    {
+      "pair": "STRING + VIDEO",
+      "count": 30
+    },
+    {
+      "pair": "LATENT + VIDEO",
+      "count": 30
+    },
+    {
+      "pair": "VAE + VIDEO",
+      "count": 30
+    },
+    {
+      "pair": "CONDITIONING + INT",
+      "count": 26
+    },
+    {
+      "pair": "IMAGE + MASK",
+      "count": 26
+    },
+    {
+      "pair": "INT + LATENT",
+      "count": 26
+    },
+    {
+      "pair": "INT + MODEL",
+      "count": 26
+    },
+    {
+      "pair": "INT + VAE",
+      "count": 26
+    }
+  ]
+}

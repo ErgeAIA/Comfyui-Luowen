@@ -2,7 +2,7 @@
 title: Init Report
 type: init-report
 project: 络纹（LuoWen）
-updated: 2026-11-06
+updated: 2026-11-07
 description: >
   初始化执行记录，每次运行 vibe-init 且有实际动作时追加一节，逐条列出实际执行的操作。
   只追加，不删除或改写历史。AI 在本文件新增或修改任何条目后，必须同步更新 frontmatter 的 updated 字段为当日日期（YYYY-MM-DD）。
@@ -80,4 +80,28 @@ description: >
 
 - 本轮只改文档，未提交；提交范围应为上述 9 个修改文件 + `docs/agents/experience/` 新增目录，等待用户授权后再执行。
 - 阶段 3 开工前先补齐 P0 欠账（主干组交互 AT-013/015/017、手动意图保护 F-010/AT-018），再排兼容性、生命周期、冲突、性能与发布材料。
+
+---
+
+## 2026-11-07 · 增量维护（自 70daba3 以来的对齐）
+
+| 类别 | 实际动作 | 目标 | 结果 | 依据 / 备注 |
+|---|---|---|---|---|
+| 前置检查 | 读取 `docs/agents/` 六件（新增 performance）与 `docs/handoff/` | 过程档案 | 完成 | `docs/handoff/` 当时无交接文档；本轮 vibe-init 末新建一份 |
+| Git 检查 | 只读 `git log` / `git status` | 仓库 | 完成 | HEAD `70daba3`；工作区含多笔未提交改动（代码 + 过程文档），按用户约束本轮只读不改代码、不提交 |
+| 状态识别 | 三信号查表 + 状态机 A–E | `AGENTS.md` | 状态 B | 已存在 → 增量维护，不重写 |
+| 决策保全 | 逐条过契约区 | `AGENTS.md` | 完成 | update 5：Permissions 增性能验收义务；Conventions 增性能结论落点；References 增性能、配色 token、组交互三条指针；keep 其余 |
+| 杂音扫描 | 全文过 §6b 六类 | `AGENTS.md` | 完成 | 命中 0；无新增变更日志 / 人读说明 / 决策叙事 |
+| 契约生成 | 复验六节结构 | `AGENTS.md` | 完成 | 89 行；六节齐；反杂音义务行仍在 |
+| 过程文档 | 补齐性能落点 | `docs/agents/performance.md` | 完成 | 新建性能验收台账：口径、待测场景、测量入口、数据区；本轮只建位置，不写结论 |
+| 经验库 | 检测 `experience/` | `docs/agents/experience/` | 完成 | 已有 routing / process 两域；本轮 vibe-distill 在 routing 追加 2 条 |
+| 文档委托 | README → shuxu；CHANGELOG 双语 → changelog-manager | 根目录三件 | 完成 | 按 99 项单测、7 项设置、DEC-021 组交互、BUG-002/003 验收状态对齐 |
+| 仓库分账 | 列工作区未提交项 | git status | 完成 | 代码改动（`luowen/**`、`tests/**`、`template/**`）与过程文档混在工作区，均未提交；本轮不触碰代码、未 commit |
+| 契约迁移 | CLAUDE.md → AGENTS.md | — | 未执行 | 无 `CLAUDE.md` |
+
+### 建议
+
+- 工作区仍有他轮代码改动未提交；提交时必须路径限定，把本轮文档与代码改动分开。
+- 性能线已建立落点，阶段 3 基准执行后按 `docs/agents/performance.md` 的待测场景逐项落数据。
+
 

@@ -2,7 +2,7 @@
 title: Project Progress
 type: project-progress
 project: 络纹（LuoWen）
-updated: 2026-11-06
+updated: 2026-11-07
 description: >
   项目开发进度实时记录：阶段、分支、代码状态、最近进展。每次会话更新。
   AI 在本文件新增进展或修改当前状态后，必须同步更新 frontmatter 的 updated 字段为当日日期（YYYY-MM-DD）。
@@ -18,18 +18,138 @@ description: >
 ## 当前状态
 
 - **当前分支**：main
-- **阶段**：阶段 0–2 已完成并由用户验收（阶段 2 提交 `8614a8a`）；阶段 3 **尚未开始**——3A（拖动对齐吸附）、3B（交叉枚举与离线清理，默认关闭）属 PRD §4.2 P1 增强，不计入阶段 3 交付；3C 顺序抽头已实现后按用户决定撤除（DEC-019）
-- **最近提交**：`603a1b5`（3B 交叉枚举 + 离线交叉清理，默认关闭）、`b6dab5c`（3A 拖动对齐吸附 + DOM 提示线覆盖层）、`8614a8a`（阶段 2 输入走廊嵌套、绕障外角大斜切、合法最晚分叉）
-- **测试**：`node --test tests/unit/*.test.mjs` **95/95** 通过（2026-11-06 实跑复核，fail 0）
-- **代码**：`luowen/`（含 `routing/trunkPlan.js` 单主干共享几何、三档避障、预览、缓存、`geometry/chamfer.js` 绕障外角大斜切、`routing/laneAssign.js` 输入侧按接近方向嵌套分道 + 走廊净空顺延、`snap/alignSnap.js` + `snap/dragSnap.js` 对齐吸附、`routing/crossings.js` + `routing/crossCleanup.js` 交叉枚举与离线清理），已装本机 custom_nodes 实测
+- **阶段**：阶段 0–2 已完成并由用户验收（阶段 2 提交 `8614a8a`）；阶段 3 **尚未开始**——3A（拖动对齐吸附）、3B（交叉枚举与离线清理，默认关闭）属 PRD §4.2 P1 增强，不计入阶段 3 交付；3C 顺序抽头已实现后按用户决定撤除（DEC-019）；P0 主干组交互已按 DEC-021 新口径（组高亮 + 组删除）实现，**2026-11-07 用户验收通过**；BUG-002 连线抖动修复与 BUG-003 等距带方案 A 同日验收通过（代码改动均未提交）
+- **最近提交**：`70daba3`（文档与协作契约对齐：README/CHANGELOG 对账、AGENTS 增量、术语与经验库、LICENSE）、`603a1b5`（3B 交叉枚举 + 离线交叉清理，默认关闭）、`b6dab5c`（3A 拖动对齐吸附 + DOM 提示线覆盖层）、`8614a8a`（阶段 2 输入走廊嵌套、绕障外角大斜切、合法最晚分叉）
+- **工作区**：多笔代码与文档改动未提交（含组交互、BUG-002/003、等距带、圆角设置、设置界面与提示框、模板示例设置清理）；提交时必须路径限定、与文档分开
+- **测试**：`node --test tests/unit/*.test.mjs` **99/99** 通过（2026-11-07 实跑复核，fail 0）
+- **代码**：`luowen/`（含 `routing/trunkPlan.js` 单主干共享几何、三档避障、预览、缓存、`geometry/chamfer.js` 绕障外角大斜切、`geometry/trace.js` 圆角半径 0–24（默认 10）、`routing/laneAssign.js` 输入侧按接近方向嵌套分道 + 走廊净空顺延 + 同目标等距带（`planBands`、`bandDegraded`/`orderDegraded`）、`snap/alignSnap.js` + `snap/dragSnap.js` 对齐吸附、`routing/crossings.js` + `routing/crossCleanup.js` 交叉枚举与离线清理、主干组高亮 + 组删除菜单），已装本机 custom_nodes 实测
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2、Node 24.22.1；Playwright 浏览器实测流程已打通
+- **本轮性能评估第 1 项：trunkCache 上限修复（2026-11-07，先量后改；已部署宿主并同口径 A/B；未提交，等用户验收）**：
+  - 基线口径（页内 `LuoWen.perfStart/perfStop/perfReport` + `setDirty` 逐帧驱动 + 独立浏览器上下文页）：真实图 10 节点 / 合成 LatentBlend 50/200/500 节点（96/396/996 线），`avoidance=high`、`chamfer=true`、`cornerRadius=10`、`lanePitch=8`。完整方法与原始数据见 `docs/agents/performance.md` §2026-11-07。
+  - 基线热点：500 节点 smooth frame 142.023ms，其中 begin 62.221 / bands 38.825 / trunks 19.904 / astar 6.49，`solveCalls ≈722/帧`；ortho 500 frame 389.869ms，其中 chamfer 231.929（62.7%）。
+  - 根因：`state.trunkCache` 上限写死 64，而 200/500 节点图的合法主干组数远超 64（996 线约 372 组），每帧超限整体 `clear()` → 整图主干逐帧重规划；routeCache 命中率 0.997 并不意味着主干不重算。
+  - 优化项 1（`renderLinkAdapter.js:352-355`）：上限 64 → 4096（必须大于合法组数上限 500 组）。同页面 A/B 结果：500 smooth frame 142.023 → 119.100（−16%，solveCalls 722/帧 → 0）、200 smooth 29.247 → 21.333（−27%，296/帧 → 0）、50 smooth 3.351 → 2.705（−19%）、真实 10 节点 0.648 → 0.513（−21%）；ortho 500 389.869 → 363.473（−6.8%，chamfer 不变，掩盖解算收益）。
+  - 行为不变：真实图 `routes()` 几何指纹 `hash=3021896999 len=524` 优化前后完全一致；`verify()` 两页均 `{ok:true,diffs:[]}`；等距带 `[76,82,78] anchor 82` 相邻 8.00px、顺序不变；单主干 `62:0 fork=155 merged=[79,81]`；`crossDebug` before/after count 0；单测 99/99。拖拽（`pointer.isDown`+`setPos` 注入 60 帧）优化前后 0.397 / 0.375~0.430ms，无掉帧、无重解。
+  - 仍超标：500 节点 smooth 47/48 帧 >33.4ms、500 ortho 47/48 帧 >33.4ms，距交互流畅仍远；下一候选按收益排序为 chamfer 预筛 → 帧内复用（`nodesById`/obstacles/endpoint 索引）→ bands 采样降级。宿主文件已恢复为仓库版（SHA256 一致）。
 - **本轮文档与协作契约对齐（2026-11-06，只改文档、未动代码、未提交）**：
   - 依据提交基线 `603a1b5` 复核现状：`luowen/` 已实现阶段 1–2 全部交付与 3A/3B 增强；单测 95/95 实跑通过。
   - vibe-init 校准 AGENTS.md：Toolchain 补 Node 24.22.1、Commands 删日期化出处、References 补 `docs/routing-algorithm.md` 指针；全部改动留痕 `docs/agents/agents-changelog.md`。
   - vibe-sync 消除文档与代码偏差：本文件重写「当前状态」「下一步」；README 按 shuxu 重写（原「开发尚未开始」严重失实）；CHANGELOG 双语按 changelog-manager 重写（原 17 项测试 / 5px 间距 / Ribbon 平行股道均已过时）；GLOSSARY 补登单主干、绕障外角大斜切、合法最晚分叉、输入侧走廊嵌套、顺序抽头（已撤除）五条术语。
   - vibe-distill 沉淀经验至 `docs/agents/experience/`（见该目录 changelog）。
-  - 已知未完成项（阶段 3 交付或 P0 欠账）：主干组交互（AT-013/015/017 不通过）、手动意图保护（Reroute 排除合并、手动锚点，F-010/AT-018）、经典画布与 Nodes 2.0 兼容（F-014）、子图/折叠/撤销重做/复制粘贴生命周期测试（AT-021/023/025）、冲突扩展测试（AT-027/028 部分）、性能基准（§14.5）、发布材料（§16）、PRD §14.2 的 10 组 fixture 仅覆盖 2 组、smooth 样式为圆角折线而非 §5.1 的 Bezier。
+  - 已知未完成项（阶段 3 交付或 P0 欠账）：主干组交互（AT-013/015/017 原「组选中」口径宿主不可实现，已按 DEC-021 修订为「组高亮 + 组删除」，已实现并宿主实测通过、未提交）、手动意图保护（Reroute 排除合并、手动锚点，F-010/AT-018）、经典画布与 Nodes 2.0 兼容（F-014）、子图/折叠/撤销重做/复制粘贴生命周期测试（AT-021/023/025）、冲突扩展测试（AT-027/028 部分）、性能基准（§14.5）、发布材料（§16）、PRD §14.2 的 10 组 fixture 仅覆盖 2 组、smooth 样式为圆角折线而非 §5.1 的 Bezier。
   - 偏差判定口径：以代码与 git 历史为准；PRD 只定义阶段 0–3，阶段 3 交付按 §15 清单执行，P1 增强不得冒充阶段 3 交付。
+- **本轮文档与协作契约二次对齐（2026-11-07，只改文档、未动代码、未提交）**：
+  - 覆盖自 `70daba3` 以来：阶段 2 返修闭环（DEC-008–013）、绕障大斜切与圆角半径设置（DEC-012、DEC-026）、磁吸（DEC-014/015）、交叉清理（DEC-016/017）、顺序抽头撤除（DEC-018/019）、组交互与组删除（DEC-021）、BUG-002 修复、BUG-003 根因与方案 A（DEC-030）、连线配色 token 规格（未接代码）。
+  - vibe-init：AGENTS.md 新增性能验收义务与固定落点，References 补性能、配色 token、组交互三条指针；新建 `docs/agents/performance.md`（只建口径、待测场景与测量入口，不写结论）。
+  - vibe-sync：本文件更新「当前状态 / 工作区 / 最近提交 / 代码」与「下一步」；decision-log 追加 DEC-031（本轮验收与性能口径）；debug-log 为 BUG-002、BUG-003 追加用户验收结论（只追加）。
+  - vibe-distill：`experience/routing/` 追加 2 条（准入门槛不得依赖待准入对象自身求解结果；等距带先解后排序 + 帧末校验）。
+  - 文档：README / CHANGELOG 双语按 99 项单测、7 项设置（含圆角半径）、DEC-021 组交互、BUG-002/003 验收状态对齐；新增本轮交接文档。
+  - 仍剩偏差：smooth 仍为圆角折线（用户已定：P0 两项之后改真 Bezier，本轮不改 PRD 口径）；手动意图保护未做；兼容性 / 生命周期 / 冲突 / 性能基准 / 发布材料未做；§14.2 fixture 仍 2/10；配色 token 未接入代码。
+- **本轮 BUG-003 方案 A 重做：先解后排序 + 引脚 y 阶梯（2026-11-07，DEC-030；已实施并宿主验证；未提交，等用户验收）**：
+  - 准入从「同目标 + 同方向 + 原走廊间距 ≤16px」改为「同目标 + 同方向」；`planBands` 改为先各自求解、再按目标引脚 y 全序排 rank、目标侧走廊 x 随 rank 单调、相邻间距 `min(brotherSpacing, minPinGap)`。
+  - 受限重解改为几何版 `shiftCorridor`（只平移目标侧竖段 x）；枢轴 `k=0..4 × p` 枚举允许整梯向外扇开；阶梯无解 / 撞上限 / 帧末交叉一律写 `bandDegraded` + `orderDegraded`，仅端点一致时冻结上一帧折线。
+  - 现场布局（按用户要求保留，63 `(764.6363,814.3082)`）：L78 竖段 726、L82 718，间距 8、交叉 0；VAE x=841→764.64 重放 24 个关键点全程 `gap=8 / crossings=0 / orderDegraded=[]`；继续左压到 300 仍未撞 `k=4`（VAE 离开走廊 y 带，阶梯无需外移）。
+  - 回归：输入侧嵌套基线、单主干 `62:0 fork=155 merged=[79,81]`、`orthogonal` 0 交叉无降级、`snapDebug installed/enabled`、主干悬停 `trunk members:[79,81]`、单测 99/99、`verify()` ok；组删除菜单未现场执行（合成右键未开菜单，未改图数据）。
+  - 验证限制：拖动为 `setPos` 合成而非真实鼠标；未覆盖 `crossCleanup=true`、经典画布/子图、≥3 条同簇。
+- **本轮 2B 同目标等距带（ribbon）实施与宿主验证（2026-11-07，未改 `index.js` 设置块；未提交，等用户验收）**：
+  - 规则（DEC-028）：同目标 + 同接近方向（不跨 up/down/flat）+ 原走廊间距 ≤ `2×lanePitch=16px` 构成等距带；按 `stubIn` 升序取基准线，其余成员由基准几何 `offsetStrand` 整体偏移；间距可调（默认 8，按同组引脚最小 y 间距钳制）；只作用于竖向走廊，首/末水平段重锚回各自引脚；`k=0..4` 整带外移，失败打 `bandDegraded` 并在端点一致时回退上一帧。
+  - 宿主实测（构造布局 70→`(660,30)`、68→`(310,700)`、71→`(170,510)`、63→`(600,410)`、9→`(1120,500)`）：VAE x=600 时带成员 `[78,82,76]`，竖段 `596/588/580`，两两 8px；入口水平 y = 各自引脚 y（误差 <0.5px）。x=590 起独立解基准 wrap → `bandDegraded reason:"homotopy" fallback:"prev"`，折线冻结在最后合法位置（撞上限停住）。
+  - 间距 A/B：`setBrotherSpacing(4)`→596/592/588；`(12)`→596/584/572；`(30)`→钳到 19.99997（`clamped:true`）并降级；恢复 `(8)`→596/588/580。
+  - 回归：原布局 reload 后 `bands=[] / bandDegraded=[]` 无误报；`orthogonal` 0 斜线且带成立；单主干 `62:0 merged=[79,81]`；`snapDebug` installed/enabled；单测 99/99；`verify() {ok:true,diffs:[]}`。
+  - 遗留：基准 wrap 时只降级冻结，未实现整带跟随绕行；未做全组联动重排；用户布局与宿主 reload 后布局不同（等价构造）；组悬停/删除与真实鼠标拖动未交互复测。宿主已还原（坐标、`smooth`、`lanePitch=8`、`avoidance=high`、`chamfer=true`、`brotherSpacing=8`）。
+- **本轮 BUG-003 方案 A 实施（2026-11-07，用户选 A、拖动为纯水平；已实施并宿主验证；未提交，等用户验收）**：
+  - 纯水平复扫（原始布局，node 63 `y=639.6719` 不变，x 660→−420 步长 20）：全程 `overlaps:0`。L82 竖段稳定 119.5 / 599，L78 在 327.7 → 999/868/628 跳变，两条从未同 x。原因：VAE 初始 x=647 与 KSampler 矩形 x 重叠，左移先穿 KSampler → semi/loose 大绕行，不进两条走廊窄缝。
+  - 等价构造（非用户原布局）：node 70→`(660,0)`、68→`(310,670)`、71→`(170,540)`、63 的 `y→380`（y 带 350..486.7 同覆 L78 竖跨 72..682 与 L82 竖跨 52..552），初始 x=660 后只改 x。验收样本 VAE `(300,380)` 修复前 L78 `[[570,682],[868,682],[868,373],[636,373],[636,72],[660,72]]`、L82 `[[575,552],[636,552],[636,52],[660,52]]`，同轴重叠 `x=636, y∈[72,373]` 长 301px。
+  - 改动：`laneAssign.js` 新增 `pins` 入参 + 冲突簇重排（真实引脚 x / 引脚实际 y 跨度；名义阶梯全合法时逐点不变；`MIN_STUB_STEPS=1`、`MAX_FORWARD_STEPS=4`）；`renderLinkAdapter.js` 把 `predictEndpoints` 前移到 lane 分配前，新增 `endpointsToPins`/`pinsHash` 并并入 lane 指纹。
+  - 修复后同一验收样本：L78 `[[570,682],[868,682],[868,373],[628,373],[628,72],[660,72]]`、L82 `[[575,552],[636,552],[636,52],[660,52]]`，竖段 `628` / `636` 相距 8px，公共段 0；全区间复扫 `overlaps:0`。
+  - 回归：输入侧走廊嵌套 `75=636 / 76=628 / 78=620 / 82=612`（8px 等距、顺序不变；整体 −10px 因改用真实端点 x 基准）；原始布局单主干 `62:0 fork=36.53125 merged=[79,81]`（共享前缀长 36.53）与最晚分叉成立；`orthogonal` 下 link 75 出现 1 段绕障外角大斜切；`snapDebug()` `installed/enabled=true`；主干点悬停 `part:'trunk' members:[79,81]`、分支点 `part:'branch' members:[79]`，链路菜单主干位置首项「删除这一组（2 条）」、分支位置无该项。
+  - 单测 **99/99**（fail 0）；`LuoWen.verify()` `{ok:true, diffs:[]}`。reload 后节点坐标 / `style=smooth` / `avoidance=high` / `chamfer=true` / `crossCleanup=false` / `lanePitch=8` 全部还原；宿主两文件 SHA256 与仓库一致。
+  - 未覆盖：真实鼠标拖动、≥3 条同簇线、`crossCleanup=true`、经典画布/子图、装载首帧无 `pins` 的旧口径路径。需用户补充 node 63/68/70/71 的 `pos` 与 `getBounding()`（或移动前后截图）才能与其所见一一对应。
+  - 文档：`docs/agents/debug-log.md` BUG-003 追加实施与验证；决策见 `docs/agents/decision-log.md` DEC-027。未提交 git、未宣称已修复。
+- **本轮 BUG-003 根因分析：第三方节点挤占输入走廊 → 两条线共线重叠（2026-11-07，只分析；未改代码、未提交）**：
+  - 现象：把 node 63（加载VAE）从 `(660,700)` 移到 `(300,400)` 后，L78（68→70 slot3）与 L82（71→70 slot2）的竖直段由初始 `x=620 / 612` 同时收到 `x=636`，共线重叠 `y∈[392,532]` 长 140px；两条最终水平段仍在 `y=392 / 372` 各自分开。
+  - 根因链：laneAssign 的 `pinX = targetRect.x + 10` 偏移使 78 的 620 未被判阻挡；82 被判阻挡后单向往左顺延到 `stubIn=504`（route 时截到 60.38）；两条 eStub 均落入 node 63 hard 箱 → `solveRouteTiers` strict 双双 null → `semi`；A* 不分线，最近的合法竖向网格 `x=636` 被两条线各自选中。主干（78 属 `68:0`、82 属 `71:0`）与原生降级均无关。
+  - 证据：`trace()` 中 78/82 最新条目仍是 `ver=1`，说明当前绘制来自 `planTrunks` 预填缓存（计数不增长）；离线用仓库同一份 `allocateLanes + route` 复算：strict 均 null、semi 均为 636；把 78 stub 改 32 → strict `x=628`、82 stub 改 24 → strict `x=636`，期望形态可达。
+  - 触发条件：node 63 的矩形需同时压住 L78（竖跨 392..712）与 L82（竖跨 372..532）的穿越带；默认 y=700 纯左移不复现，命中在 `(300,340)/(300,400)/(300,460)`；`(300,520)` 与 `(300,580/620)` 不重叠或存在 laneBlocked 误报。
+  - 候选修法（未实施）：A `laneAssign` 改「冲突簇 + 双向就近合法位」（修正 pin x、按引脚实际 y 判阻挡、允许 stub 小于 base）；B 同目标并行重叠后校验（复用 3B 严格验收口径，目标从垂直交叉扩到同轴共线）。
+  - 文档：`docs/agents/debug-log.md` 追加 BUG-003；页面已还原 node 63 至 `(660,700)`，`style=smooth`、`avoidance=high`、`crossCleanup=false` 未改。
+- **本轮 BUG-002 修复：主干态/独立态逐帧翻转（2026-11-07，已实施并宿主验证；未提交，等用户验收）**：
+  - 复现布局：node 67→`(660,290)`、71→`(660,520)`、68→`(300,380)`，移动 node 63。修复前 `v31` 两帧交替：A `x=124`（stubOut 末端）/ B `x=294`（主干 fork），`v32` 重复（旧代码实测记录）。
+  - 根因两层：① 版本变更帧 `planTrunks` 因 `endpointsVer !== version` 早退并自请求一帧；② 同帧预测实际从未生效——`nodesById(graph)` 按 graph 对象跨帧缓存，页面装载早期 `_nodes` 尚空时缓存了空 Map，导致 `recordEndpoint` 全部删除引脚偏移（探针 `nOff=0`），预测退回上一帧端点，端点移动时滞后一帧。
+  - 修复（`luowen/web/adapters/renderLinkAdapter.js`）：`nodesById` 去掉跨帧缓存并删除 `state.frame.nodesById/nodesByIdGraph`；保留本轮已实施的 `recordEndpoint` / `predictEndpoints` / `solveBaseline` / `planTrunks` 去门禁 / `tryCustomRender` 用 `plannedEndpoints` 做 0.5px 一致性判定。未改 `luowen/web/index.js`。
+  - 修复后宿主证据：拖动端点节点 67（每帧 +8px）连续 11 帧全部 `fork=170`、`vx=[294]`；拖动无关节点 63（+6,−3）连续 12 帧同样稳定；探针 `nOff=9`、`diagNodes=10`；`LuoWen.verify()` `{ok:true,diffs:[]}`；单测 99/99。
+  - 回归抽查：默认布局 `trunks=[{group:'62:0',fork:40,merged:[79,81]}]`；`style=orthogonal` 下 9 条 routes 正常且含 link 79，切回 `smooth`；`snapDebug` `installed/enabled=true`。未逐点复测：大斜切几何、磁吸拖动触发、整组悬停/组删除宿主行为（仅单测覆盖）。
+  - 还原：10 个节点坐标回原位、`style=smooth`、`chamfer=true`、`crossCleanup=false`；宿主副本已用仓库文件覆盖（无临时探针）。
+  - 文档：`docs/agents/debug-log.md` 追加 BUG-002；结论交用户验收，未宣称已修复、未提交 git。
+- **本轮 P0 主干组交互（2026-11-07，实现与宿主实测完成；未提交）**：
+  - 第 0 步 Reroute 验证完成：组成员被 Reroute 包裹时，按真实 link id 批量删除安全。`graph.removeLink` → `LLink.disconnect` 从 `graph.links` 移除并 `layoutStore.deleteLinkLayout`，仅当 `reroute.totalLinks===0` 才回收 reroute（`LGraph.ts:2133-2141`、`LLink.ts:582-590`、`LGraphNode.ts:3472-3482`）；floating link 不在 `graph.links`，排除。结论：无需从组删除范围排除 Reroute 成员。
+  - 第 1 步文档已落定：`docs/comfyui-dev-conventions.md` 新增 §2.8（命中链路、无 link 选中、删除入口、悬停需自绘、Vue 模式，附 file:line 与交叉验证表）；PRD AT-013/015/017 改为「组高亮 + 组删除」并写入偏离原因；DEC-021 记录旧口径 → 新口径 → 依据；本文与 `routing-algorithm.md` §4.1/§8、GLOSSARY（主干组悬停、整组删除）同步。
+  - 第 2 步实现完成：`trunkPlan.js` 新增 `classifyHover(routes, trunks, point, tol)`（全局最近线 → 命中 trunk 且弧长 ≤ 共享前缀长度 → `part='trunk'` 返回整组成员；否则 `branch` 单成员；无 trunk 回退单例；超出 tol 返回 null）；`renderLinkAdapter.js` 用 `state.hover = {linkId, part, memberIds, groupPts}` 替换 `hoverLinkId`，`onPointerMove` 改调 `classifyHover`，trunk 高亮 `memberIds` 全员、branch 仅该条；安装期 `Proxy(LiteGraph.ContextMenu)` 注入「删除这一组（N 条）」，仅 trunk 位置出现且保留原生 Delete；组删除用 `emitBeforeChange + graph.beforeChange … graph.afterChange + emitAfterChange` 单事务；删除后清 hover。`index.js` 无 hover 字段引用，`status()/getStats()` 已透出新结构，无需改。
+  - 第 2 步偏差说明：`layoutStore.deleteLinkLayout` 由 `graph.removeLink` 内部的 `LLink.disconnect` 完成（`LLink.ts:582-584`），未重复显式调用；主干 tooltip「N 条连接」砍掉——原生 tooltip 由 canvas 在 `drawConnections` 内生成，插入需改渲染结构或新建覆盖层，超出最小补丁范围。
+  - 第 3 步验证完成：单测 `node --test tests/unit/*.test.mjs` **97/97 通过**（新增 `classifyHover` 2 项：主干中点→整组、分叉后→单分支；无 trunk→单例、阈值外→null、多组按同引脚不串组）。
+  - 宿主实测（默认工作流，主干组 `2:0` 成员 `[9,10]`，`fork T=107`）：主干点 `(-386.5,139)` → `hover={linkId:9, part:'trunk', members:[9,10]}`；分支点 `(-280,139)` → `{linkId:9, part:'branch', members:[9]}`，主干恢复常态。
+  - 菜单：分支位置菜单为「隐藏连线 / Add Node / Add Reroute / Delete / Convert to Set/Get」，无组删除项；主干位置菜单首项为「删除这一组（2 条）」并保留 `Delete`。不改键盘 Delete，无二次确认。
+  - 整组删除：仅移除 link 9、10，节点数 10→10，其余 link 1–8 的 origin/target/slot 五元组完全不变，删除后 hover 为 null；删除后 `verify()` 差异仅 `link-count 10→8`、`link-removed 9`、`link-removed 10`，rebase 后 `ok:true`。一次 Ctrl+Z 恢复 9、10（原 origin/target slot 不变），linkCount 10，`verify() ok`。
+  - 分支单条删除对照：菜单无组删除项，点 `Delete` 仅移除 link 9（10→9）；一次 Ctrl+Z 恢复 10 条，rebase 后 `verify() ok`。
+  - 截图：`.verify/shots/p0-group-hover-trunk-view-2026-11-07-2026-11-06T16-59-01-323Z.png`（主干悬停整组）、`p0-group-hover-branch-view-2026-11-07-2026-11-06T16-59-08-875Z.png`（分支悬停单条）、`p0-group-delete-menu-2026-11-07-2026-11-06T16-54-21-424Z.png`（组删除菜单）；另存放大图 `p0-group-hover-trunk-zoom-...png`、`p0-group-hover-branch-zoom-...png`。
+  - 未提交 git，等用户验证。
+
+- **本轮设置界面调研（2026-11-07，只读调研 + 文档落盘；未改代码、未提交）**：
+  - 新建 `docs/specs/luowen-settings-ui.md`（v0.1 草稿）：现状盘点、宿主设置系统能力、同类扩展做法、A/B/C/D 方案权衡、未定项。
+  - 关键实测（1.55.18）：6 项 `LuoWen.*` 共享单元素分类 `['LuoWen']`，设置树把它们折叠成一个叶子，浏览「其他 → LuoWen」只剩 `LuoWen.CrossCleanup`；搜索 `LuoWen` 才见全部 6 项，tooltip 独有词不可搜。根因是 `buildTree` 复用同路径节点并覆盖 `data`（`treeUtil.ts:36-37`），核心设置用 3 级分类避免此问题。
+  - 宿主能力结论已按仓库约定写入 `docs/comfyui-dev-conventions.md` §2.9（附 file:line 与交叉验证表）：无法注册独立设置面板；侧边栏 tab 可用 `type:'custom'+render(el)` 自绘；原生分组不支持折叠。
+  - 命名不一致已登记未处理：`LuoWen` vs 模板 `Luowen`、`Example` 分类残留、显示名「绕障/线隙外角大斜切」、避障档位 `standard` vs 口头 `medium`。
+  - 待用户回答：目标形态（A 只修原生分类 / B 全量侧边栏 / C 混合 / D 独立对话框）、低层参数暴露范围、分类与 id 是否允许改动、是否需要恢复默认值。
+
+- **本轮设置界面 A 方案实施（2026-11-07，实现与宿主实测完成；未提交，等验收）**：
+  - 改动 `luowen/web/index.js` 6 项设置注册：分类改为三级 `['LuoWen', 组名, id 后缀]`（基础：`Enabled` 100 / `SnapAlign` 90；线路外观：`WireStyle` 80 / `NodeAvoidance` 70 / `Chamfer` 60；实验：`CrossCleanup` 50）；避障选项改 `{text:'低/标准/高', value}`（内部值 `low/standard/high` 不变）；`LuoWen.CrossCleanup` 显示名「离线交叉清理」+ `experimental: true`（1.55.18 实测渲染为烧瓶徽章）。全部 id、`defaultValue`、`onChange` 与路由调用不变。
+  - 单测 `node --test tests/unit/*.test.mjs` **97/97** 通过（fail 0）。
+  - 宿主实测（0.43.2 + 1.55.18）：导航「其他」下出现独立 `LuoWen` 项；页内 groups=`基础[LuoWen.Enabled, LuoWen.SnapAlign] / 线路外观[LuoWen.WireStyle, LuoWen.NodeAvoidance, LuoWen.Chamfer] / 实验[LuoWen.CrossCleanup]`，6 项全部可见且顺序正确；搜索 `LuoWen` 命中 6 项（含模板 greeting），`启用/吸附/样式/避障/斜切/清理/交叉` 均命中对应项。
+  - 旧值持久化：改前把 `LuoWen.WireStyle` 设为 `smooth`，刷新并加载新代码后仍为 `smooth`（截图下拉框可见）。
+  - 截图：`docs/specs/assets/luowen-settings-verified-2026-11-06T17-18-21-299Z.png`。
+  - 宿主副本已同步：`D:\AIGC\ComfyUI_windows_portable\ComfyUI\custom_nodes\luowen\web\index.js`（SHA256 `B29B79E52D8A6E7B240A47D936D120CB9BDD30B0A9DB282D6439E1CCE8B08CF1`）；模板 `Luowen/Example` 未动，仅从验收口径排除。
+  - 决策见 `docs/agents/decision-log.md` DEC-022；契约结论见 `docs/comfyui-dev-conventions.md` §2.9；方案、边界与实施记录见 `docs/specs/luowen-settings-ui.md` §4、§7。
+  - 未提交 git，等用户验收。
+
+- **清理模板示例设置项（2026-11-07，实现与宿主实测完成；未提交，等验收）**：
+  - 取证：导航里的 `Luowen → Example → 问候语` 唯一来源是模板 `template/ComfyUI-Luowen/web/js/luowen.js:19-33` 的 `settings[]`（`ComfyUI-Luowen.greeting`）；宿主 `custom_nodes/ComfyUI-Luowen/web/js/luowen.js` 是同一文件副本（改前两份 SHA256 `8B33FBBC…8F2E`），无其他注册点。
+  - 改动：模板删除该 `settings` 注册（含 id、显示名、文案、分类），替换为注释形式的写法样例；宿主副本同步覆盖（改后两份 SHA256 `E38DD908…9F1A`）。未删除目录、未动其他扩展、未改 `luowen/web/`。
+  - 验证：`node --check` 通过；浏览器刷新后导航「其他」组下只剩 `LuoWen`；搜索 `问候`/`Example` 为 0 项，`Luowen`/`LuoWen` 只命中本插件 6 项；6 项仍全部可见且顺序正确；`app.extensionManager.setting` 读取正常，`LuoWen.WireStyle` 往返写入生效。
+  - 截图：`docs/specs/assets/luowen-settings-example-removed-2026-11-07-2026-11-06T17-31-29-519Z.png`。
+  - 决策见 `docs/agents/decision-log.md` DEC-023（模板是脚手架，默认不注册用户可见设置项）。
+  - 未提交 git，等用户验收。
+
+- **设置项提示框排版改进（2026-11-07，实现与宿主实测完成；未提交，等验收）**：
+  - 取证：1.55.18 提示框由 PrimeVue 指令渲染，默认 `--p-tooltip-max-width: 12.5rem`（200px）；`.p-tooltip-text` 为 `white-space: pre-line`（`\n` 可换行）；`escape=true` 按纯文本渲染；问号图标来自宿主 `FormItem.vue:15` 的 `pi pi-info-circle`。
+  - 改动：`luowen/web/index.js` 6 项 `tooltip` 改为对象形式 `{ value, class: 'luowen-tooltip' }`，按句号/分号显式换行；加载时注入仅作用于 `.p-tooltip.luowen-tooltip` 的未分层规则，`max-width: min(28rem, calc(100vw - 2rem))`。未改 id、默认值、行为。
+  - 验证：我们提示框实际宽 416px、高 116px、5 行，`innerText` 保留 `\n`；核心设置提示框仍 200px 未受影响；右边缘 x≈943，未覆盖右侧控件；`node --check` 通过；单测 97/97；宿主副本 SHA256 `D8F8E1B9…3D9A` 与源文件一致。
+  - 截图：`docs/specs/assets/luowen-tooltip-before-2026-11-07-2026-11-06T17-35-38-171Z.png`、`luowen-tooltip-after2-2026-11-07-2026-11-06T17-37-24-646Z.png`。
+  - 决策见 `docs/agents/decision-log.md` DEC-024；契约见 `docs/comfyui-dev-conventions.md` §2.10。
+  - 未提交 git，等用户验收。
+
+- **设置项提示框第二轮：内容自适应 + 560px 上限（2026-11-07，完成；未提交，等验收）**：
+  - 注入规则改为 `.p-tooltip.luowen-tooltip{width:max-content;max-width:min(560px,calc(100vw - 2rem))}`，替代原 `min(28rem,…)` 硬上限；实测指令内联 `width: fit-content` 优先级更高，等效表现为「内容自适应 + max-width 封顶」，560px 上限未被触达。
+  - 文案：`离线交叉清理` 的 31 字长句按逗号拆为「交叉对数严格下降。」+「参与线路总长增幅不超过 15% 时才采纳。」两行，其余 5 项保持；每行 ≤ 约 30 个中文字等效宽度。
+  - 实测（1600×1000）：六项宽 406 / 491 / 282 / 373 / 416 / 352px，行数 2 / 3 / 3 / 3 / 5 / 6，自动折行 0、控件遮挡 0、溢出 0；1100×1000 与 900×800 均 0 折行，900 下最大 `right=861`、`bottom=732`；核心设置提示框仍 200px。
+  - 截图 `docs/specs/assets/luowen-tooltip-560-2026-11-07.png-2026-11-06T17-55-57-120Z.png`；`node --check` 通过；源文件与宿主副本 SHA256 一致 `ECF52108…B6830`。
+  - 决策补充见 DEC-024「同日第二轮」；契约同步 `docs/comfyui-dev-conventions.md` §2.10。未提交 git，等用户验收。
+
+- **设置项：圆角半径（2026-11-07，实现与宿主实测完成；未提交，等验收）**：
+  - 取证：圆角唯一实现点是 `luowen/web/geometry/trace.js:12`（`RADIUS = 10`）与 `:21-26`（`Math.min(RADIUS, 相邻段/3)` + `Math.max(0.5, r)`）；调用点只有 `luowen/web/adapters/renderLinkAdapter.js:791` 的 `cfg.style === 'smooth'`。正交样式走 `sharpPath`，大斜切按 DEC-012 另一套，互斥。
+  - 改动：`trace.js` 导出 `DEFAULT_RADIUS = 10`，`emit(path, pts, radius = DEFAULT_RADIUS)`，新增纯函数 `filletRadius(radius, prevLen, nextLen)`（`min(设定值, 两段各 1/3)`；`<=0` 返回 0 直角；正半径保留 0.5 下限）；适配器 `state.settings.cornerRadius` 默认 10、`setSettings` 夹取 `[0, 24]`、绘制传 `cfg.cornerRadius`；`index.js` 新增 `LuoWen.CornerRadius`（线路外观组，sortOrder 75，`type:'slider'` + `attrs:{min:0,max:24,step:1}`，默认 10），tooltip 一句一行并写明「仅 smooth 生效、orthogonal 无效」；新增调试入口 `window.LuoWen.setCornerRadius(v)`。
+  - 单测 `node --test tests/unit/*.test.mjs` **99/99**（新增 `filletRadius` 与 `emit` 半径参数 2 项）；`node --check` 通过。
+  - 宿主实测（默认工作流 10 节点 / 10 连线，smooth，同取景 scale=1、offset=[500,350]、1600×1000）：0 → 全部直角；10 → 与改前观感一致；24 → 28 个转角中 17 个用满 24px、8 个短引脚段收缩到 <8px、其余 3 个 <11/<13/<23，无异常折返。`LuoWen.verify()` ok（diffs 空）。
+  - 设置面板：7 项（基础 2 / 线路外观 4 / 实验 1），圆角半径位于线路样式与节点避障之间，滑块+数字框 id=`LuoWen.CornerRadius`；滑块 `Home`→0、`End`→24 且数字框同步；提示框 400×116px、5 行/5 行盒、最长行 368px、无孤字行；900×800 下 `right=770`、`bottom=515`、无溢出。
+  - 截图：`docs/specs/assets/luowen-corner-radius-0-2026-11-07-2026-11-06T18-02-30-340Z.png`、`-10-…18-02-37-160Z.png`、`-24-…18-02-44-137Z.png`、`luowen-corner-radius-setting-tooltip-2026-11-07-v3-2026-11-06T18-04-56-338Z.png`。
+  - 宿主副本三文件 SHA256 与源文件一致（`FE9E16F9…1B22` / `E36B2297…7A47` / `72A13E97…B9A5`）；决策 DEC-025；契约补 `docs/comfyui-dev-conventions.md` §2.9（slider attrs）。
+  - PRD 回写已完成（2026-11-07，用户批准）：§5.4 圆角半径行、§5.2 转角表述、§5.1 新增半径可调说明、`docs/routing-algorithm.md` 圆角描边行，均按实现口径改正；见 DEC-026。
+  - 未提交 git，等用户验收。
+
+- **PRD 圆角半径口径回写（2026-11-07，仅文档；未提交）**：
+  - 用户批准回写 PRD 后，按实现对齐 4 处：`docs/prd/luowen-prd-v1.0.md` §5.4 表格「圆角半径」行（原「自动 / 仅正交样式生效」→「10px 可调 0–24px / 仅 smooth 生效 / 相邻两段各 1/3 夹取 / 0 为直角 / 与 orthogonal 大斜切互斥」）；§5.2 要求「转角可圆角化…」→「转角保持直角，唯一斜线表达是绕障外角大斜切，圆角只属于 smooth」；§5.1 要求列表新增「圆角半径可调（0–24px，默认 10px，0 为直角）」；`docs/routing-algorithm.md` 几何内核表「圆角描边」行改为 `emit(path, pts, cornerRadius)` 并注明设置来源、范围与默认值。
+  - 复核全篇：PRD 与 routing-algorithm 已无「圆角半径 自动」「仅正交样式生效」旧口径；§5.2 与 §5.1 表述一致。
+  - 决策 DEC-026（口径变更、原文对照、代码位置依据）；未改代码、未提交 git，等验收。
+
 - **本轮 3C 顺序抽头阶段性实现后撤除（2026-11-06，DEC-018 存档 / DEC-019 撤除）**：
   - 曾按「≥3 分散目标、投影升序抽头、间距 ≥48/≥24、全员合流否则回退单 T」实现 `chooseTapSequence` / `planDaisy` 并接宿主开关 `LuoWen.DaisyTaps`（默认关闭）。
   - 宿主 A/B 结论：同一 11 节点布局、同取景（scale=1、offset=[500,350]、1600×1000）下，开/关**连线画布逐像素 0 差异**（仅底部统计文字 DOM 181 px 差异）；交叉对开/关均为 **10 对**且集合相同；开启抽头 `T=66/396/916`、投影间距 330/520，关闭 `fork=66`。
@@ -157,5 +277,18 @@ description: >
 - **更早（阶段 1 初版 + 返修 1）**：2026-11-06
   - 原型级 renderLink/drawConnections 包裹；三样式；单条 A*（MIT 复用）+ 三档避障；lane 阶梯；缓存版本化
   - getBounding 绝对坐标修复、strict 避障、拖拽正交预览、整线悬停高亮
-- **下一步**：进入阶段 3（PRD §15）——兼容性矩阵（经典画布与 Nodes 2.0）、生命周期测试（子图/折叠/组拖动/撤销重做/复制粘贴/加载）、与 Cable Management / NKD Reroutes / Zip Ties 的冲突测试、性能基准（§14.5）、发布材料（README/安装/设置/CHANGELOG/LICENSE/第三方声明）；同时补齐 P0 欠账（主干组交互 AT-013/015/017、手动意图保护 F-010/AT-018）、把 §14.2 fixture 从 2 组补到 10 组
-- **本阶段禁止**：未经用户验收开始阶段 3 的兼容性与发布动作；改 PRD 产品边界；在宿主环境装依赖；用 P1 增强（3A/3B）冒充阶段 3 交付
+- **下一步（用户 2026-11-07 定稿顺序）**：
+  1. 补齐 P0 剩余欠账：手动意图保护（Reroute 排除合并、手动锚点，F-010/AT-018）；主干组交互已按 DEC-021 验收，不再返工。
+  2. P0 闭环后做 `smooth` 真 Bezier，对齐 PRD §5.1（本轮不改 PRD 口径）。
+  3. 进入阶段 3：兼容性矩阵（经典画布与 Nodes 2.0）、生命周期测试（子图/折叠/组拖动/撤销重做/复制粘贴/加载）、与 Cable Management / NKD Reroutes / Zip Ties 的冲突测试、性能基准（§14.5，落 `docs/agents/performance.md`）、发布材料（README/安装/设置/CHANGELOG/LICENSE/第三方声明）；同时把 §14.2 fixture 从 2 组补到 10 组。
+- **本阶段禁止**：未经用户验收开始阶段 3 的兼容性与发布动作；改 PRD 产品边界；在宿主环境装依赖；用 P1 增强（3A/3B/顺序抽头）冒充阶段 3 交付；性能无实测数据即宣称达标
+
+## 主题与连线配色规范（2026-11-07，独立设计任务，代码不动）
+
+- **交付**：`docs/specs/link-color-tokens/` —— `spec.md`（v1.0 草案）、`evidence.md`（三件取证）、`acceptance.md`（验收材料）、`link-tokens.schema.json`、`luowen-dark.tokens.json`、`luowen-cyberpunk.tokens.json`、`verify.mjs`、`data/*`、`assets/` 三档截图。
+- **取证一（类型轴）**：`/object_info` 2318 节点类 / 3712 输出槽 / 208 输出类型；612 模板 4388 连线 / 62 连线类型；官方 16 键调色板覆盖 2969 连线（67.7%）；头部 11 类占 88.6%。结论：配色轴用连线数据类型，不用节点类型。
+- **取证二（前端链）**：`link.color` → `link_type_colors[slotTypeKey(type)]` → `default_connection_color_byType` / `--color-datatype-*` → `default_link_color`；`connections_width=3`，有效线宽 = 3×scale（实测 100/60/40% = 3.00/1.80/1.20px）。关键：宿主插件 `renderLinkAdapter.js:1123` 写死 `#94a3b8`，调色板注入全部失效；token 必须落在 `renderLink` 的 `color` 实参。
+- **取证三（主题与插件）**：cyberpunk 与官方 dark 均为 16 个 `node_slot` 键，差异在底色与 `LINK_COLOR`（#00FFFF vs #9A9）；基线体检 cyberpunk 10 对 ΔE<0.02（最差 CLIP/GUIDER 0.0014）。现有插件（核心调色板、pysssss、shahshrey、rgthree、KJNodes）只做调色板/几何/主题画廊，无人做「类型语义 + 流向动效」，不重复造轮子。
+- **规范**：13 语义（9 色相族 + 3 中性）；OKLCH 固定 L/C，相邻色相 ΔE ≥0.02；`video` 用 image 色相 lo 带冗余编码；门禁 dark 画布 4.65–9.57:1、卡片 3.10–6.37:1，cyberpunk 4.95–10.25:1、卡片 4.23–8.76:1；色盲 78×4 全部 ≥0.0236。`verify.mjs --strict` 通过，新增 `--emit-hex` 输出 `data/link-colors-*.json`（62 类型→hex）。
+- **验收**：三档截图 `assets/luowen-dark-{100,60,40}.png`（运行时注入 token 色，不改文件）；计时代理 20 次×2 条件（同色像素 28330→1269，候选 33→1，随机误判 97%→0）；动效成本 +0.70ms/帧（33 连线全量重绘上界）。
+- **未完成**：人眼计时试验 N=0，仅协议（`acceptance.md` §5.4）；cyberpunk 未截图；materialize 与插件接入未实施（本轮明确不改代码）。

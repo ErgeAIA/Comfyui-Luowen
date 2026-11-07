@@ -228,6 +228,104 @@
 - 代码位置：`luowen/web/snap/dragSnap.js:125-168`（host/ensureGuides）、`:170-191`（updateGuides）、`:211-249`（每帧吸附写入）、`:285-321`（`pointerup` 同步收尾）、`:333-374`（install/uninstall/开关）。
 - 拖动挂载顺序复核：window 冒泡监听 + 自排 rAF，晚于原生 `handleDrag` 的 rAF（`useNodeDrag.ts:194-230`）；收尾早于 changeTracker 的 `mouseup` 快照（`changeTracker.ts:588-590`）。
 
+### 2.8 链路命中 / 选中 / 删除 / 悬停契约（P0 主干组交互查证，2026-11-07）
+
+> 取证：前端 1.55.18 安装包 sourcemap 内嵌 TS（行号按该版本）+ 本机宿主 0.43.2。结论用于 PRD AT-013/015/017 的口径修订（DEC-021）。
+
+**命中链路**
+
+- 命中测试读渲染产物：先 `layoutStore.queryLinkSegmentAtPoint`，再遍历 `canvas.renderedPaths` 用 `ctx.isPointInStroke(segment.path, x*dpr, y*dpr)`（`hitTesting.ts:41-55`）。
+- 命中线宽 = `canvas.connections_width + 7`（`hitTesting.ts:39`）。
+- 中心 marker 只有 8×8，且只服务 `over_link_center`（`LGraphCanvas.ts:5196-5209`、`:3549-3553`）。
+- `_getPositionableOnPos` 不包含 link（`LGraphCanvas.ts:2439-2445`）；链路不进入通用命中。
+- 络纹已接管 `renderLink` 并写 `link.path`，命中跟随实际折线；主干段命中返回哪条 link 由绘制/遍历顺序决定，无法表达「组」。
+
+**选中模型（无 link 选中）**
+
+- 可选中类型枚举只有 `node / group / reroute / io`，不含 link（`selectionState.ts:7`）。
+- `selectedItems` 是 `Set<Positionable>`，link 不是 `Positionable`（`LGraphCanvas.ts:746`）。
+- `deleteSelected()` 只处理 node / group / reroute，不处理 link（`LGraphCanvas.ts:4787-4821`）。
+- 结论：无法把组内 link 放进原生选中集，也无法依赖 `deleteSelected` 做组删除；组高亮/组删除必须由络纹自建。
+
+**悬停高亮**
+
+- 原生只有 `over_link_center` 与 tooltip（`LGraphCanvas.ts:3549-3553`、`:5268-5269`），没有 link 级 hover 状态。
+- `highlighted_links` 只由「选中节点的邻接」填充（`LGraphCanvas.ts:4556,4563,4617,4625,4749,4760,4765,4814`），渲染链为 `:6469` → `litegraphLinkAdapter.ts:123` → `pathRenderer.ts:101-102,173-175`。
+- 结论：整组/单支悬停高亮必须自绘，不能复用原生 hover。
+
+**删除语义**
+
+- 右键链路菜单入口 `showLinkMenu`（`LGraphCanvas.ts:6674-6788`），右键调用点 `:8777`（`showLinkMenu(linkSegment ?? link, event, link)`）。
+- 单条 Delete 分支：`graph.removeLink(linkId)` + `layoutStore.deleteLinkLayout(linkId)`（`LGraphCanvas.ts:6760-6775`）。
+- 无批量删除接口；多次 `removeLink` 会各自失效缓存，undo 粒度由事务边界决定。
+- Reroute 包裹成员可按真实 link id 安全批量删除：`LGraph.ts:2133-2141` → `LLink.disconnect`（`LLink.ts:549-591`）；`:582` 从 `graph.links` 移除、`:584` 删 layout、`:586-590` 仅在 `reroute.totalLinks === 0` 时回收 reroute。输入侧 floating link 由 `LGraphNode.ts:3472-3479` 断开；`graph.links` 外的 floating link 不参与。
+- 菜单项注入点：`ContextMenu.ts:311-341` 先跑 global callback、再跑单项 callback；`Proxy` 包装构造可临时插入组删除项，且不破坏 `changeTracker.ts:625-630` 对 `ContextMenu.prototype.close` 的补丁。
+
+**undo 粒度**
+
+- `changeTracker.ts:409-438` 全图序列化快照；`:508-513` `beforeChange/afterChange` 用 `changeCount` 抑制中间快照；`:602-607` `processMouseUp` 后 capture。
+- 结论：`emitBeforeChange + graph.beforeChange … graph.afterChange + emitAfterChange` 包住整组删除，只留一条 undo（与 `deleteSelected` 同型，`LGraphCanvas.ts:4791-4792,4819-4820`）。
+
+**Vue 节点模式**
+
+- `_processNodeClick` 在 `LiteGraph.vueNodesMode` 为真时直接 return（`LGraphCanvas.ts:2784-2788`）；Vue 画布挂载见 `GraphCanvas.vue:93-98,342-346`。
+- `LinkOverlayCanvas.vue:3-4` 的 overlay 为 `pointer-events:none`，不拦截 canvas 命中。
+- 结论：链路命中仍走 canvas 逻辑，自绘 hover 与 canvas 重绘一致，不与 DOM overlay 冲突。
+
+**交叉验证**
+
+| 结论 | 证据 A | 证据 B |
+| --- | --- | --- |
+| 选中类型不含 link | `selectionState.ts:7` | `LGraphCanvas.ts:746`、`:4787-4821` |
+| 命中读渲染产物 | `hitTesting.ts:41-55` | `hitTesting.ts:39`、`LGraphCanvas.ts:5196-5209` |
+| 无原生 link hover | `LGraphCanvas.ts:3549-3553` | `:4556-4814` 仅邻接填充 |
+| 删除走 `removeLink` | `LGraphCanvas.ts:6760-6775` | `LGraph.ts:2133-2141` |
+| Reroute 可安全删 | `LLink.ts:582-590` | `LGraphNode.ts:3472-3482` |
+| 菜单可注入 | `ContextMenu.ts:311-341` | `changeTracker.ts:625-630` |
+| Vue 不拦链路 | `LGraphCanvas.ts:2784-2788` | `LinkOverlayCanvas.vue:3-4` |
+
+### 2.9 设置系统契约（1.55.18 实测，2026-11-07）
+
+**注册**：`app.registerExtension({ name, settings: [...] })` 在注册时即被消费（`extensionService.ts:156` → `settingStore.ts:332-352`）。旧入口 `app.ui.settings.addSetting` 源码标注 deprecated，扩展应改用 `settings[]`（`src/scripts/ui/settings.ts:96-129`）。读写用 `settingStore.get/set`（`settingStore.ts:215-222`、`:255-258`），扩展侧可用 `app.extensionManager.setting` 或旧 `app.ui.settings.getSettingValue`。
+
+**分类树（关键坑）**：分类由 `category || id.split('.')` 建树（`useSettingUI.ts:62-70`），`buildTree` 对同路径复用节点并写叶子（`treeUtil.ts:14-38`，`parent.leaf`/`parent.data` 在 `:36-37`）。因此：
+
+- **单元素分类 `['X']` 会把同分类的多条设置折叠成一个叶子，只保留最后注册的一条**；该叶子随后被塞进合成导航组 `Other`（`useSettingUI.ts:72-81`）。
+- 要让多条设置同时可见，必须用 **3 级分类**：`[扩展名, 组名, 逐设置唯一键]`（核心范式：`['Comfy','Error System','IssuesTab']`；KJNodes `web/js/vue_combo.js:583`；VHS `web/js/VHS.core.js:1766-1845`）。
+- 扩展分类不能成为设置对话框的顶级面板：面板列表硬编码（`useSettingUI.ts:253-262`、`SettingDialog.vue:176-179`），未发现注册 API；扩展分类统一归入导航组 `Other`（`useSettingUI.ts:324-333`）。
+- 分组无折叠，只有标题 + 行（`SettingGroup.vue:1-26`）；排序按 `sortOrder` 降序（`SettingDialog.vue:181-198`）。
+
+**搜索**：仅匹配 `id`、`name`、翻译名、分类名、子分类名，**不匹配 tooltip**（`useSettingSearch.ts:75-97`；实测 tooltip 独有词 `净空` 返回 0 条，`LuoWen` 返回全部 6 条）。
+
+**控件**：内置 `boolean/number/slider/knob/combo/radio/image/color/url/backgroundImage/text/hidden`（`FormItem.vue` 分派）；`type` 可为自定义渲染函数 `(name, setValue, value, attrs) => HTMLElement`（`CustomFormValue.vue:8-19`；第三方实例 pysssss `web/js/autocompleter.js:324-330`）。`experimental: true` 显示实验徽章（`SettingItem.vue:14-25`）。
+
+- **`slider` 的 attrs**（2026-11-07 补测）：设置定义里的 `attrs` 对象经 `FormItem.vue` 的 `getFormAttrs` 原样 `v-bind` 到控件；`InputSlider.vue` 按 `min/max/step` 三个 prop 接收并同时驱动 PrimeVue Slider 与 InputNumber。实例：`LuoWen.CornerRadius` 用 `type:'slider'` + `attrs:{min:0,max:24,step:1}`，运行时数字框回读值与滑块一致。（证据：`settingStore-DZ2-HL-F.js.map` 的 `FormItem.vue` / `InputSlider.vue` 源内容 + 宿主设置页实测 id=`LuoWen.CornerRadius` 的 `.input-slider` DOM。）
+
+**独立 UI**：侧边栏 tab 公开入口 `app.extensionManager.registerSidebarTab`（`workspaceStore.ts:73-83`、`sidebarTabStore.ts`），支持 `type:'vue'+component` 或 `type:'custom'+render(el)`（`ExtensionSlot.vue:1-34`；第三方实例 EasyUse `web_version/v2/easyuse.js:2`）。侧边栏内容不参与原生设置搜索。设置对话框可用命令 `Comfy.ShowSettingsDialog` 打开。
+
+**交叉验证汇总**
+
+| 结论 | 证据 A | 证据 B |
+|---|---|---|
+| `settings[]` 注册即消费 | `extensionService.ts:156` | `settingStore.ts:332-352` |
+| 单元素分类折叠 | `treeUtil.ts:36-37` | `useSettingUI.ts:62-81` + 1.55.18 实测 |
+| 搜索不含 tooltip | `useSettingSearch.ts:75-97` | 实测 `净空` 0 结果 |
+| 不能新增设置面板 | `useSettingUI.ts:253-262` | `SettingDialog.vue:176-179` |
+| 侧边栏可自绘 UI | `ExtensionSlot.vue:1-34` | EasyUse `easyuse.js:2` |
+| 自定义控件可行 | `FormItem.vue` 分派 | `CustomFormValue.vue:8-19` |
+
+详细调研与方案见 `docs/specs/luowen-settings-ui.md`。
+
+### 2.10 设置项提示框契约（1.55.18 实测，2026-11-07）
+
+- **渲染链路**：设置行由 `SettingItem.vue` 把 `setting.tooltip` 传给 `FormItem.vue`；`FormItem.vue:13-15` 在标签后渲染 `i.pi-info-circle` 并挂 `v-tooltip="props.item.tooltip"`。问号图标由宿主渲染，不是扩展代码。
+- **指令实现**：PrimeVue `tooltip-directive`（`vendor-primevue-DgZFaBSX.js`，`beforeMount` @669696、`create` @675556）。字符串值走默认分支：`escape=true`、无附加 class。对象值 `{ value, class, fitContent, escape, showDelay, hideDelay }` 走对象分支：`class` 会追加到 tooltip 根节点（@670154 读取，@675969 拼接到根 class）。
+- **文本与样式**：`escape=true` 用 `document.createTextNode`，纯文本、不解析 HTML（@675556）。默认样式为 inline `@layer primevue`：`.p-tooltip{max-width:var(--p-tooltip-max-width)}`、`.p-tooltip-text{white-space:pre-line;word-break:break-word}`；根变量 `--p-tooltip-max-width:12.5rem`（=200px，运行时实测）。
+- **换行**：`\n` 在 `white-space: pre-line` 下渲染为换行（实测 2–6 行，`innerText` 保留 `\n`）。
+- **受控放宽（内容自适应 + 上限封顶）**：对象形式传 `class:'luowen-tooltip'`，再注入未分层规则 `.p-tooltip.luowen-tooltip{width:max-content;max-width:min(560px,calc(100vw - 2rem))}`。未分层 CSS 优先于 `@layer primevue`，但指令会在根节点写内联 `style="width: fit-content"`（实测 @675556 分支），内联优先级更高 → 实际生效的是 `fit-content`（内容自适应）叠加我们的 `max-width`（封顶 560px），等效于「内容自适应 + 上限封顶」；注入的 `width:max-content` 仅在宿主去掉内联宽度时才会接管，作为回退保留。实测内容宽 282–491px（未触达 560px 上限）；视口 900px 时 `fit-content` 按剩余空间封到 465px。其他设置提示框仍为 200px（class 为 `p-tooltip p-component`，无标记 class）。
+- **降级**：宿主若不再支持对象 `class`，规则不命中 → 回落 200px，换行仍生效；若 `pre-line` 改变，`\n` 折叠为空格，文本仍完整；不崩溃。
+- **交叉验证**：`FormItem.vue:13-15` ↔ 运行时 `i.pi-info-circle` 与 `.p-tooltip`；vendor 对象分支 @670154 ↔ 运行时 tooltip class 含 `luowen-tooltip`；`.p-tooltip-text` 的 `pre-line` ↔ 实测多行渲染。
+
 ## 3. 打包与依赖
 
 ### 3.1 目录结构（多数派实践 [7/7]）
