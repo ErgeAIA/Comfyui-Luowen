@@ -209,7 +209,9 @@ function planTrunks(graph, canvas) {
         }),
       };
       state.trunkCache.set(gkey, plan);
-      if (state.trunkCache.size > 64) state.trunkCache.clear();
+      // 上限必须大于合法组数（每组至少 2 条线，1000 线最多 500 组）：
+      // 写死 64 时 200/500 节点图每帧超限全清，导致整图主干逐帧重规划（实测 744 次求解/帧）。
+      if (state.trunkCache.size > 4096) state.trunkCache.clear();
       if (plan.merged.size >= 2) {
         state.trunkPrev.set(gkey, plan.merged);
         state.counters.trunkGroups += 1;
