@@ -11,6 +11,7 @@ import {
   getTrace,
   getCrossDebug,
   runCrossCleanup,
+  getColorDebug,
   CORNER_RADIUS_MAX,
 } from './adapters/renderLinkAdapter.js';
 import { DEFAULT_RADIUS } from './geometry/trace.js';
@@ -25,6 +26,8 @@ const STYLE_ID = 'LuoWen.WireStyle';
 const AVOID_ID = 'LuoWen.NodeAvoidance';
 const CHAMFER_ID = 'LuoWen.Chamfer';
 const CORNER_RADIUS_ID = 'LuoWen.CornerRadius';
+const COLOR_THEME_ID = 'LuoWen.ColorTheme';
+const FLOW_ID = 'LuoWen.FlowAnim';
 const SNAP_ID = 'LuoWen.SnapAlign';
 const CROSS_CLEANUP_ID = 'LuoWen.CrossCleanup';
 
@@ -314,6 +317,39 @@ app.registerExtension({
       onChange: (v) => setSettings({ chamfer: !!v }),
     },
     {
+      id: COLOR_THEME_ID,
+      name: '连线配色主题',
+      category: ['LuoWen', '线路外观', 'ColorTheme'],
+      sortOrder: 55,
+      tooltip: {
+        value:
+          '按连线的数据类型着色（62 类语义映射）。\n暗色与 Cyberpunk 两套主题均通过对比度与色盲 ΔE 门槛。\n关闭时保持宿主原生配色。',
+        class: TIP_CLASS,
+      },
+      type: 'combo',
+      options: [
+        { text: '关闭（原生）', value: 'off' },
+        { text: '暗色（LuoWen Dark）', value: 'luowen-dark' },
+        { text: 'Cyberpunk', value: 'luowen-cyberpunk' },
+      ],
+      defaultValue: 'off',
+      onChange: (v) => setSettings({ colorTheme: v === 'luowen-dark' || v === 'luowen-cyberpunk' ? v : 'off' }),
+    },
+    {
+      id: FLOW_ID,
+      name: '流向动效',
+      category: ['LuoWen', '线路外观', 'FlowAnim'],
+      sortOrder: 52,
+      tooltip: {
+        value:
+          '虚线沿连线行进，表达数据从源流向目标。\n仅配色主题开启时生效。\n默认关闭。\n系统开启减少动态效果时自动改为实线。\n缩放不大于 40% 时自动关闭。',
+        class: TIP_CLASS,
+      },
+      type: 'boolean',
+      defaultValue: false,
+      onChange: (v) => setSettings({ flowAnim: !!v }),
+    },
+    {
       id: CROSS_CLEANUP_ID,
       name: '离线交叉清理',
       category: ['LuoWen', '实验', 'CrossCleanup'],
@@ -357,6 +393,7 @@ app.registerExtension({
 
     window.LuoWen = {
       status: () => getStats(),
+      colorDebug: () => getColorDebug(),
       routes: () => getDebugRoutes(),
       trace: () => getTrace(),
       snapDebug: () => getSnapDebug(),

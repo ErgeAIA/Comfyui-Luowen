@@ -159,7 +159,7 @@ ComfyUI 的节点工作流在连接数量增加后，常出现以下问题：
 
 - 自动创建真实 Reroute 或自动重写工作流图。
 - 复杂的用户自定义布线编辑器。
-- 线路颜色语义体系或数据类型重设计（注：配色 token 与主题已于 2026-11-07 经 DEC-029 单列设计任务，见 `docs/specs/link-color-tokens/`，接入代码时同步修订本条）。
+- 数据类型重设计（线路颜色语义体系已于 2026-11-08 接入代码：`LuoWen.ColorTheme` / `LuoWen.FlowAnim`，DEC-039；token 规范见 `docs/specs/link-color-tokens/`）。
 - 工作流语义分析、节点推荐或执行优化。
 
 ---

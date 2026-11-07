@@ -2,7 +2,7 @@
 title: 性能验收台账
 type: performance-log
 project: 络纹（LuoWen）
-updated: 2026-11-07
+updated: 2026-11-08
 description: >
   性能与视觉效果并列为验收维度。本文件记录性能验收口径、待测场景、测量入口与已测得数据。
   只追加不删历史；每条结论必须附测量方法、样本布局与原始数据。
@@ -160,3 +160,9 @@ description: >
 同窗口成对对比（before-2 vs 终版）：frame −5.7%、render −4.5%——**不劣于圆角折线（略优）**。before-1 与 before-2 同代码差 18%，为跨页机器噪声上界；三次变体的 +55% 远超噪声带，判真回归并弃用。
 
 **行为不变**：默认模板骨架几何指纹 `3664953215` 与历史一致；`verify() ok`；主干 `62:0 [79,81]`、等距带 2、降级 0；拐角曲线顶点 hover 命中 `{linkId:75, part:'branch'}`（顶点距骨架 6px < 容差 8.9px，单测偏差上界 ≤0.26·d）；单测 105/105（新增 emitBezier 6 项）。截图 `bezier-r0/10/24.png`（0=直角 / 10 默认 / 24 满档）。
+
+### 2026-11-08 配色主题开/关抽查（500 节点 smooth）
+
+- 协议同 §2026-11-07 smooth 真 Bezier（500 LatentBlend / 499 线 / 40 帧）。
+- 主题关 frame 48.405 / render 36.255；主题开（luowen-dark）46.978 / 34.205——差值在跨页噪声带内，取色为每线一次 Map.get，无可测成本。
+- 数据：`.verify/p5/coexist/`（perf-smooth-ab.mjs theme-off / theme-dark）。

@@ -2,7 +2,7 @@
 title: Project Progress
 type: project-progress
 project: 络纹（LuoWen）
-updated: 2026-11-07
+updated: 2026-11-08
 description: >
   项目开发进度实时记录：阶段、分支、代码状态、最近进展。每次会话更新。
   AI 在本文件新增进展或修改当前状态后，必须同步更新 frontmatter 的 updated 字段为当日日期（YYYY-MM-DD）。
@@ -26,6 +26,13 @@ description: >
 - **代码**：`luowen/`（含 `routing/trunkPlan.js` 单主干共享几何、三档避障、预览、缓存、`geometry/chamfer.js` 绕障外角大斜切、`geometry/trace.js` 圆角半径 0–24（默认 10）、`routing/laneAssign.js` 输入侧按接近方向嵌套分道 + 走廊净空顺延 + 同目标等距带（`planBands`、`bandDegraded`/`orderDegraded`）、`snap/alignSnap.js` + `snap/dragSnap.js` 对齐吸附、`routing/crossings.js` + `routing/crossCleanup.js` 交叉枚举与离线清理、主干组高亮 + 组删除菜单），已装本机 custom_nodes 实测
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2、Node 24.22.1；Playwright 浏览器实测流程已打通
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2、Node 24.22.1；Playwright 浏览器实测流程已打通
+- **本轮 B：连线配色 token + 主题接入渲染层（2026-11-08，新增 `luowen/web/colors/` 两文件 + 生成器 + 适配器/设置接线；已部署宿主实测；未提交，等用户验收）**：
+  - 单一来源：`docs/specs/link-color-tokens/materialize.mjs` 生成 `luowen/web/colors/materialized.js`（62 类型→hex × 两主题 + flow + context；运行时零 OKLCH 计算）；`linkColors.js` 纯函数模块（setTheme/resolveLinkColor/flowParams，可 Node 单测）。
+  - 适配器：stroke 优先级 `resolveLinkColor ?? 原生 color ?? #94a3b8`；流向=虚线沿路径行进（dash 7/gap 13/speed 48/opacity 0.92，token 透传），三重闸门（用户开关/reduced-motion/缩放>0.4），rAF 循环仅在开启时驱动 setDirty；`colorDebug()` 验收入口。
+  - 设置：`LuoWen.ColorTheme`（off/dark/cyberpunk，默认 off）+ `LuoWen.FlowAnim`（默认 off），线路外观组；设置存服务端 `comfy.settings.json`，探针测后已还原用户原值。
+  - 验收（DEC-037 对照表口径）：单测 **109/109**（新增 4 项）；宿主 `colors-accept.mjs` 全绿——三态 verify ok、`colorDebug` 解析与 token 产物逐值一致（MODEL #A192E5 / LATENT #DF9ADE / VAE #F99692 / CONDITIONING #D09244 / CLIP #C1BA59）、流向两帧截图行进可见、reduced-motion 强制实线、还原 off 无扰；截图 `colors-off/dark/cyber/flow-1/2/flow-reduced.png`；500 节点主题开 46.0 vs 关 48.4ms（噪声内，台账 §2026-11-08）。
+  - 插曲（如实记录）：适配器导出名 `colorDebug` 与 index.js 导入 `getColorDebug` 不一致 → 模块图加载失败一次，改名修复；ComfyUI 设置持久化在服务端（非 localStorage），探针写入须测后还原——已写入 DEC-039。
+  - 文档：DEC-039、PRD §4.3 P2 注修订（语义配色已落地）、CHANGELOG 新增段、performance 台账 §2026-11-08。
 - **本轮 A：smooth 真 Bezier（2026-11-07，改 `trace.js` + `renderLinkAdapter.js` 绘制分支；已部署宿主实测；未提交，等用户验收）**：
   - 改动：`trace.js` 新增 `emitBezier`（控制点=角点的贝塞尔拐角，切点沿两腿各 d，钳制语义复用 `filletRadius`；共线点退化 lineTo）；适配器 smooth 分支 `emitRounded(arcTo)` → `emitBezier`。骨架 pts、路由/命中几何、chamfer 互斥口径、cornerRadius 语义（0=直角）全部不变。
   - 方案迭代（如实记录）：先试升阶三次 `bezierCurveTo`，同机 A/B 帧耗时 60.9~68.4ms vs HEAD 38.7~45.8ms（+55%，远超 ±18% 机器噪声带）→ 判真回归弃用；改用**同形**二次 `quadraticCurveTo`（升阶不变量，视觉与三次完全一致）→ 36.45~36.77ms，同窗口成对对比 HEAD 38.68ms **frame −5.7%、render −4.5%，不劣于圆角折线（略优）**。

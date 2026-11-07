@@ -2,7 +2,7 @@
 title: Decision Log
 type: decision-log
 project: 络纹（LuoWen）
-updated: 2026-11-07
+updated: 2026-11-08
 priority: higher-than-prd
 description: >
   开发过程决策日志，优先级高于 PRD；冲突时以本文件最新条目为准并回写 PRD/ADR。
@@ -16,7 +16,19 @@ description: >
 > 格式：`## DEC-NNN: 标题`，新条目置顶，NNN 三位递增。
 > 字段：`- **日期**：` / `- **背景**：` / `- **决策**：` / `- **验证**：`
 
-## DEC-038: 产品边界修订——自动布局纳入范围；手动锚点豁免；发布材料延后
+## DEC-039: 连线配色 token 与主题接入渲染层（B 项落地口径）
+
+- **日期**：2026-11-08
+- **背景**：DEC-029/spec 已定「类型轴 + 三级 token + 接入点=renderLink 的 stroke」，验收材料齐（62 类覆盖 100%、对比度/ΔE 过门槛）；A 项（smooth Bezier）验收通过后按执行序开工 B。
+- **决策**：
+  1. **单一来源**：`docs/specs/link-color-tokens/materialize.mjs` 把 token JSON + `data/link-colors-*.json`（verify.mjs 产物）打包为 `luowen/web/colors/materialized.js`（含生成横幅与再生成命令）；运行时零 OKLCH 计算，只查表。
+  2. **取色优先级**：`resolveLinkColor(link) ?? 原生 color 实参 ?? '#94a3b8'`——主题开启时语义色生效；关闭（默认）时行为与接入前逐字节一致（`colors-off.png` 对照）。
+  3. **设置面**：`LuoWen.ColorTheme`（off/dark/cyberpunk，默认 off，线路外观组）+ `LuoWen.FlowAnim`（默认关）；动效三重闸门=用户开关 && 非 prefers-reduced-motion && 缩放 >0.4；流向=虚线沿路径行进（源→目标），token `flow.enabled:false` 即设置默认值的规范来源。
+  4. **边界**：不写 `graph.extra`/节点数据；不造主题引擎/渲染模式；cyberpunk.json 与 dark.json 主题文件原样不动；类型轴不变（62 类显式 + 13 条长尾正则 + link.unknown）。
+- **验证**：单测 109/109（新增 linkColors 4 项：默认 null/62 类 hex 合法/映射与 token 产物逐值一致+长尾/动效三闸门）；宿主 `colors-accept.mjs` 全绿——off/dark/cyberpunk 三态 verify ok、`colorDebug()` 按类型解析与 token 产物一致（MODEL #A192E5 等）、流向虚线运行两帧截图 `colors-flow-1/2.png`、reduced-motion 强制实线 `colors-flow-reduced.png`、还原后宿主 `comfy.settings.json` 的 LuoWen 键保持用户原值；500 节点主题开 46.0ms vs 关 48.4ms（噪声内，Map.get 可忽略）；截图 `colors-off/dark/cyber.png`。插曲如实记录：导出名不一致（colorDebug/getColorDebug）导致模块图加载失败一次，改名后通过；探针设置持久化到服务端 `comfy.settings.json`，测后已还原。
+- **结果**：随本轮提交；主题文件、调色板注入均未改动，接入点与 spec §5.2 一致。
+
+## DEC-038: 产品边界修订——自动布局纳入范围；手动锚点豁免；发布材料延后: 产品边界修订——自动布局纳入范围；手动锚点豁免；发布材料延后
 
 - **日期**：2026-11-07
 - **背景**：用户质疑「PRD 内容是否都做了」并点名自动布局/主题未做。对账结论：①自动布局在 PRD §2.3（非目标）与 §4.3（P2）两处被排除；②主题属配色 token 设计任务（spec 就绪、代码未接）；③发布材料在剩余功能未齐时不该启动。用户逐项拍板：自动布局**纳入范围**；手动锚点**豁免**；发布材料**延后**。

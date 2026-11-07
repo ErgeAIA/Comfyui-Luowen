@@ -13,6 +13,7 @@
 
 import { route } from '../geometry/router.js';
 import { emitBezier, measure as measurePts, pointAt, DEFAULT_RADIUS as DEFAULT_CORNER_RADIUS } from '../geometry/trace.js';
+import { resolveLinkColor, flowParams, setTheme as setLinkColorTheme, themeInfo } from '../colors/linkColors.js';
 import { DEFAULT_BEVEL_RATIO, chamferPolyline, createChamferIndex, polylineBox, findSharedPoints } from '../geometry/chamfer.js';
 import { previewPath } from '../geometry/preview.js';
 import { obstacleHash, corridorClear } from '../geometry/obstacles.js';
@@ -56,7 +57,7 @@ const state = {
   wrappedRenderRef: null,
   originalDrawConnections: null,
   wrappedDrawRef: null,
-  settings: { enabled: true, style: 'orthogonal', avoidance: 'standard', chamfer: true, bevelRatio: DEFAULT_BEVEL_RATIO, cornerRadius: DEFAULT_CORNER_RADIUS, trunkCap: null, lanePitch: DEFAULT_LANE_PITCH, brotherSpacing: DEFAULT_BROTHER_SPACING, crossCleanup: false },
+  settings: { enabled: true, style: 'orthogonal', avoidance: 'standard', chamfer: true, bevelRatio: DEFAULT_BEVEL_RATIO, cornerRadius: DEFAULT_CORNER_RADIUS, trunkCap: null, lanePitch: DEFAULT_LANE_PITCH, brotherSpacing: DEFAULT_BROTHER_SPACING, crossCleanup: false, colorTheme: 'off', flowAnim: false },
   frame: {
     obstacleHashStr: '',
     version: 0,
@@ -1330,7 +1331,9 @@ function tryCustomRender(ctx, a, b, link, color, start_dir, end_dir, opts) {
   state.frame.effectiveRoutes.set(link.id, pts);
 
   const width = typeof canvas.connections_width === 'number' ? canvas.connections_width : 2;
-  const stroke = typeof color === 'string' && color ? color : '#94a3b8';
+  // 配色主题（DEC-029）：主题开启时按连线数据类型取语义色（62 类显式映射）；
+  // 关闭时回退原取色链（原生 color 实参 || #94a3b8），行为与接入前完全一致。
+  const stroke = resolveLinkColor(link) ?? (typeof color === 'string' && color ? color : '#94a3b8');
   // 主干组悬停：trunk 段高亮全组，branch 段只高亮该条；无络纹 hover 时回退原生中心点悬停
   const hovered = state.hover
     ? state.hover.part === 'trunk'
@@ -1373,6 +1376,13 @@ function tryCustomRender(ctx, a, b, link, color, start_dir, end_dir, opts) {
   ctx.strokeStyle = stroke;
   ctx.lineJoin = 'miter';
   ctx.lineCap = 'round';
+  // 流向动效（spec §6，默认关闭）：虚线沿路径行进（源→目标）；reduced-motion / 缩放 ≤0.4 强制实线。
+  const flow = flowParams({ enabled: cfg.flowAnim, scale: app?.canvas?.ds?.scale ?? 1, reducedMotion: reducedMotionPref() });
+  if (flow) {
+    ctx.setLineDash([flow.dash, flow.gap]);
+    ctx.lineDashOffset = -((performance.now() / 1000) * flow.speed) % flow.period;
+    ctx.globalAlpha = flow.opacity;
+  }
   ctx.stroke(path);
   if (hovered) {
     // 高亮：同路径白色柔光叠加（只改绘制，不改数据）
@@ -1646,6 +1656,12 @@ export function setSettings(partial) {
     const n = Number(partial.cornerRadius);
     partial.cornerRadius = Number.isFinite(n) ? Math.max(0, Math.min(CORNER_RADIUS_MAX, n)) : prev.cornerRadius;
   }
+  if ('colorTheme' in partial) {
+    const id = partial.colorTheme && partial.colorTheme !== 'off' ? String(partial.colorTheme) : 'off';
+    partial.colorTheme = id;
+    setLinkColorTheme(id === 'off' ? null : id);
+  }
+  if ('flowAnim' in partial) partial.flowAnim = !!partial.flowAnim;
   if ('brotherSpacing' in partial) {
     const n = Number(partial.brotherSpacing);
     partial.brotherSpacing = Number.isFinite(n) ? Math.max(0, Math.min(64, n)) : prev.brotherSpacing;
@@ -1654,7 +1670,47 @@ export function setSettings(partial) {
   const dirty = ['enabled', 'style', 'avoidance', 'lanePitch', 'brotherSpacing', 'crossCleanup']
     .some((k) => k in partial && partial[k] !== prev[k]);
   if (dirty) invalidateCleanup('settings');
+  if ('colorTheme' in partial || 'flowAnim' in partial) syncFlowLoop();
   app?.canvas?.setDirty?.(false, true);
+}
+
+// ---------- 连线配色主题（DEC-029 / link-color-tokens）与流向动效 ----------
+
+// 主题关闭 → resolveLinkColor 返回 null → 回退原取色链（原生 color || #94a3b8）。
+let reducedQuery = null;
+function reducedMotionPref() {
+  if (typeof window === 'undefined' || !window.matchMedia) return false;
+  if (!reducedQuery) reducedQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  return !!reducedQuery.matches;
+}
+
+let flowRaf = 0;
+function flowLoopTick() {
+  flowRaf = 0;
+  const on = state.installed && state.settings.flowAnim && state.settings.colorTheme !== 'off';
+  if (!on) return;
+  app?.canvas?.setDirty?.(false, true);
+  flowRaf = requestAnimationFrame(flowLoopTick);
+}
+
+function syncFlowLoop() {
+  const want = !!(state.installed && state.settings.flowAnim && state.settings.colorTheme !== 'off');
+  if (want && !flowRaf) flowRaf = requestAnimationFrame(flowLoopTick);
+}
+
+// 调试/验收入口：当前主题 + 现存连线按类型的解析结果与条数
+export function getColorDebug() {
+  const g = app?.canvas?.graph;
+  const links = g?.links ? [...g.links.values()] : [];
+  const byType = {};
+  for (const l of links) {
+    const t = String(l?.type ?? '');
+    const hex = resolveLinkColor(l);
+    if (!byType[t]) byType[t] = { hex, n: 0 };
+    byType[t].n += 1;
+  }
+  const id = state.settings.colorTheme !== 'off' ? state.settings.colorTheme : null;
+  return { theme: state.settings.colorTheme, flowAnim: !!state.settings.flowAnim, info: themeInfo(id), byType };
 }
 
 export function getStats() {

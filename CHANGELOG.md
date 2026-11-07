@@ -7,7 +7,10 @@
 
 ## [Unreleased]
 
-### 变更
+### 新增
+
+- 连线配色主题 `LuoWen.ColorTheme`（关闭/暗色/Cyberpunk）：按连线数据类型着色，62 类语义映射（对比度与色盲 ΔE 已过门槛，见 `docs/specs/link-color-tokens/`）；默认关闭，行为与原生一致
+- 流向动效 `LuoWen.FlowAnim`（默认关闭）：虚线沿连线从源到目标行进；系统「减少动态效果」或缩放不大于 40% 时自动实线
 
 - smooth 样式拐角由圆弧拼接改为贝塞尔曲线（PRD §5.1 真 Bezier）：控制点=角点、切距沿用 `LuoWen.CornerRadius`（0–24px，默认 10px，0 为直角）；骨架路径与命中几何不变；同机 A/B 帧耗时较圆角折线略优（`docs/agents/performance.md` §2026-11-07）
 
