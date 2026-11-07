@@ -29,3 +29,4 @@ description: >
 - `References 缺性能验收指针 → update → 新增「性能验收 / 查基准方法 → 见 docs/agents/performance.md」`
 - `References 缺连线配色与组交互规格指针 → update → 新增两条：docs/specs/link-color-tokens/（尚未接入代码）、docs/specs/trunk-group-interaction/（组高亮 + 组删除，DEC-021 口径）`
 - `References 缺兼容性与第三方共存指针 → update → 新增「查兼容性与生命周期验收 / 第三方共存冲突面 → 见 docs/agents/compatibility-matrix.md」：该文档已成阶段 3 验收与 19 条冲突面的唯一落点，此前只能靠 project-progress 反查`
+- `Permissions「禁止自动节点布局、工作流语义分析、通用插件市场（PRD §2.3）」 → update → 「禁止工作流语义分析、通用插件市场（PRD §2.3）；节点自动布局已纳入范围（F-015/DEC-038），实现须用户主动触发、可撤销、不在渲染热路径运行」：用户 2026-11-07 拍板将自动布局从非目标纳入范围，PRD §2.3/§4.2/§4.3 同步修订；实现另行排期（在 A smooth Bezier / B 配色主题 / C fixture / D 性能之后）`

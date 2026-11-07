@@ -25,6 +25,10 @@ description: >
 - **本轮提交收尾（2026-11-07）**：文档与代码分三笔提交后，又追加 6 笔功能/修复提交并已 push；提交链 `529648e`（文档）→ `ad01899`（阶段 2 代码）→ `9f93d3c`（trunkCache 上限）→ `8d55a0b`（chamfer 预筛）→ `29fc015`（等距带方向感知）→ `01d8df7`（Reroute 手动意图保护）→ `d546e39`（BUG-006）→ `5146c82`（共存文档）→ `ebbc038`（verify 快照）；工作区干净，本地无未推送提交
 - **代码**：`luowen/`（含 `routing/trunkPlan.js` 单主干共享几何、三档避障、预览、缓存、`geometry/chamfer.js` 绕障外角大斜切、`geometry/trace.js` 圆角半径 0–24（默认 10）、`routing/laneAssign.js` 输入侧按接近方向嵌套分道 + 走廊净空顺延 + 同目标等距带（`planBands`、`bandDegraded`/`orderDegraded`）、`snap/alignSnap.js` + `snap/dragSnap.js` 对齐吸附、`routing/crossings.js` + `routing/crossCleanup.js` 交叉枚举与离线清理、主干组高亮 + 组删除菜单），已装本机 custom_nodes 实测
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2、Node 24.22.1；Playwright 浏览器实测流程已打通
+- **本轮 PRD 对账与边界修订（2026-11-07，只改文档；DEC-038）**：
+  - 全量对账：P0 F-001~F-014 已达成（F-010 经手动锚点豁免清账）；未完成 = smooth 真 Bezier（§5.1）、配色 token+主题接入（DEC-029）、§10.6 性能目标未达标（131ms vs 33.4ms）、§14.2 fixture 2/10、AT-027/028 宿主专项、子图内四类、P1 部分（线宽/曲率/端口级禁用主干/ZipTies 协同/调试面板增强）、发布材料（延后）。
+  - **自动布局纳入范围（用户拍板）**：PRD §2.3 非目标改「独立功能纳入」、§4.2 新增 F-015（用户主动触发/单条 undo/不静默/不在渲染热路径/只改 pos）、§4.3 移除；AGENTS.md 禁令行同步修订（agents-changelog 留痕）；**实现另行排期**，殿后于 A→B→C→D/E。
+  - **执行序（用户定）**：A smooth 真 Bezier → B 配色 token+主题 → C fixture 10 组 → D 性能 / E 异常与子图补测；待办 3 发布材料挂起。
 - **本轮待办 1：第三方运行时共存验证（2026-11-07，用户批准逐装逐卸；已循环 1–4 完成）**：
   - 方式：按 spec §6 逐装逐卸——复制临时仓库到 custom_nodes → 重启宿主 → Playwright 验证（几何指纹 fp 2472081361 为无第三方基线）→ 删目录 → 重启 → 恢复核对；共 6 次宿主重启，终态与安装前基线一致（extensions 203、`/object_info` 2318、custom_nodes 清单一致）。证据 `.verify/p5/coexist/`。
   - **被动装载四者全部无害**：Cable/NKD/Zip Ties 装机态几何指纹与基线逐点一致或可归因（见下）、无控制台错误、账目对齐、`verify() ok`、Reroute 保护生效（`trunks:[]`）。
