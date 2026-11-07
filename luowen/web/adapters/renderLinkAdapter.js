@@ -514,13 +514,14 @@ function planBands(graph) {
     const dir = oy - ty < -1 ? 'up' : oy - ty > 1 ? 'down' : 'flat';
     const gk = `${l.target_id}|${dir}`;
     if (!groups.has(gk)) groups.set(gk, []);
-    groups.get(gk).push({ l, ep });
+    groups.get(gk).push({ l, ep, dir });
   }
 
   const laneOf = (id) => state.frame.lanes.get(id) ?? { stubOut: DEFAULT_STUB, stubIn: DEFAULT_STUB };
 
   for (const [, members] of groups) {
     if (members.length < 2) continue;
+    const dir = members[0].dir;
 
     // 2) 先各自求解（只对本组做，规模 = 同组入线数；缓存命中时零次 A*，不重复求解）
     for (const m of members) {
@@ -538,7 +539,7 @@ function planBands(graph) {
       m.ap = approachOf(pts);
     }
 
-    // 3) 按目标引脚 y 全序给 rank：y 小 = rank 0 = 外侧基准；y 越大越靠近目标节点。
+    // 3) 按目标引脚 y 全序给 rank：y 小 = rank 0；「外侧基准 / 内侧基准」由组方向决定（见 4 的 s）。
     members.sort((a, b) => a.ep.by - b.ep.by);
     const target = String(members[0].l.target_id);
 
@@ -554,10 +555,13 @@ function planBands(graph) {
     // 保持自身直线；只要它的引脚 y 位于阶梯外侧就不会与阶梯相交（相交由帧末校验兜底）。
     const ladder = members.filter((m) => m.pts && m.ap);
 
-    // 4) 以任一成员为枢轴生成阶梯：x_r = pivotX + (r - p)·dirToNode·spacing；
+    // 4) 以任一成员为枢轴生成阶梯：x_r = pivotX + s·(r - p)·dirToNode·spacing；
     //    k>0 时整梯再向外挪。逐个试（成员数很小，纯几何、零次 A*），取第一个全部通过
-    //    净空校验的方案。允许「向外扇开」，避免把线硬拉进目标节点旁的障碍
+    //    净空校验与兄弟交叉校验的方案。允许「向外扇开」，避免把线硬拉进目标节点旁的障碍
     //    （BUG-003 现场：把 L78 拉到 814.5 会蹭到 VAELoader 63）。
+    //    s = 接近侧符号：dir='up'（源在目标上方）时正确嵌套是「引脚 y 越小、走廊 x 越贴目标」，
+    //    与 dir='down' 相反；down/flat 取 +1，逐点保持原算式（BUG-004）。
+    const approachSign = dir === 'up' ? -1 : 1;
     let chosen = null;
     let lastReason = ladder.length === members.length ? null : `straight-${members.length - ladder.length}`;
     if (ladder.length >= 2) {
@@ -569,7 +573,7 @@ function planBands(graph) {
           let ok = true;
           for (let r = 0; r < ladder.length; r++) {
             const m = ladder[r];
-            const required = pivotX + (r - p) * dirToNode * spacing;
+            const required = pivotX + approachSign * (r - p) * dirToNode * spacing;
             const skip = new Set([String(m.l.origin_id), String(m.l.target_id)]);
             const cand = shiftCorridor(m.pts, m.ep, m.ap, required - m.ap.x);
             const ownClear = bandClear(m.pts, rects, skip);
@@ -580,7 +584,20 @@ function planBands(graph) {
             }
             staged.set(m.l.id, cand);
           }
-          if (ok) chosen = { staged, k, pivot: p };
+          // P0.5：候选必须先过「同组两两不相交」（含不可平移的直线成员），
+          // 交叉的候选直接不提交；全部候选失败才由下面的 markOrderDegraded 显式降级。
+          if (ok) {
+            const candMap = new Map();
+            for (const m of members) candMap.set(m.l.id, staged.get(m.l.id) ?? m.pts ?? null);
+            outer: for (let i = 0; i < members.length; i++) {
+              for (let j = i + 1; j < members.length; j++) {
+                if (pathsCross(candMap.get(members[i].l.id), candMap.get(members[j].l.id))) {
+                  ok = false; lastReason = `cross-pivot${p}-k${k}`; break outer;
+                }
+              }
+            }
+            if (ok) chosen = { staged, k, pivot: p };
+          }
         }
       }
     }

@@ -16,6 +16,19 @@ description: >
 > 格式：`## DEC-NNN: 标题`，新条目置顶，NNN 三位递增。
 > 字段：`- **日期**：` / `- **背景**：` / `- **决策**：` / `- **验证**：`
 
+## DEC-032: 等距带阶梯改为方向感知 + 候选兄弟交叉预检（P0 + P0.5）
+
+- **日期**：2026-11-07
+- **背景**：BUG-005 现场——VAE解码 65 移到两个源下方后，K采样器 73 与 加载VAE 74 交叉。DEC-030 的阶梯公式隐含「rank 升序 ⇒ 走廊 x 递增」，只对 `dir='down'` 成立；`up` 组需要镜像。
+- **决策**：
+  1. **P0 方向感知阶梯**：`s = dir === 'up' ? -1 : 1`，`required = pivotX + s·(r-p)·dirToNode·spacing`。`down/flat` 取 +1，逐点保持 DEC-030 原算式；`down` 组逐点不变是硬约束。
+  2. **P0.5 候选预检**：在 `k=0..4 × pivot` 枚举内，对候选 staged 折线与不可平移的直线成员做同组两两 `pathsCross`（沿用 crossings.js 的内点交叉 + 共线重叠口径）；交叉候选直接不提交；全部候选失败才走 `markOrderDegraded`，不新增降级类型。
+  3. **改动面**：仅 `luowen/web/adapters/renderLinkAdapter.js` 的 `planBands`（+23/−6）；`laneAssign`、`trunkPlan`、`shiftCorridor` 语义、`spacing`、`BAND_MAX_SHIFT_STEPS=4`、降级与帧末校验语义全部不变。
+  4. **不做**：不改 `checkOrderCrossings` 的冻结口径，不动 laneAssign 的 ups/downs/flats 分组，不引入新斜率或候选树搜索。
+- **验证**：见 `docs/agents/debug-log.md` BUG-005——本例逐帧 20 帧交叉 0、旧公式同布局模拟交叉 2；远端双线 xs 与已验收基线一致、gap 8、cross 0；四线共线镜像嵌套成立、交叉 0；down 组逐点不变；单主干与 spacing=8 不变；降级/冻结探针按原语义工作；真实图指纹 `0xb0fa2c54`、`verify()` ok、单测 99/99。
+- **已知限制**：`chosen.k===4`（`reason:'cap'`）的成功分支未在现场或探针触发（A* 先行避障后阶梯无需外移），仅由代码审阅与单测覆盖，不得宣称已现场验证。
+- **结果**：未提交 git，未宣称已修复，交用户验收。
+
 ## DEC-031: 验收状态落盘、性能纳入验收维度与阶段 3 开工顺序
 
 - **日期**：2026-11-07

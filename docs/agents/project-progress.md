@@ -24,6 +24,12 @@ description: >
 - **测试**：`node --test tests/unit/*.test.mjs` **99/99** 通过（2026-11-07 实跑复核，fail 0）
 - **代码**：`luowen/`（含 `routing/trunkPlan.js` 单主干共享几何、三档避障、预览、缓存、`geometry/chamfer.js` 绕障外角大斜切、`geometry/trace.js` 圆角半径 0–24（默认 10）、`routing/laneAssign.js` 输入侧按接近方向嵌套分道 + 走廊净空顺延 + 同目标等距带（`planBands`、`bandDegraded`/`orderDegraded`）、`snap/alignSnap.js` + `snap/dragSnap.js` 对齐吸附、`routing/crossings.js` + `routing/crossCleanup.js` 交叉枚举与离线清理、主干组高亮 + 组删除菜单），已装本机 custom_nodes 实测
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2、Node 24.22.1；Playwright 浏览器实测流程已打通
+- **本轮 P0 + P0.5：等距带阶梯方向感知 + 候选兄弟交叉预检（2026-11-07，仅改 `planBands`；已部署宿主实测；未提交，等用户验收）**：
+  - 改动：`planBands` 分组时把 `dir` 挂到成员；阶梯新增 `approachSign = dir === 'up' ? -1 : 1`，`required = pivotX + approachSign·(r-p)·dirToNode·spacing`（down/flat 逐点不变）；`k=0..4 × pivot` 枚举内新增候选（含直线成员）同组两两 `pathsCross` 预检，交叉候选不提交，全部失败才 `markOrderDegraded`。`laneAssign`、`trunkPlan`、`shiftCorridor`、spacing、k 上限与降级语义未动。
+  - 现场：65（VAE解码）y=515→895 步长 20 共 20 帧，73/74 竖段 x 恒 1228.905/1220.905、gap 8、交叉 0、`orderDegraded` 空；y=815 起同属 `65|up` 成带 `{pivot:0,shift:0,xs:[1228.91,1220.91]}`。旧公式（s=+1，74 走廊 1236.905）同布局交叉 2，新代码 0。
+  - 回归：target 70 远端双线 `xs:[null,806.49,814.49]`、gap 8、交叉 0，8 条基线线逐点最大偏差 ≤4.7e-4（验收记录截断）；四线共线（75=822.493、82=806.493、78=814.493、76 直线 y=393）镜像嵌套保持、任意两线交叉 0；65 上移 200 的 down 组 xs `[1220.91,1228.91]` 交叉 0；单主干 `62:0 fork=155 merged=[79,81]` 不变。
+  - 降级探针（已还原）：68 移到 `(1204,630)` + 65 y=835，target 70 组全部候选被 P0.5 拒绝，记录 `cross-pivot1-k4 steps4`，82 `fallback:'prev'` 冻结、78 `solved`，帧末另记 `cross`。`chosen.k===4`（`cap`）成功分支未触发，仅代码审阅与单测覆盖。
+  - 结论：真实图无「同目标 up 组 ≥2 成员」成带场景，`routes()` 逐点未变，指纹（10 线、3 位小数 FNV-1a）`0xb0fa2c54`；`verify()` `{ok:true,diffs:[]}`；单测 99/99（fail 0）；节点坐标 `nodeDiff=[]`。未提交 git。
 - **本轮性能评估第 2 项：chamfer 预筛（2026-11-07，先量后改；已部署宿主并同口径 A/B；未提交，等用户验收）**：
   - 改动：`geometry/chamfer.js` 新增 `polylineBox` / `createChamferIndex`（格网 cell=256，`PREFILTER_MARGIN=GAP_FAR_MAX=200`）；`adapters/renderLinkAdapter.js` 新增 `chamferIndexForFrame()`（每帧一次，指针对 `prevRoutes` 身份 + 障碍版本，拖拽冻结期复用），逐线按折线包围盒外扩 200 取近邻障碍/他线，替代「每线重建 obstacles + 全量 prevRoutes + 逐采样点全量扫描」。`chamferPolyline` 本体未改。
   - 同口径 A/B（同页、同图、同帧数、仅部署文件不同；reload 后立即建合成图，避免残留状态污染）：500 节点 ortho（996 线）frame avg 358.252 → 131.092（−63.4%，p95 378.2 → 147.9），chamfer 238.948 → 23.429（−90.2%，p95 255.7 → 27.9，单线均摊 0.240 → 0.0235ms ≈10×）；`render`（含 chamfer）326.240 → 103.596，非 chamfer 绘制约 87 → 80ms 持平；begin/trunks/bands 在噪声内持平；chamfers/renders 两边 47808 不变。真实 10 节点 ortho 120 帧 chamfer 0.159 → 0.147（−7.5%），frame 1.477 → 0.799（毫秒级含环境噪声）。
