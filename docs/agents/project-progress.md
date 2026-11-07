@@ -25,6 +25,13 @@ description: >
 - **本轮提交收尾（2026-11-07）**：文档与代码分三笔提交后，又追加 6 笔功能/修复提交并已 push；提交链 `529648e`（文档）→ `ad01899`（阶段 2 代码）→ `9f93d3c`（trunkCache 上限）→ `8d55a0b`（chamfer 预筛）→ `29fc015`（等距带方向感知）→ `01d8df7`（Reroute 手动意图保护）→ `d546e39`（BUG-006）→ `5146c82`（共存文档）→ `ebbc038`（verify 快照）；工作区干净，本地无未推送提交
 - **代码**：`luowen/`（含 `routing/trunkPlan.js` 单主干共享几何、三档避障、预览、缓存、`geometry/chamfer.js` 绕障外角大斜切、`geometry/trace.js` 圆角半径 0–24（默认 10）、`routing/laneAssign.js` 输入侧按接近方向嵌套分道 + 走廊净空顺延 + 同目标等距带（`planBands`、`bandDegraded`/`orderDegraded`）、`snap/alignSnap.js` + `snap/dragSnap.js` 对齐吸附、`routing/crossings.js` + `routing/crossCleanup.js` 交叉枚举与离线清理、主干组高亮 + 组删除菜单），已装本机 custom_nodes 实测
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2、Node 24.22.1；Playwright 浏览器实测流程已打通
+- **本轮待办 1：第三方运行时共存验证（2026-11-07，用户批准逐装逐卸；已循环 1–4 完成）**：
+  - 方式：按 spec §6 逐装逐卸——复制临时仓库到 custom_nodes → 重启宿主 → Playwright 验证（几何指纹 fp 2472081361 为无第三方基线）→ 删目录 → 重启 → 恢复核对；共 6 次宿主重启，终态与安装前基线一致（extensions 203、`/object_info` 2318、custom_nodes 清单一致）。证据 `.verify/p5/coexist/`。
+  - **被动装载四者全部无害**：Cable/NKD/Zip Ties 装机态几何指纹与基线逐点一致或可归因（见下）、无控制台错误、账目对齐、`verify() ok`、Reroute 保护生效（`trunks:[]`）。
+  - **新发现（Cable）**：默认启用 outputs-at-bottom 节点特征 → 输出引脚 y 432→488 → 我方端点跟随重规划（有影响·无害，非覆盖）。发布材料需提示同装时引脚位置由 Cable 决定。
+  - **N2 实测**：Shift 拖动我方磁吸赢得落点（(194,288) 与 `snapDebug.last.position` 一致），无互抢症状；NKD 磁吸未见对抗。
+  - **rgthree 根因**：与 0.43.2 不兼容——`__init__.py:271` patch 的 `execution.recursive_output_delete_if_changed` 已不存在 → 导入失败被跳过（探针复现、pycache 停在 2026-10-25 旁证）；R3 运行时验证被阻断，修复需另行批准。未对宿主做修复。
+  - **剩余缺口**：主动特征（comb/ribbon/PCB/spline/tie）全部未触发（需各扩展专属手势，脚本不可达）；组合安装、经典画布/子图内未测。矩阵新增 §5.5 逐条运行时结论（19 条：运行时可达 15 条全部落地，R3 阻断、R1/R2/R4/R5 维持源码级）。
 - **本轮待办 2：阶段 3 剩余验收——四类真实鼠标宿主实测（2026-11-07，只新增测试脚本与文档、未改功能代码；已按 DEC-037 委托口径验收）**：
   - 脚本 `.verify/p3/stage3-remaining.mjs`（Playwright 真实鼠标/键盘事件，非 `setPos`/合成 PointerEvent）；宿主 0.43.2 + 1.55.18，默认模板 10 节点/10 链路，Vue 节点模式，ds.scale=0.9；记录 `.verify/p3/stage3r-run3.json`、截图 `s3r_*.png`；矩阵新增 §4.5，复现入口已登记。
   - S1 真实拖拽：拖节点 67（170,290→203.3,320），`verify ok` 且 `moved` 只含 67；拖后 `routed==links` 无幽灵、降级 0；Ctrl+Z 精确还原。

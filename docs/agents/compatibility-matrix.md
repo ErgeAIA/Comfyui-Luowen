@@ -156,7 +156,7 @@ description: >
 | 其他 ComfyUI / 前端版本组合 | 未验证 | 只实测 0.43.2 + 1.55.18 |
 | 节点折叠 | **已验证（2026-11-07 §4.5 S4）** | 折叠态无幽灵、verify ok；展开后几何指纹还原 |
 | 复制 / 粘贴 | **已验证（2026-11-07 §4.5 S5）** | 粘贴 node-added 如实报告、无幽灵；删除粘贴件还原 |
-| Cable Management / NKD Reroutes / Zip Ties / rgthree | 未做运行时验证（源码级见 §5.4） | 未安装到宿主，只有源码级冲突面判定 |
+| Cable Management / NKD Reroutes / Zip Ties / rgthree | **被动运行时已验（§5.5）；主动特征未触发；rgthree 因宿主兼容性未加载** | 2026-11-07 用户批准逐装逐卸；源码级判定见 §5.4 |
 | 真实鼠标拖拽 | **已验证（2026-11-07 §4.5 S1–S3/S6）** | 真实 pointer 拖动 + 右键链路菜单（组删除/单删）；此前 BUG-002/003 的 `setPos` 限制在拖拽维度补齐 |
 | `crossCleanup=true` 生命周期 | **已验证（2026-11-07 §4.5 S7）** | epoch 失效重算、删线无幽灵；清理保守拒绝路径（pairs-not-decreased）符合 DEC-017 |
 | 子图内删线/折叠/粘贴、经典画布四类 | 未验证 | §4.5 仅覆盖根图 + Vue 节点模式 |
@@ -206,12 +206,42 @@ description: >
 7. 未覆盖：两两/三三组合、经典画布与 Vue 模式分别表现、子图内表现。
 8. rgthree 在宿主磁盘存在但未加载：未确认原因（Manager 禁用、启动时序或导入失败均可能），因此 R3（ContextMenu 层叠）当前无法直接运行时验证；排查加载原因属宿主配置操作，需另行批准。
 
-> 结论口径：本节任何「无交集 / 可能冲突 / 确定冲突」均不得转写为「已兼容」；在完成运行时验证前，第三方冲突扩展在 §3.2 矩阵中保持「未支持 / 未验证」。
+> 结论口径：本节任何「无交集 / 可能冲突 / 确定冲突」均不得转写为「已兼容」；在完成运行时验证前，第三方冲突扩展在 §3.2 矩阵中保持「未支持 / 未验证」。被动运行时验证已执行（见 §5.5），主动特征仍未触发。
+
+### 5.5 运行时共存验证（2026-11-07，用户批准逐装逐卸）
+
+**执行方式**：按 [third-party spec §6](../specs/third-party-coexistence/spec.md) 逐装逐卸（复制临时仓库 → 重启宿主 → Playwright 验证 → 删目录 → 重启 → 恢复核对）；每轮样本 = 默认模板 10 节点/10 链路 + link 79 中部 Reroute；观测 = 控制台错误、`status()/verify()/routes()` 几何指纹（fp 2472081361 为无第三方基线）、截图、`graph.extra` 键、Reroute 保护（`trunks:[]`，DEC-033）。证据：`.verify/p5/coexist/*.md`、`cable-cycle.mjs` / `nkd-cycle.mjs` / `zip-cycle.mjs`、截图 `cable-loaded.png` / `nkd-loaded.png` / `nkd-shiftdrag.png`。宿主经 6 次重启，终态与安装前基线一致（extensions 203、`/object_info` 2318、custom_nodes 清单一致）。
+
+**逐条运行时结论**（源码级判定 → 运行时）：
+
+| # | 源码级 | 运行时实测 | 最终判定 |
+|---|---|---|---|
+| C1 | 可能冲突 | combs/ribbon 未构造；**新发现：Cable 默认启用 outputs-at-bottom 节点特征**，输出引脚 y 432→488，我方按实际端点重规划（verify ok、账目对齐、零降级） | 有影响·无害（端点跟随）；主动特征未触发 |
+| C2 | 可能冲突 | 被动态 ledger 不激活（ledger.js L38 自述与实测一致）：routed==links、hover null | 被动无影响；SUPPRESS 主动未触发 |
+| C3 | 可能冲突 | 装机态截图全为我方渲染，无双画/闪烁，无控制台错误 | 被动无冲突；PCB 激活态未触发 |
+| C4/C5 | 无交集 | 无异常 | 无影响（运行时） |
+| C6 | 已补快照口径 | 装机被动态 `graph.extra` 仅 `ds`，不写 | 被动不写；检出能力由合成 A/B 背书（BUG-007） |
+| N1 | 确定冲突 | 装机态 fp 与基线**逐点一致**（2472081361），无双画 | 被动无表现；spline 激活态未触发（被动存活的是我方渲染） |
+| N2 | 确定冲突 | Shift 拖动：我方提示线可见、`snapDebug.active`、落点 (194,288) 与 `snapDebug.last.position` 一致——**我方磁吸赢得落点**，无互抢症状 | 我方生效；NKD 磁吸未见对抗（竖直虚线来源未归因，残余不确定） |
+| N3/N4 | 无交集 | extra 仅 ds、verify ok | 无影响（运行时） |
+| Z1 | 确定冲突 | 装机态 fp 逐点一致、无分段重绘痕迹 | 被动零影响；tie 对象需手势创建，未构造 |
+| Z2/Z3 | 可能冲突 | Z 键无对象时无副作用；被动右键正常 | 无对象时无影响；tie 存在时的拦截未测 |
+| Z4 | 已补快照口径 | 被动不写 `extra.zipTies` | 被动不写 |
+| R1/R2/R4/R5 | 无交集 | rgthree 未加载（见 R3），无运行时对象 | 维持源码级 |
+| R3 | 可能冲突 | **被阻断**：rgthree 与 0.43.2 不兼容——`__init__.py:271` patch 的 `execution.recursive_output_delete_if_changed` 已不存在 → 导入失败被跳过（旁证：pycache 停在 2026-10-25、探针复现同一异常） | 运行时不可达；修复需改第三方/宿主，另行批准 |
+
+**运行时后的剩余缺口**：
+
+1. **主动特征全部未触发**：comb/ribbon/SUPPRESS（Cable 手势创建）、NKD spline 接管、tie 对象与 Z 手势拦截、N2 竖直虚线归因——需各扩展专属手势或对象存在，脚本不可达；如需覆盖须构造对应对象后复测。
+2. 组合安装（两两/三三）、经典画布与子图内表现未测。
+3. Cable outputs-at-bottom 对我方几何的引脚跟随属「有影响·无害」，但发布材料应提示用户：两者同装时输出引脚位置由 Cable 决定。
+4. rgthree 若需运行时验证，先决条件是修复其对 0.43.2 的兼容性（改第三方源码或升级，需另行批准）。
 
 ## 6. 复现入口
 
 - 主脚本：`.verify/p3/suite.mjs`；只向 stdout 输出 JSON，需重定向到 `.verify/p3/suite-run-*.log` 后解析（`suite-out.json` 为旧会话遗留，已过期）。运行前宿主须在 8188 且页面可访问。
 - 待办 2 四类验收：`.verify/p3/stage3-remaining.mjs`（§4.5；真实鼠标拖拽/右键菜单/折叠/粘贴/crossCleanup 生命周期；输出重定向后解析，截图 `s3r_*.png`；坐标换算用适配器反演式，见 §4.5 口径注记）。
+- 待办 1 运行时共存：`.verify/p5/cable-cycle.mjs` / `nkd-cycle.mjs` / `zip-cycle.mjs`（§5.5；逐装逐卸需重启宿主，脚本本身只读页面）；证据与逐条结论 `.verify/p5/coexist/*.md`。
 - 修前对照：`.verify/p3/renderLinkAdapter-prefix.js`（HEAD 版），对应 `suite-run-prefix.log`；修后对应 `suite-run-fixed.log`、`suite-run-fixed2.log`。
 - BUG-006 最小复现：`.verify/p3/probe16.mjs`（只删连线、节点全保留，10→9）、`probe19.mjs`（先删节点再删连线，8/8/8）。
 - 回归数据探针：`probe20.mjs`（默认布局）、`probe21.mjs`（2B 布局降级记录）、`probe22.mjs`（默认布局修正字段）、`probe23.mjs`（历史 BUG-005 布局六项）、`probe24.mjs`（pivot=0 段四线/双线核对）。输出均在 `.verify/p3/probe*-run-20261107.log`。
