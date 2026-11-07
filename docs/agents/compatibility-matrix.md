@@ -5,7 +5,7 @@ project: 络纹（LuoWen）
 updated: 2026-11-07
 description: >
   阶段 3 兼容性矩阵与连接生命周期实测记录：宿主/前端组合、节点模式、子图、组、多重 Reroute、样式与生命周期操作。
-  每格给出「通过 / 已知缺陷 / 未支持」，不通过项附现象与判定依据。2026-11-07 补丁轮修复 BUG-006 后补入修前/修后计数对比；修复结论待用户验收。
+  每格给出「通过 / 已知缺陷 / 未支持」，不通过项附现象与判定依据。2026-11-07 补丁轮修复 BUG-006 后补入修前/修后计数对比；同日补 BUG-007（verify 快照纳入 extra/properties/坐标）。两项修复结论均待用户验收。
   AI 在本文件新增或修改内容后，必须同步更新 frontmatter 的 updated 字段为当日日期（YYYY-MM-DD）。
 ---
 
@@ -156,7 +156,7 @@ description: >
 
 > 范围：Cable Management、NKD Reroutes、Zip Ties、rgthree。受 AGENTS.md 目标环境锁定约束，**未安装任何扩展、未改宿主依赖**；以下全部为源码级判定，四个扩展浅克隆在临时目录 `C:\Users\GigaByte\AppData\Local\Temp\luowen-coexist\`。例外事实：宿主 `custom_nodes\rgthree-comfy` 目录已存在，但 2026-11-07 运行中的服务未加载它（`/extensions` 无其前端资源、`/object_info/Reroute` 返回 `{}`），本轮未改动、也未借它做运行时验证。运行时验证方案见 [spec.md](../specs/third-party-coexistence/spec.md) §6，需用户批准后才可安装。
 
-**我方钩子基线**：原型级 wrap `renderLink` + `drawConnections`（[renderLinkAdapter.js L1537-1547](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/adapters/renderLinkAdapter.js#L1537-L1547)）；自绘成功后不回原函数（[L1399-1409](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/adapters/renderLinkAdapter.js#L1399-L1409)）；磁吸为 DOM overlay `luowen-snap-overlay`（[dragSnap.js L16-20](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/snap/dragSnap.js#L16-L20)）；组悬停菜单为 `LiteGraph.ContextMenu` 构造 Proxy（[L1205-1223](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/adapters/renderLinkAdapter.js#L1205-L1223)）；`verify()` 快照只比节点与链路元组、不含 `extra`（[index.js L47-57](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/index.js#L47-L57)）。
+**我方钩子基线**：原型级 wrap `renderLink` + `drawConnections`（[renderLinkAdapter.js L1537-1547](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/adapters/renderLinkAdapter.js#L1537-L1547)）；自绘成功后不回原函数（[L1399-1409](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/adapters/renderLinkAdapter.js#L1399-L1409)）；磁吸为 DOM overlay `luowen-snap-overlay`（[dragSnap.js L16-20](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/snap/dragSnap.js#L16-L20)）；组悬停菜单为 `LiteGraph.ContextMenu` 构造 Proxy（[L1205-1223](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/adapters/renderLinkAdapter.js#L1205-L1223)）；`verify()` 快照已纳入 `extra`（排除宿主自有键）、`node.properties` 与节点坐标，坐标只报 `moved`、不判失败（[index.js L51-201](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/index.js#L51-L201)）；本项为 2026-11-07 BUG-007 补丁，合成写入 A/B 通过，待验收。
 
 | # | 冲突面 | 判定 | 依据（file:line / 官方文档） |
 |---|---|---|---|
@@ -165,7 +165,7 @@ description: >
 | C3 | renderLinkAdapter × Cable Management 路由引擎 | 可能冲突 | `pathing.js:90-113` 的 PCB 路由在 pathRenderer 内生效；我方自绘成功不回原函数（`renderLinkAdapter.js:1399-1409`），两套避障参数互斥 |
 | C4 | 磁吸 overlay × Cable Management | 无交集 | `pathing.js` 无拖动或 overlay 接管；不监听节点拖动 |
 | C5 | 组悬停菜单 × Cable Management | 无交集 | 源码 grep 无 `ContextMenu` 包装 |
-| C6 | `verify()` × Cable Management 写 `extra` | 可能冲突（验收盲区） | `routestore.js:22-37`、`unpack.js:143` 写 `graph.extra`；`index.js:47-57` 不比 `extra` |
+| C6 | `verify()` × Cable Management 写 `extra` | 已补快照口径（待验收；运行时未验证） | `routestore.js:22-37`、`unpack.js:143` 写 `graph.extra`；`index.js` 已排除宿主键并做 extra/properties 键级比对（L51-102、L130-186）；合成写入 A/B 见 debug-log BUG-007 |
 | N1 | renderLinkAdapter × NKD 路由引擎 | 确定冲突（语义重叠） | `rerouteSplines.js:686-730`、`:768-836` 接管 renderLink 与 pathRenderer；我方自绘线不进 NKD 渲染链，反之 native 模式我方不绘制，只能一套生效 |
 | N2 | 磁吸 overlay × NKD Shift 磁吸 | 确定冲突（手势重叠） | `dragAdapter.js:545` 仅 Shift 启用、`:595-647` 实例级 `onDrawForeground` 画 guides、`:332-355` pointerup 后 `setTimeout(0)` 最终写位；我方 `dragSnap.js:345-350` 冒泡阶段 pointerup 同步写位 → 落点由 NKD 决定，提示线双份 |
 | N3 | 组悬停菜单 × NKD | 无交集 | 源码 grep 无 `ContextMenu` 包装 |
@@ -173,7 +173,7 @@ description: >
 | Z1 | renderLinkAdapter × Zip Ties 分段重绘 | 确定冲突 | `zip_ties.js:1100-1135` 按 tie 分段并多次调 `origRenderLink`；我方每段覆写 `link.path/_pos`（`renderLinkAdapter.js:1392-1396`）。Zip Ties 在外层 → 命中只剩最后一段；我方在外层 → 自绘直接返回，扎带对络纹线不生效 |
 | Z2 | 磁吸 overlay × Zip Ties 手势 | 可能冲突 | `zip_ties.js:791-851` 在 window capture 阶段对 Z 键+pointerdown 执行 `preventDefault/stopImmediatePropagation`；我方事件为 window 冒泡（`dragSnap.js:345-350`） |
 | Z3 | 组悬停菜单 × Zip Ties 右键 | 可能冲突 | `zip_ties.js:813-817`、`:825-831` tie 上右键抢先拦截；我方注入依赖 `ContextMenu` 构造（`renderLinkAdapter.js:1205-1223`） |
-| Z4 | `verify()` × Zip Ties 写 `extra` | 可能冲突（验收盲区） | `zip_ties.js:11-12` 写 `graph.extra.zipTies`；`index.js:47-57` 不比 `extra` |
+| Z4 | `verify()` × Zip Ties 写 `extra` | 已补快照口径（待验收；运行时未验证） | `zip_ties.js:11-12` 写 `graph.extra.zipTies`；`index.js` 已排除宿主键并做 extra/properties 键级比对（L51-102、L130-186）；合成写入 A/B 见 debug-log BUG-007 |
 | R1 | renderLinkAdapter × rgthree | 无交集 | 源码 grep 无 `drawConnections` / `renderLink` / `_renderAllLinkSegments` patch；`utils.js:148-154` 的端点 patch 属消费方兼容 |
 | R2 | 磁吸 overlay × rgthree | 无交集 | `rgthree.js:280-291` 仅记录鼠标事件 |
 | R3 | 组悬停菜单 × rgthree `ContextMenu` | 可能冲突 | `menu_auto_nest.js:9-10` 把 `ContextMenu` 替换为普通函数、`:106-108` 改写 `menu.constructor`；我方用 Proxy + `Reflect.construct`（`renderLinkAdapter.js:1209-1219`），层叠顺序可致注入失效或构造异常 |
@@ -187,7 +187,7 @@ description: >
 3. N1：双路由引擎同时启用是否出现单线双画、闪烁或参数静默失效未实测。
 4. N2：Shift 拖动双磁吸的落点、提示线与 undo 条数未实测。
 5. Z2/Z3：Z 手势与 tie 右键对我方拖动、链路菜单的实际拦截范围未实测。
-6. C6/Z4：`verify()` 不比较 `extra`，第三方写入工作流 `extra` 时本插件自检无感知；是否补入验收口径待定。
+6. C6/Z4：`verify()` 已补 `extra` 与 `node.properties` 键级比对（排除宿主自有键；坐标只报 `moved`），合成写入 A/B 通过；真实扩展写入的键名、时序与保存路径仍未运行时验证。
 7. 未覆盖：两两/三三组合、经典画布与 Vue 模式分别表现、子图内表现。
 8. rgthree 在宿主磁盘存在但未加载：未确认原因（Manager 禁用、启动时序或导入失败均可能），因此 R3（ContextMenu 层叠）当前无法直接运行时验证；排查加载原因属宿主配置操作，需另行批准。
 

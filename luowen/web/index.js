@@ -44,16 +44,113 @@ installTooltipStyle();
 
 let baseline = null;
 
+// 宿主/前端在正常操作中会自行写入的 graph.extra 键，不属于第三方扩展数据，比对时必须排除。
+// 依据：宿主前端工作流 extra schema（comfyui_frontend_package/static/assets/api-*.js，or=...）
+// ds 为视口状态（serialize/load 重写）；linkExtensions/linkPresentation/reroutes 为原生 Reroute 状态；
+// frontendVersion/workflowRendererVersion 为保存版本信息；Blueprint*/linear* 为前端模式与蓝图状态。
+const EXTRA_HOST_KEYS = new Set([
+  'ds',
+  'frontendVersion',
+  'linkExtensions',
+  'linkPresentation',
+  'reroutes',
+  'workflowRendererVersion',
+  'BlueprintDescription',
+  'BlueprintSearchAliases',
+  'linearMode',
+  'linearData',
+]);
+
+// 结构化值 → 键深排序的稳定 JSON，用于键级比对；循环引用与非 JSON 值显式标记。
+function canonicalValue(v, seen) {
+  if (v === null || typeof v !== 'object') {
+    if (typeof v === 'number' && !Number.isFinite(v)) return String(v);
+    if (typeof v === 'undefined' || typeof v === 'function' || typeof v === 'symbol') return '[skip]';
+    return v;
+  }
+  if (seen.has(v)) return '[circular]';
+  seen.add(v);
+  let out;
+  if (Array.isArray(v)) {
+    out = v.map((x) => canonicalValue(x, seen));
+  } else {
+    out = {};
+    for (const k of Object.keys(v).sort()) out[k] = canonicalValue(v[k], seen);
+  }
+  seen.delete(v);
+  return out;
+}
+
+function canonicalJson(v) {
+  try {
+    return JSON.stringify(canonicalValue(v, new WeakSet()));
+  } catch {
+    return '[unserializable]';
+  }
+}
+
+// graph.extra 指纹：只保留非宿主键，第三方写入（如 cablemanagement_*、zipTies）必然可见。
+function extraFingerprint(g) {
+  const extra = g?.extra;
+  const clean = {};
+  if (extra && typeof extra === 'object') {
+    for (const k of Object.keys(extra)) {
+      if (!EXTRA_HOST_KEYS.has(k)) clean[k] = extra[k];
+    }
+  }
+  return canonicalJson(clean);
+}
+
+const roundCoord = (n) => (Number.isFinite(n) ? Math.round(n * 1000) / 1000 : n);
+
 function snapshotGraph() {
   const g = app.canvas?.graph;
   if (!g) return null;
   const nodes = graphNodes(g);
+  const nodePos = {};
+  const nodeProps = {};
+  for (const n of nodes) {
+    if (!n || n.id == null) continue;
+    const key = String(n.id);
+    // 宿主 1.55.18 的 pos 是 Float64Array（不是 Array），按 array-like 读取
+    nodePos[key] = n.pos ? [roundCoord(n.pos[0]), roundCoord(n.pos[1])] : null;
+    nodeProps[key] = canonicalJson(n.properties ?? {});
+  }
   return {
     kind: g.subgraph ? 'subgraph' : 'root',
     nodeCount: nodes.length,
     nodeIds: nodes.map((n) => n.id).sort((a, b) => a - b),
     links: linkTuples(g),
+    nodePos,
+    nodeProps,
+    extra: extraFingerprint(g),
   };
+}
+
+// 顶层键级差异：只报告键增删/变化，不深入嵌套结构（能定位到第三方写入即可）。
+function keyDiffs(prefix, aJson, bJson, diffs) {
+  let a;
+  let b;
+  try {
+    a = JSON.parse(aJson ?? '{}');
+  } catch {
+    a = {};
+  }
+  try {
+    b = JSON.parse(bJson ?? '{}');
+  } catch {
+    b = {};
+  }
+  if (!a || typeof a !== 'object' || Array.isArray(a)) a = {};
+  if (!b || typeof b !== 'object' || Array.isArray(b)) b = {};
+  const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+  for (const k of Object.keys(a)) {
+    if (!has(b, k)) diffs.push(`${prefix}-removed: ${k}`);
+    else if (canonicalJson(a[k]) !== canonicalJson(b[k])) diffs.push(`${prefix}-changed: ${k}`);
+  }
+  for (const k of Object.keys(b)) {
+    if (!has(a, k)) diffs.push(`${prefix}-added: ${k}`);
+  }
 }
 
 function diffSnapshot(a, b) {
@@ -70,7 +167,37 @@ function diffSnapshot(a, b) {
     else if (JSON.stringify(l) !== JSON.stringify(r)) diffs.push(`link-changed: ${id}`);
   }
   for (const [id] of bm) if (!am.has(id)) diffs.push(`link-added: ${id}`);
+
+  const idsA = new Map(a.nodeIds.map((id) => [id, true]));
+  const idsB = new Map(b.nodeIds.map((id) => [id, true]));
+  for (const id of idsA.keys()) if (!idsB.has(id)) diffs.push(`node-removed: ${id}`);
+  for (const id of idsB.keys()) if (!idsA.has(id)) diffs.push(`node-added: ${id}`);
+
+  keyDiffs('extra', a.extra, b.extra, diffs);
+
+  const propIds = new Set([...Object.keys(a.nodeProps ?? {}), ...Object.keys(b.nodeProps ?? {})]);
+  for (const id of [...propIds].sort()) {
+    const ap = a.nodeProps?.[id];
+    const bp = b.nodeProps?.[id];
+    if (ap == null || bp == null) continue; // 节点增删已由 node-removed/node-added 覆盖
+    keyDiffs(`node-prop(${id})`, ap, bp, diffs);
+  }
   return diffs;
+}
+
+// 位置变化只作为附加信息：用户拖动节点属正常操作，不计入 ok/diffs（避免误报）。
+function movedNodes(a, b) {
+  const moved = [];
+  const aPos = a.nodePos ?? {};
+  const bPos = b.nodePos ?? {};
+  for (const id of Object.keys(aPos)) {
+    if (!Object.prototype.hasOwnProperty.call(bPos, id)) continue;
+    const p = aPos[id];
+    const q = bPos[id];
+    if (!p || !q) continue;
+    if (p[0] !== q[0] || p[1] !== q[1]) moved.push({ id, from: p, to: q });
+  }
+  return moved.sort((x, y) => Number(x.id) - Number(y.id) || String(x.id).localeCompare(String(y.id)));
 }
 
 function readSetting(id, fallback) {
@@ -319,6 +446,8 @@ app.registerExtension({
           baseline: baseline ? { kind: baseline.kind, nodeCount: baseline.nodeCount, linkCount: baseline.links.length } : null,
           now: now ? { kind: now.kind, nodeCount: now.nodeCount, linkCount: now.links.length } : null,
           diffs,
+          // 位置变化（用户拖动等正常操作）只报告、不判失败
+          moved: baseline && now ? movedNodes(baseline, now) : [],
         };
       },
     };

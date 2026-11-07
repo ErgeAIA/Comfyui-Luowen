@@ -165,3 +165,28 @@ description: >
 - **最小复现**：`.verify/p3/probe16.mjs`（只删连线不动节点：`nodes 10 / links 9 / routed 9 / routes 9`；`routes()` 不含 79）、`probe19.mjs`（先删节点 68 再删 link 79：`8/8/8`）。旧路径中点注入 pointermove 后 `status().hover=null`；重连生成 link 83 后 `links 10 / routed 10 / routes 10`；节点坐标逐项未变；`obstacleVersion` 保持 1，证明清理由拓扑指纹触发而非几何兜底。
 - **验证限制**：① 幽灵仍只存在于内存状态表，未写入工作流；② 悬停用合成 pointermove，未用真实鼠标；③ 未覆盖子图内删连线、`crossCleanup=true`、真实鼠标删除；④ 链路增删后主干/等距带仍需一次额外重绘（`setDirty`），属 LiteGraph 刷新时序，本次未改。
 - **状态**：已修复并完成宿主实测，待用户验收。
+
+## BUG-007: verify() 快照盲区——不含 graph.extra / node.properties / 节点坐标
+
+- **日期**：2026-11-07（第三方共存源码级分析暴露；对应矩阵 C6/Z4 验收盲区）
+- **现象**：`verify()` 只比对 kind/nodeCount/nodeIds/linkTuples。合成写入 `graph.extra.probe_vendor`、`graph.extra.zipTies`、`node.properties['cablemanagement.owned']` 后，修前均返回 `{ok:true,diffs:[]}`；第三方写工作流 `extra` 或节点 `properties` 时自检无感知。
+- **宿主自有字段排查（比对时排除）**：宿主前端工作流 extra schema（`comfyui_frontend_package/static/assets/api-DTg5QMcw.js`，`or=...`，`.passthrough()`）定义 `ds / frontendVersion / linkExtensions / linkPresentation / reroutes / workflowRendererVersion / BlueprintDescription / BlueprintSearchAliases / linearMode / linearData`。实测普通操作只写 `ds`（视口，serialize/load 重写）；原生 Reroute 与保存路径会写 `linkExtensions/linkPresentation`。以上十项全部排除；第三方自定义键不在其中，仍可检出。本插件源码 grep 无 `graph.extra` / `node.properties` 写入。
+- **修复（只改 [index.js](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/index.js)）**：
+  1. `EXTRA_HOST_KEYS` + 键深排序的 `canonicalValue/canonicalJson` + `extraFingerprint`（[L51-102](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/index.js#L51-L102)）：extra 只保留非宿主键。
+  2. `snapshotGraph` 增加 `nodePos`（3 位小数；宿主 1.55.18 的 `pos` 是 Float64Array）、`nodeProps`（每节点 properties 规范化 JSON）、`extra`（[L106-128](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/index.js#L106-L128)）。
+  3. `diffSnapshot` 增加节点 id 集合差、`extra-*` 键级差、`node-prop(id)-*` 键级差（[L130-186](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/index.js#L130-L186)）；原有 kind/节点数/链路判定不变。
+  4. `movedNodes` + `verify().moved`（[L189-201](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/index.js#L189-L201)、[L441-452](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/index.js#L441-L452)）：位置变化只报告，不计入 `ok/diffs`，避免用户拖动造成误报。
+- **A/B（同一宿主 0.43.2 + 1.55.18，`.verify/p4/verify-ab.mjs`；合成写入仅内存、测后还原、未 serialize）**：
+  - 修前：上述三类合成写入均 `{ok:true,diffs:[]}`。
+  - 修后：`extra.probe_vendor` → `{ok:false,diffs:["extra-added: probe_vendor"]}`；`extra.zipTies` → `extra-added: zipTies`；`node.properties['cablemanagement.owned']` → `node-prop(9)-added: cablemanagement.owned`；删除对应键后均恢复 `{ok:true,diffs:[]}`。
+  - 宿主键噪声：改 `extra.ds`、新增 `extra.linkExtensions` 均 `{ok:true,diffs:[]}`。
+  - 位置：节点 9 位移 (+4,+3) → `{ok:true,diffs:[],moved:[{id:"9",from:[1280,320],to:[1284,323]}]}`；还原后 `moved:[]`。
+  - 未写入场景 `v0` 的 `ok/diffs` 与修前一致。
+  - 节点/链路增删：临时 Reroute（+1 节点）→ `node-count: 10 -> 11`、`node-added: 72`；临时建链路 83 → `link-count: 10 -> 11`、`link-added: 83`；删除临时链路与节点后恢复 `{ok:true,diffs:[]}`，节点与链路 id 集合与原状一致（`verify-node-ab.mjs`、`verify-link-ab.mjs`）。
+- **回归**：
+  - `node --test tests/unit/*.test.mjs`：99 pass / 0 fail。
+  - `suite.mjs`：16 个 verify 全 `{ok:true,diffs:[]}`、各步 `errors:[]`；删除重连 `8/8/8` → `9/9/9` → 恢复 `10/10/10`；切换 A/B `sameA/sameB=true`；组 `plateEqualAfterRemove=true`；拖动 `bandDegraded/orderDegraded=4/4` 与修前一致；指纹 `3664953215`。
+  - `probe23.mjs`：单主干 `62:0 fork=155 merged=[79,81]`；pivot1 `xs=[718,726]`；up895 `73=1228.905 / 74=1220.905`；down200 `[1220.905,1228.905]`；撞上限 `xs=[806.49,814.49] bandDegraded=6`；Reroute `trunks=[]`，移除后恢复单主干。
+- **验证限制**：第三方扩展仍未安装，A/B 为合成写入；真实 Cable Management / Zip Ties 的键名、写入时序与保存路径未运行时验证（矩阵 §5.4 缺口保留）。
+- **预防规则**：数据不变性自检必须覆盖工作流可序列化的扩展位（`extra` / `node.properties`），并显式排除宿主自有键；坐标等用户态变化只报告、不判失败。
+- **状态**：已部署宿主（仓库与宿主 SHA256 一致 `8BEA51F999FF4C1B351AA7884F8C9DF975F2E8AF03636E838A4D0BE94FA7B9E5`），未提交 git，待用户验收；未宣称已修复。
