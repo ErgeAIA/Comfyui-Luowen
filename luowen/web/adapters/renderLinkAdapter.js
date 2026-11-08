@@ -57,6 +57,7 @@ const state = {
   wrappedRenderRef: null,
   originalDrawConnections: null,
   wrappedDrawRef: null,
+  windowPointerDown: false,
   settings: { enabled: true, style: 'orthogonal', avoidance: 'standard', chamfer: true, bevelRatio: DEFAULT_BEVEL_RATIO, cornerRadius: DEFAULT_CORNER_RADIUS, trunkCap: null, lanePitch: DEFAULT_LANE_PITCH, brotherSpacing: DEFAULT_BROTHER_SPACING, crossCleanup: false, colorTheme: 'off', flowAnim: false, animMode: 'all', flowStyle: 'dash', flowDash: 7, flowGap: 13, flowSpeed: 48, disableAnimOnRun: true },
   frame: {
     obstacleHashStr: '',
@@ -1410,7 +1411,11 @@ function tryCustomRender(ctx, a, b, link, color, start_dir, end_dir, opts) {
     queueRunning: state.queue.running, disableAnimOnRun: cfg.disableAnimOnRun,
     enabled: cfg.flowAnim, scale: scaleNow, reducedMotion: reducedMotionPref(), hostAnimationsDisabled: hostAnimationsDisabled(),
   });
-  if (animate) {
+  // 拖动期间暂停动效（DEC-040 补充，用户反馈：拖动时晃眼且耗性能）：
+  // 指针按下（拖节点/框选/平移）一律画实线，松开自动恢复。
+  // 信号源 = 自维护 window 指针状态（Vue 拖动不走 legacy canvas.pointer，其 isDown 恒 false——实测）。
+  const animSuppressed = state.windowPointerDown === true;
+  if (animate && !animSuppressed) {
     if (cfg.flowStyle === 'glow') {
       // 发光：光晕大小 + 呼吸起伏（各自独立参数，与虚线无关）
       const breathe = 1 + (cfg.glowRate > 0 ? 0.35 * Math.sin((performance.now() / 1000) * Math.PI * 2 * cfg.glowRate * 0.2) : 0);
@@ -1589,7 +1594,27 @@ export function perfReport() {
 
 // ---------- 安装 / 卸载 / 设置 ----------
 
+let windowPointerListeners = null;
+function onWindowPointerDown() { state.windowPointerDown = true; }
+function onWindowPointerUp() { state.windowPointerDown = false; }
+function attachWindowPointerListeners() {
+  if (windowPointerListeners || typeof window === 'undefined') return;
+  window.addEventListener('pointerdown', onWindowPointerDown, { capture: true });
+  window.addEventListener('pointerup', onWindowPointerUp, { capture: true });
+  window.addEventListener('pointercancel', onWindowPointerUp, { capture: true });
+  windowPointerListeners = true;
+}
+function detachWindowPointerListeners() {
+  if (!windowPointerListeners) return;
+  window.removeEventListener('pointerdown', onWindowPointerDown, { capture: true });
+  window.removeEventListener('pointerup', onWindowPointerUp, { capture: true });
+  window.removeEventListener('pointercancel', onWindowPointerUp, { capture: true });
+  windowPointerListeners = null;
+  state.windowPointerDown = false;
+}
+
 export function install(canvas) {
+  attachWindowPointerListeners();
   if (!canvas) return false; // 注册期设置回调可能先于 canvas 就绪
   if (state.installed) return true;
   const proto = Object.getPrototypeOf(canvas);
@@ -1656,6 +1681,7 @@ export function install(canvas) {
 }
 
 export function uninstall() {
+  detachWindowPointerListeners();
   if (!state.installed) return;
   if (state.proto) {
     if (state.proto.renderLink === state.wrappedRenderRef) state.proto.renderLink = state.originalRenderLink;
@@ -1743,6 +1769,11 @@ function flowLoopTick() {
   const cfg = state.settings;
   const on = state.installed && cfg.flowAnim && cfg.colorTheme !== 'off';
   if (!on) return;
+  // 指针按下（拖动/框选/平移）：暂停本循环的 setDirty——拖动自身已有重绘节奏，动效已画实线
+  if (state.windowPointerDown === true) {
+    flowRaf = requestAnimationFrame(flowLoopTick);
+    return;
+  }
   // 空闲零重绘：仅当存在「本帧该动的线」才驱动重绘（DEC-040 第 5 条）
   let hasWork = true;
   if (cfg.queueRunning && cfg.disableAnimOnRun) hasWork = false;
