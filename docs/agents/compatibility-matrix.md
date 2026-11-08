@@ -139,6 +139,19 @@ description: >
 
 **口径注记（本轮新发现，非缺陷）**：ComfyUI 撤销 = `loadGraphData` 恢复快照 → 触发本插件 `afterConfigureGraph()`（`index.js:333-336`）重建基线，即**每次 Ctrl+Z 后 `verify()` 基线自动跟随撤销后状态**；自动化脚本若在删除后 undo，可能复活已删粘贴件，终态需孤儿清扫 + `rebase()`。详见 debug-log BUG-007 同名小节。
 
+
+### 4.6 阶段 3 补测 E：AT-027/028 宿主异常专项 + 子图内四类（2026-11-08；脚本 `.verify/p3/stage3-e.mjs`，记录 `stage3e-run2.json`）
+
+| 项 | 场景与步骤 | 结果 |
+|---|---|---|
+| AT-027 路由超限 | 极远坐标节点（1e6,1e6）连线 | 正常路由（11/11）、绘制循环存活、无 PAGEERROR |
+| AT-028 非法/缺失几何 | 零尺寸节点、NaN pos 节点连线 | 宿主在连接层即拒绝建线（`connect` 返回 false）——非法数据未进入路由管线；画布可交互、清理后 verify ok |
+| 子图内·真实拖拽 | 进入子图后真实指针拖动节点 | routed 5/5、verify ok；Ctrl+Z 还原 ok |
+| 子图内·折叠/展开 | 点击折叠箭头 | 折叠/展开 routed 5/5、verify ok |
+| 子图内·删线 | hover 引导 + 右键菜单 Delete | links 5→4、routed 4（无幽灵）；undo 恢复 5 |
+| 子图内·复制粘贴 | Ctrl+C/V + 删粘贴件 | nodes 2→3→2、verify ok |
+| 子图边界语义 | 退回根图 | verify 如实报 kind/count 差异（基线在子图内 rebase 所致，非缺陷）；回根图 rebase 后 `ok:true` |
+
 ## 5. 已知缺陷与缺口
 
 ### 5.1 BUG-006：仅删连线时路由状态表残留幽灵条目（已修复，待验收）
@@ -159,7 +172,7 @@ description: >
 | Cable Management / NKD Reroutes / Zip Ties / rgthree | **被动运行时已验（§5.5）；主动特征未触发；rgthree 因宿主兼容性未加载** | 2026-11-07 用户批准逐装逐卸；源码级判定见 §5.4 |
 | 真实鼠标拖拽 | **已验证（2026-11-07 §4.5 S1–S3/S6）** | 真实 pointer 拖动 + 右键链路菜单（组删除/单删）；此前 BUG-002/003 的 `setPos` 限制在拖拽维度补齐 |
 | `crossCleanup=true` 生命周期 | **已验证（2026-11-07 §4.5 S7）** | epoch 失效重算、删线无幽灵；清理保守拒绝路径（pairs-not-decreased）符合 DEC-017 |
-| 子图内删线/折叠/粘贴、经典画布四类 | 未验证 | §4.5 仅覆盖根图 + Vue 节点模式 |
+| 子图内删线/折叠/粘贴/拖拽 | **已验证（2026-11-08 §4.6）** | 真实鼠标四类全过；经典画布仍未验证 |
 | 50/200/500 节点性能 | 已测（引用） | 见 [performance.md](./performance.md) §2026-11-07，不重测 |
 
 ### 5.3 待确认项

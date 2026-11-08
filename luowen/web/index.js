@@ -427,7 +427,7 @@ app.registerExtension({
         class: TIP_CLASS,
       },
       type: 'slider',
-      attrs: { min: 6, max: 1200, step: 2 },
+      attrs: { min: 20, max: 200, step: 20 },
       defaultValue: 48,
       onChange: (v) => setSettings({ flowSpeed: Number(v) }),
     },

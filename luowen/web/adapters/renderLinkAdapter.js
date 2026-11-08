@@ -1707,7 +1707,7 @@ export function setSettings(partial) {
   if ('flowStyle' in partial) partial.flowStyle = partial.flowStyle === 'glow' || partial.flowStyle === 'pulse' ? partial.flowStyle : 'dash';
   if ('flowDash' in partial) { const n = Number(partial.flowDash); partial.flowDash = Number.isFinite(n) ? Math.max(0, Math.min(30, n)) : prev.flowDash; }
   if ('flowGap' in partial) { const n = Number(partial.flowGap); partial.flowGap = Number.isFinite(n) ? Math.max(0, Math.min(40, n)) : prev.flowGap; }
-  if ('flowSpeed' in partial) { const n = Number(partial.flowSpeed); partial.flowSpeed = Number.isFinite(n) ? Math.max(6, Math.min(1200, n)) : prev.flowSpeed; }
+  if ('flowSpeed' in partial) { const n = Number(partial.flowSpeed); partial.flowSpeed = Number.isFinite(n) ? Math.max(20, Math.min(200, n)) : prev.flowSpeed; }
   if ('disableAnimOnRun' in partial) partial.disableAnimOnRun = !!partial.disableAnimOnRun;
   if ('brotherSpacing' in partial) {
     const n = Number(partial.brotherSpacing);
