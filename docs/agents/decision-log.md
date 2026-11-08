@@ -48,6 +48,16 @@ description: >
 - **验证**：真实样本冒烟（`.verify/p7/sample-smoke.json`，207 份样本库六维选样）——largest 230 节点 build+eval 19ms；mostReroute 116 Reroute 折叠后边数 226→114；三样本全部 topoOrderValid；现状基线 largest=116 交叉/9 重叠/35 反向（mostGroups）。缺陷与修复如实：折叠初版未移除被吞链尾边 + 分叉首断漏记 dropped + components/topo 含 reroute——单测抓出后修正；两处测试期望自身算错（bounding 范围/链段方向）修正。
 - **结果**：阶段 B 完成，停等用户验收；阶段 C（算法对照，vendor 政策先决）待启动。
 
+### DEC-043 补记 D（2026-11-08，分支 auto-layout，Phase D 完成）
+
+- **执行**：真实画布原型（页面级注入 ELK vendor bundle，不改生产文件）`docs/specs/auto-layout/prototype-report.md`。硬约束机检全绿：拓扑不变（verify ok）、**撤销 23/23 恢复**、幂等 23/23、固定节点 0 位移、209 节点 ELK 95–117ms、reload 无残留。
+- **关键修正（Phase A 假设证伪）**：`graph.beforeChange/afterChange` 事务**不产生 undo 记录**（实测）。真实撤销链 = Pinia `workflow` store → `activeWorkflow.changeTracker`（运行时实证可达路径 `app.extensionManager._p._s`）：
+  1. `captureCanvasState()` 为 **activeState 模型**——调用时把上一个 activeState 压入 undoQueue，因此**布局前 + 布局后双采**才可撤销（单采无效，undoQueue 0→1 实证）；
+  2. `changeCount>0`（事务内）时 capture 被跳过——事务包裹反而有害；
+  3. 撤销语义=整图快照恢复，恰满足 F-015「单条 undo」（一次布局=一条 undo）。
+- **折叠（智能尺寸）机制定案**：`node.collapse(true)` 置位 collapsed 标志（渲染收窄由宿主负责），**node.size 不自动变**——「智能缩小」须显式写 size（[宽, 标题高]），属 pos+size 写入。收益可计算（单 Note 280×375→高 ~30，节省 ~345px）。**边界待用户决策**：超出 F-015「仅 pos」，需 PRD 修订允许「折叠标志+折叠尺寸」写入（默认关、可选开关）；语义规则 MVP 建议只折叠 Note/Markdown 类。
+- **结果**：阶段 D 完成；阶段 E（性能+最终 PRD）待启动。
+
 ## DEC-042: 动效 v3 实施口径——beam 主线型、自停+唤醒、设置收窄迁移（研究报告 §7 拆分 ②③④）
 
 - **日期**：2026-11-08

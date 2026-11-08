@@ -28,6 +28,11 @@ description: >
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2、Node 24.22.1；Playwright 浏览器实测流程已打通
 - **本轮动效 v3 实施（2026-11-08，用户指示「实施吧」；DEC-042；改 trace.js/renderLinkAdapter.js/index.js + 新增 beamTrace.test.mjs；已部署宿主自测，等用户验收）**：
         - **样本部署宿主（用户指示）**：六份选样工作流复制进 portable 工作流目录（前缀 `LW样本-`，不覆盖同名），宿主 loadGraphData 冒烟通过（最大样本 230 节点 248 链装载 ok、路由接管、verify ok、零报错；routed 计数随视口/缩放符合既有裁剪口径）。脚本 `.verify/p7/deploy-samples.mjs`。
+- **本轮自动布局 Phase D：真实画布原型（2026-11-08，分支 auto-layout；页面级注入 ELK，不改生产文件）**：
+  - 硬约束机检全绿：拓扑不变、**撤销 23/23 恢复**（captureCanvasState 前后双采 + tracker.undo，Pinia workflow store 路径运行时实证）、幂等 23/23（ELK 确定性）、固定节点 0 位移、209 节点 95–117ms、reload 无残留。截图 proto-e1/e2/e3。
+  - **Phase A 撤销假设证伪修正**：beforeChange/afterChange 事务无 undo 记录；真实链 = activeWorkflow.changeTracker（activeState 模型，前+后双采；事务内 capture 被跳过）。写入 `prototype-report.md` §2。
+  - **折叠机制定案（用户「智能缩小节点」需求）**：collapse(true) 置位标志但 node.size 不自动变——智能缩小须显式写 size（pos+size 范畴，超出 F-015 仅 pos 边界，PRD 修订列为决策项）；MVP 语义建议只折叠 Note/Markdown（低风险），单 Note 折叠节省 ~345px 高。
+  - 下一步：Phase E（性能台账 + 最终 PRD 撰写，含决策项清单交用户）。
 - **本轮自动布局 Phase C：算法对照实验（2026-11-08，分支 auto-layout；vendor elkjs/dagre + 实验层 .verify/p7/algos/，不改生产代码）**：
   - vendor：elkjs@0.9.3（EPL-2.0，1.6MB）+ dagre@0.8.5（MIT，284KB）预构建产物进 luowen/web/vendor/（66425e2，NOTICES/README 登记，手动升级政策）。
   - 统一适配层：movable 子图法（fixed 原位回填，三算法同口径），ELK 带 ports+FIXED_SIDE 端口感知；违规检查（fixed 位移≠0）三算法×6样本×3场景全 0。
