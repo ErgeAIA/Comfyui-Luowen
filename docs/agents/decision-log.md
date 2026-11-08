@@ -28,6 +28,15 @@ description: >
 - **验证**：本条目所引取证均为 1.55.18 sourcemap file 级证据（layoutMutations.ts 全文 2698 字符、useArrangeNodes.ts ArrangeLayout 三模式、LayoutSource 枚举）与仓库 HEAD 4859a18 状态；plan.md 详列。
 - **结果**：计划已落盘待用户批准开工；阶段 A 待启动。
 
+### DEC-043 补记 A（2026-11-08，分支 auto-layout，Phase A 完成）
+
+- **执行**：按 plan.md §3 阶段 A 完成现状与宿主审计，报告 `docs/specs/auto-layout/audit.md`。要点：
+  1. **写入路径裁决**：自动布局采用「node.pos 批量提交 + 布局前单次 changeTracker.captureState」，不 import useLayoutMutations——静态证据：graphLayoutAttachment 是 node.pos↔layoutStore 双向桥（pos 直写经 commitNodePosition 收口到同一 applyOperation('moveNode')，store 版本机制回读渲染），两条写法殊途同归；运行时证据：useLayoutMutations 为未暴露的 Vue 组合式工厂且 LayoutSource 仅 canvas/vue 两值。
+  2. **撤销机制反例（实测）**：宿主经典 graph.arrange() 执行后 10/10 节点重排且我方路由跟随（视口裁剪后 8 条），但 Ctrl+Z **不恢复**（直写 pos 未进 changeTracker）——F-015「单条 undo」必须由我方显式 captureState，宿主路径不可依赖。
+  3. 原生整理对照表（经典 arrange 无 Group/Reroute/撤销处理 vs 目标差异化）；ArrangeButton（三模式+gap）静态取证完成、DOM 入口留 Phase D 补测。
+  4. 样本征集待用户（缺失期间以合成样本+fixture14 代替并如实标注）。
+- **验证**：探针 .verify/p7/（arrange-probe/2 + host-ga.js + host-layoutStore.js 全文摘录）；audit.md 逐条带证据。
+
 ## DEC-042: 动效 v3 实施口径——beam 主线型、自停+唤醒、设置收窄迁移（研究报告 §7 拆分 ②③④）
 
 - **日期**：2026-11-08
