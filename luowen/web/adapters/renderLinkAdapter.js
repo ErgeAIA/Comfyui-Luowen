@@ -1416,10 +1416,15 @@ function tryCustomRender(ctx, a, b, link, color, start_dir, end_dir, opts) {
       ctx.shadowColor = stroke;
       ctx.shadowBlur = 8;
     } else if (cfg.flowStyle === 'pulse') {
-      ctx.lineWidth = width * (1 + 0.45 * Math.sin((performance.now() / 1000) * (Math.PI * 2 * cfg.flowSpeed) / 60));
-    } else {
+      // 脉冲频率：档位 × 0.2 Hz（档位 10 = 2Hz 呼吸）
+      ctx.lineWidth = width * (1 + 0.45 * Math.sin((performance.now() / 1000) * Math.PI * 2 * cfg.flowSpeed * 0.2));
+    } else if (period > 0) {
+      // 流速 = 节拍速度（DEC-040 补充）：档位 N = 每秒 N 个虚线周期，
+      // 间距只管密度、不影响快慢——观感节奏与虚线长度/间距彻底解耦。
       ctx.setLineDash([cfg.flowDash, cfg.flowGap]);
-      ctx.lineDashOffset = dashOffset({ now: performance.now(), speed: cfg.flowSpeed * 20, scale: scaleNow, period });
+      // 节拍语义：图坐标速率 = 档位 × 周期（graph px/s），屏幕节拍 = 档位（任何缩放恒定）。
+      // 不用 dashOffset 的 /scale（那是线速度屏幕恒速口径）。
+      ctx.lineDashOffset = -((performance.now() / 1000) * cfg.flowSpeed * period) % period || 0;
       ctx.globalAlpha = 0.92;
     }
   }
