@@ -423,12 +423,12 @@ app.registerExtension({
       sortOrder: 60,
       tooltip: {
         value:
-          '虚线行进速度（屏幕像素/秒）。\n脉冲线型下数值越大呼吸越快。',
+          '虚线行进速度，0–10 共 10 档。\n每档 20 屏幕像素/秒（已按缩放补偿，任何缩放手感一致）。\n脉冲线型下数值越大呼吸越快。',
         class: TIP_CLASS,
       },
       type: 'slider',
-      attrs: { min: 20, max: 200, step: 20 },
-      defaultValue: 48,
+      attrs: { min: 0, max: 10, step: 1 },
+      defaultValue: 3,
       onChange: (v) => setSettings({ flowSpeed: Number(v) }),
     },
     {
@@ -480,6 +480,8 @@ app.registerExtension({
         chamfer: !!readSetting(CHAMFER_ID, true),
         cornerRadius: readSetting(CORNER_RADIUS_ID, DEFAULT_RADIUS),
         crossCleanup: !!readSetting(CROSS_CLEANUP_ID, false),
+        // 流速档位迁移：旧版存 px/s（48/140 等 >10 的值），折算 0–10 档（每档 20px/s）
+        flowSpeed: (() => { const raw = Number(readSetting(FLOW_SPEED_ID, 3)); return Number.isFinite(raw) ? (raw > 10 ? Math.max(0, Math.min(10, Math.round(raw / 20))) : Math.max(0, Math.min(10, raw))) : 3; })(),
       });
     } catch {
       /* 设置读取失败保持默认 */
