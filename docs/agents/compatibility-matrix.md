@@ -152,7 +152,18 @@ description: >
 | 子图内·复制粘贴 | Ctrl+C/V + 删粘贴件 | nodes 2→3→2、verify ok |
 | 子图边界语义 | 退回根图 | verify 如实报 kind/count 差异（基线在子图内 rebase 所致，非缺陷）；回根图 rebase 后 `ok:true` |
 
-## 5. 已知缺陷与缺口
+
+### 4.7 经典画布四类补测（2026-11-08；脚本 `.verify/p3/classic-four.mjs`，记录 `classic-four-run2.json`；结束已还原 `Comfy.VueNodes.Enabled=true`）
+
+| 项 | 场景与步骤 | 结果 |
+|---|---|---|
+| 真实拖拽 | 经典拖拽路径（canvas 指针事件）拖节点 67 | moved 1、verify ok；Ctrl+Z 还原 ok |
+| 折叠/展开 | 标题点击未触发折叠（经典折叠交互点在标题三角，位置判定与脚本点击不符）→ `node.collapse()` API 兜底 | 折叠/展开 routed 10、verify ok |
+| 删线 | hover 引导 + 真实右键 `.litecontextmenu` 菜单 Delete | links 10→9、routed 9（无幽灵）；undo 恢复 10 |
+| 复制粘贴 | **点标题选中**（点中部落在 widget 上不产生选中——`selectedItems=0`，首跑因此粘贴未生效且误删原节点，已修正）→ Ctrl+C/V | nodes 10→11、删粘贴件恢复 10、verify ok |
+| 语义色/动效可用性 | 经典模式下 token 语义色照常（两种模式共用同一批语义色，spec §6.3） | routed 10/10 全程 verify ok |
+
+
 
 ### 5.1 BUG-006：仅删连线时路由状态表残留幽灵条目（已修复，待验收）
 

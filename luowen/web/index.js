@@ -277,7 +277,7 @@ app.registerExtension({
     },
     {
       id: CORNER_RADIUS_ID,
-      name: '圆角半径',
+      name: '拐角曲线',
       category: ['LuoWen', '线路外观', 'CornerRadius'],
       sortOrder: 75,
       tooltip: {
