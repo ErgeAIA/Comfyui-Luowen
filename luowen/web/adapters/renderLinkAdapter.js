@@ -46,7 +46,7 @@ const CLEANUP_MAX_ROUNDS = 2;
 
 // 阶段 2B：同目标等距带（DEC-028）
 // 默认兄弟线间距；上限由「同组接入点之间的最小 y 间距」钳制（面板项待设置会话合并）。
-const DEFAULT_BROTHER_SPACING = 8;
+const DEFAULT_BROTHER_SPACING = 12;
 // 整带外移上限（× 间距），撞到即停住并打降级标记。
 const BAND_MAX_SHIFT_STEPS = 4;
 

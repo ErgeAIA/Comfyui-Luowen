@@ -5,6 +5,8 @@
 
 const LOCALES = {
   zh: {
+    'BrotherSpacing.name': '兄弟线间距',
+    'BrotherSpacing.tooltip': '同一源端口分出的并行线路之间的间距（图坐标像素）。\n值越大并行线越分散。\n默认 12。',
     'Language.name': '界面语言',
     'Language.tooltip': '设置面板的显示语言。\n跟随宿主：按宿主语言设置自动选择。\n切换后重新打开设置面板或刷新页面生效。',
     'Language.opt.auto': '跟随宿主',
@@ -63,6 +65,8 @@ const LOCALES = {
   },
 
   en: {
+    'BrotherSpacing.name': 'Brother Line Spacing',
+    'BrotherSpacing.tooltip': 'Spacing between parallel lines from the same source port (graph px).\nHigher values spread parallel lines further apart.\nDefault 12.',
     'Language.name': 'Language',
     'Language.tooltip': 'Display language of the LuoWen settings.\nFollow host: picks by the host language setting.\nReopen the settings panel or reload to apply.',
     'Language.opt.auto': 'Follow host',

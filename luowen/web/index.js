@@ -25,6 +25,7 @@ import { installSnap, uninstallSnap, setSnapEnabled, getSnapDebug } from './snap
 const { app } = window.comfyAPI.app;
 
 const LANGUAGE_ID = 'LuoWen.Language';
+const BROTHER_SPACING_ID = 'LuoWen.BrotherSpacing';
 const AUTOLAYOUT_COLLAPSE_ID = 'LuoWen.AutoLayout.CollapseNotes';
 const ENABLED_ID = 'LuoWen.Enabled';
 const STYLE_ID = 'LuoWen.WireStyle';
@@ -596,6 +597,7 @@ get tooltip() {
         avoidance: readSetting(AVOID_ID, 'standard'),
         chamfer: !!readSetting(CHAMFER_ID, true),
         cornerRadius: readSetting(CORNER_RADIUS_ID, DEFAULT_RADIUS),
+        brotherSpacing: Math.max(4, Math.min(24, Number(readSetting(BROTHER_SPACING_ID, 12)) || 12)),
         crossCleanup: !!readSetting(CROSS_CLEANUP_ID, false),
         dashSpeed: (() => { const raw = Number(readSetting(DASH_SPEED_ID, NaN)); if (Number.isFinite(raw) && raw >= 0) return Math.max(0, Math.min(10, raw)); const legacy = Number(readSetting('LuoWen.FlowSpeed', NaN)); return Number.isFinite(legacy) && legacy >= 0 ? Math.max(0, Math.min(10, legacy > 10 ? Math.round(legacy / 60) : legacy)) : 4; })(),
         dashLen: (() => { const raw = Number(readSetting(DASH_LEN_ID, NaN)); return Number.isFinite(raw) && raw >= 0 ? raw : Math.max(0, Math.min(30, Number(readSetting('LuoWen.FlowDash', 7)) || 7)); })(),
