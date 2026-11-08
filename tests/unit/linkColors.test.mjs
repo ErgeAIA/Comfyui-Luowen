@@ -1,13 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { setTheme, getTheme, listThemes, resolveLinkColor, flowParams, themeInfo } from '../../luowen/web/colors/linkColors.js';
+import { setTheme, getTheme, listThemes, resolveLinkColor, themeInfo } from '../../luowen/web/colors/linkColors.js';
 
-test('linkColors: 主题关闭（默认）→ resolve 返回 null，适配器回退原取色链', () => {
+test('linkColors: 主题关闭（默认）→ resolve 返回 null，适配器回退原取色链', async () => {
   setTheme(null);
   assert.equal(getTheme(), null);
   assert.equal(resolveLinkColor({ type: 'CLIP' }), null);
   assert.equal(resolveLinkColor({ type: 'ANYTHING' }), null);
-  assert.equal(flowParams({ enabled: true, scale: 1 }), null, '主题关闭时流向动效一并无效');
+  // flowParams 已删（BUG-009-E）：v2 动效与主题解耦，dash 参数走 state.settings，无此导出
+  const mod = await import('../../luowen/web/colors/linkColors.js');
+  assert.equal(mod.flowParams, undefined, 'flowParams 死代码已删除');
 });
 
 test('linkColors: 两套主题内置，62 类映射齐全，hex 格式合法', () => {
@@ -54,17 +56,6 @@ test('linkColors: 显式映射命中（CLIP/LATENT/MODEL）与 token 层产物�
   assert.equal(resolveLinkColor({}), mat.tokens['link.unknown']);
   setTheme('luowen-cyberpunk');
   assert.equal(resolveLinkColor({ type: 'CLIP' }), requireMaterialized('luowen-cyberpunk').types.CLIP, 'cyberpunk 同口径');
-});
-
-test('linkColors: 流向动效门槛——enabled/reduced-motion/缩放三重闸门', () => {
-  setTheme('luowen-dark');
-  assert.equal(flowParams({ enabled: false, scale: 1 }), null, '默认关闭');
-  const on = flowParams({ enabled: true, scale: 1 });
-  assert.ok(on && on.dash === 7 && on.gap === 13 && on.speed === 48 && on.opacity === 0.92, 'token flow 参数透传');
-  assert.equal(on.period, 20);
-  assert.equal(flowParams({ enabled: true, scale: 1, reducedMotion: true }), null, 'reduced-motion 强制实线');
-  assert.equal(flowParams({ enabled: true, scale: 0.4 }), null, '缩放 ≤0.4 强制实线');
-  assert.ok(flowParams({ enabled: true, scale: 0.41 }), '0.41 放行');
 });
 
 test('linkColors.shouldAnimate: 三模式 × 生成时禁用 × 外部闸门', async () => {

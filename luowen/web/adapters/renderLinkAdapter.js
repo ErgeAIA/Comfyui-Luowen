@@ -1632,6 +1632,10 @@ export function install(canvas) {
   state.proto = proto;
   state.installed = true;
   installContextMenuHook();
+  // BUG-009-④：设置注册期的 onChange 早于本 install（当时 state.installed=false，syncFlowLoop 不会启动循环），
+  // 且 setup() 的显式 apply 清单不含动效键——安装完成后补一次同步，
+  // 使重启/刷新后已保存的动效配置无需用户再翻转开关即生效。
+  syncFlowLoop();
 
   // 调试入口：内存态兄弟线间距（面板项由设置会话合并后再注册，避免改 index.js）。
   // 等距带默认 8px；上限在 planBands 内按同组接入点最小 y 间距钳制。
@@ -1739,7 +1743,7 @@ export function setSettings(partial) {
   if ('flowStyle' in partial) partial.flowStyle = partial.flowStyle === 'glow' || partial.flowStyle === 'pulse' ? partial.flowStyle : 'dash';
   if ('flowDash' in partial) { const n = Number(partial.flowDash); partial.flowDash = Number.isFinite(n) ? Math.max(0, Math.min(30, n)) : prev.flowDash; }
   if ('flowGap' in partial) { const n = Number(partial.flowGap); partial.flowGap = Number.isFinite(n) ? Math.max(0, Math.min(40, n)) : prev.flowGap; }
-  if ('flowSpeed' in partial) { const n = Number(partial.flowSpeed); partial.flowSpeed = Number.isFinite(n) ? Math.max(0, Math.min(10, Math.round(n))) : prev.flowSpeed; } // 档位 0-10，绘制时 ×20
+  if ('flowSpeed' in partial) { const n = Number(partial.flowSpeed); partial.flowSpeed = Number.isFinite(n) ? Math.max(0, Math.min(10, Math.round(n))) : prev.flowSpeed; } // 档位 0-10，绘制时 ×30（屏幕像素/秒/档）
   if ('disableAnimOnRun' in partial) partial.disableAnimOnRun = !!partial.disableAnimOnRun;
   if ('brotherSpacing' in partial) {
     const n = Number(partial.brotherSpacing);
@@ -1767,7 +1771,8 @@ let flowRaf = 0;
 function flowLoopTick() {
   flowRaf = 0;
   const cfg = state.settings;
-  const on = state.installed && cfg.flowAnim && cfg.colorTheme !== 'off';
+  // BUG-009-①：主题是配色选择，不作动效隐藏依赖（与 shouldAnimate 解耦口径一致，BUG-008）
+  const on = state.installed && cfg.flowAnim;
   if (!on) return;
   // 指针按下（拖动/框选/平移）：暂停本循环的 setDirty——拖动自身已有重绘节奏，动效已画实线
   if (state.windowPointerDown === true) {
@@ -1775,8 +1780,15 @@ function flowLoopTick() {
     return;
   }
   // 空闲零重绘：仅当存在「本帧该动的线」才驱动重绘（DEC-040 第 5 条）
+  // BUG-009-②：队列运行状态在 state.queue.running（state.settings.queueRunning 从不存在，修前为恒 false 死分支）
+  // BUG-009-③：外部闸门（reduced-motion/宿主开关/缩放≤0.4）命中时逐线门禁本就画静态，循环不再驱动全图重绘
+  //   （RAF 自转保留，完整自停+唤醒设计属研究任务阶段五）；hostAnimOff 缓存是帧级生命周期，
+  //   循环停画期间无人刷新会成死缓存，这里每 tick 直读一次
+  state.frame.hostAnimOff = null;
+  const scaleNow = app?.canvas?.ds?.scale ?? 1;
   let hasWork = true;
-  if (cfg.queueRunning && cfg.disableAnimOnRun) hasWork = false;
+  if (reducedMotionPref() || hostAnimationsDisabled() || !(Number(scaleNow) > 0.4)) hasWork = false;
+  else if (state.queue.running && cfg.disableAnimOnRun) hasWork = false;
   else if (cfg.animMode === 'executing') hasWork = state.queue.executingNode != null;
   else if (cfg.animMode === 'selected') hasWork = (app?.canvas?.selectedItems?.size ?? 0) > 0;
   if (hasWork && !document.hidden) app?.canvas?.setDirty?.(false, true);
@@ -1784,7 +1796,7 @@ function flowLoopTick() {
 }
 
 function syncFlowLoop() {
-  const want = !!(state.installed && state.settings.flowAnim && state.settings.colorTheme !== 'off');
+  const want = !!(state.installed && state.settings.flowAnim);
   if (want && !flowRaf) flowRaf = requestAnimationFrame(flowLoopTick);
 }
 

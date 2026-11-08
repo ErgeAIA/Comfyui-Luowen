@@ -48,19 +48,10 @@ export function resolveLinkColor(link) {
   return theme.tokens['link.unknown'] ?? null;
 }
 
-// 流向动效（spec §6）：enabled=用户设置（默认关闭）；prefers-reduced-motion 与缩放 ≤0.4 强制关闭。
-// 返回 null = 本帧画实线；非 null = 以 dash/gap/speed 沿路径行进（源→目标）。
-export function flowParams({ enabled = false, scale = 1, reducedMotion = false } = {}) {
-  if (!themeId || !enabled || reducedMotion) return null;
-  if (!(Number(scale) > 0.4)) return null;
-  const f = THEMES[themeId].flow ?? {};
-  const dash = Number(f.dash) || 7;
-  const gap = Number(f.gap) || 13;
-  return { dash, gap, speed: Number(f.speed) || 48, opacity: Number.isFinite(Number(f.opacity)) ? Number(f.opacity) : 0.92, period: dash + gap };
-}
-
 // 动效门禁（v2，DEC-040）：mode=all/selected/executing；生成时禁用开关优先于一切。
 // 返回 true = 该线本帧可动（具体线型由适配器绘制）；false = 画实线。
+// 注：旧 flowParams()（主题 token 透传 dash 参数）已随 BUG-009-E 删除——运行时 dash 形状参数
+// 自 v2 起走 state.settings（renderLinkAdapter），该函数成为无引用死代码且带旧主题闸门语义。
 export function shouldAnimate({ mode = 'all', link, selectedIds, executingNode, queueRunning = false, disableAnimOnRun = true, enabled = false, scale = 1, reducedMotion = false, hostAnimationsDisabled = false } = {}) {
   if (!enabled) return false;
   // 主题不作为闸门（用户反馈「所有动效都不生效」）：主题关时对当前描边色（原生 color || #94a3b8）照样动效
