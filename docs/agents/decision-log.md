@@ -16,6 +16,18 @@ description: >
 > 格式：`## DEC-NNN: 标题`，新条目置顶，NNN 三位递增。
 > 字段：`- **日期**：` / `- **背景**：` / `- **决策**：` / `- **验证**：`
 
+## DEC-043: 自动布局（F-015）研究与实施计划立项——任务书核实评估通过并落盘可执行计划
+
+- **日期**：2026-11-08
+- **背景**：用户提供另一 AI 起草的《自动布局深度研究与方案设计任务书》（luowen-auto-layout-research-brief.md）。逐项核实后：结构合格、边界纪律正确（研究/实施分离、硬约束一票否决、版本核对、反方审查），但含 3 处事实预设错误（F1「三引擎长期存在」——Layout 引擎不存在、Theme 仅配色 token；F2 前端路径未锁版本——已取证 1.55.18 实有 layoutMutations/layoutStore/graphLayoutAttachment/types 且 LayoutSource 仅 canvas/vue 两值；F3 Vitest——本项目 node:test）与 2 处重要遗漏（G1 宿主原生「整理」useArrangeNodes vertical/horizontal/grid + gap——任务书未提；G2 本项目 verify()/graphRead/Reroute 判定等结构不变量资产可复用）。
+- **决策**：
+  1. 评估结论与修正后事实基线落盘为可执行计划 `docs/specs/auto-layout/plan.md`（§1 核实表 / §2 事实基线 / §3 阶段 A–E 计划 / §4 用户决策清单 / §5 禁止事项）。
+  2. 阶段推进：A 现状与宿主审计（含 layoutStore↔node.pos 同步语义定案、真实样本征集）→ B 图模型与约束模型（纯函数）→ C 算法对照（elkjs/Dagre/自研，依赖 vendor 政策先决）→ D 真实画布原型（页面级注入，不改生产代码）→ E 性能 + 最终 PRD。每阶段一轮、完成即停等验收。
+  3. MVP 建议口径：流向布局（全图）+ 选区局部布局（固定未选节点）；功能分组/入口出口组织证据不足、列为后续。
+  4. 研究阶段不改生产代码；实施轮另行启动（沿 DEC-042 对照表口径）。
+- **验证**：本条目所引取证均为 1.55.18 sourcemap file 级证据（layoutMutations.ts 全文 2698 字符、useArrangeNodes.ts ArrangeLayout 三模式、LayoutSource 枚举）与仓库 HEAD 4859a18 状态；plan.md 详列。
+- **结果**：计划已落盘待用户批准开工；阶段 A 待启动。
+
 ## DEC-042: 动效 v3 实施口径——beam 主线型、自停+唤醒、设置收窄迁移（研究报告 §7 拆分 ②③④）
 
 - **日期**：2026-11-08
