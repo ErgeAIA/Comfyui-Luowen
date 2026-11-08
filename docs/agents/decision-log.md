@@ -30,6 +30,12 @@ description: >
 - **验证**：单测 124/124（新增 beamTrace 4 项：flatten 端点/弧长/偏差上界、pointAtPx/subPolyPx 区间守恒、beam 覆盖段冒烟）；宿主探针 `.verify/p6/anim-v3-verify-result.json` 全绿——自停（selected 空选/executing 空闲/生成中禁用三态 setDirty=0 且 RAF 增量=0，BUG-009 时代 RAF 仍 +65/s）、点击唤醒、相位冻结、glow→beam 迁移、reload 自启、预算 beam p95 1.2ms vs dash 1.1ms（+9% ≤+10% 口径）、beam 视觉（v3-beam-zoom74/zoomtrunk：正交+圆角+亮束+主干单流束）；restoreOk/finalVerifyOk。
 - **结果**：已部署宿主（SHA256 一致）并自测通过；待用户验收。
 
+### DEC-042 补记（2026-11-08 用户反馈两则，当日修复）
+
+- **线型下拉框空显**：已存 `glow` 值不在新选项列表 → combo 显示空白（运行态已迁移但 UI 读原值）。改用 1.55.18 原生迁移机制 `SettingParams.migrateDeprecatedValue`（settingStore.tryMigrateDeprecatedValue，注册期调用并回写 store）——reload 后 store 值即迁为 `beam`（探针 m1：storeAfterReload=beam），下拉框正常显示。
+- **beam 可见性不足**：束段改三层伪发光——外晕（3× 宽、α0.25）+ 亮芯（混白 60%）+ 亮头（混白 88%、1.25× 宽）；不用 shadowBlur（§3.4 不可扩展结论不变）。预算：beam p95 1.7ms vs dash 1.5ms（10 线，绝对值远低于 33.4 口径）。视觉：`v3b-beam-glow-zoom.png`（束段外晕+亮芯清晰可辨）。
+- 用户自调参数如实记录：BeamSpeed=6 档、AnimMode=全图（氛围）。
+
 ## DEC-041: 连线动效语义四层框架与出厂默认修订——all 降为氛围装饰、selected 设为默认（研究任务 v2 第二阶段裁决）
 
 - **日期**：2026-11-08

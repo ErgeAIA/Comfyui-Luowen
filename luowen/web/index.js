@@ -395,6 +395,9 @@ app.registerExtension({
         { text: '虚线行进', value: 'dash' },
       ],
       defaultValue: 'beam',
+      // 已存 glow/pulse 值在注册期由宿主原生机制迁移（settingStore.tryMigrateDeprecatedValue），
+      // 否则 combo 对不在选项里的旧值显示为空（用户实测 2026-11-08）
+      migrateDeprecatedValue: (v) => (v === 'glow' || v === 'pulse' ? 'beam' : v),
       onChange: (v) => setSettings({ flowStyle: v }),
     },
     {

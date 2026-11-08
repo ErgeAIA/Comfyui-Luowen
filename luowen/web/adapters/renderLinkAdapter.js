@@ -1868,9 +1868,22 @@ function drawBeamStroke(ctx, link, pts, stroke, width, scale) {
   const bl = Math.max(8, cfg.beamLen) / sc;
   const gap = Math.max(bl + 8, cfg.beamSpacing) / sc;
   const base = (flowPhaseAcc / 1000) * v;
-  const body = lightenColor(stroke, 0.4) ?? stroke;
-  const headCol = lightenColor(stroke, 0.72);
+  // 用户反馈（2026-11-08）：束与线对比不足、正常缩放难辨。改三层伪发光：
+  // 外晕（宽笔低透）+ 亮芯 + 亮头——不用 shadowBlur（研究报告 §3.4：随可见线数不可扩展）。
+  const halo = lightenColor(stroke, 0.45) ?? stroke;
+  const core = lightenColor(stroke, 0.6) ?? stroke;
+  const headCol = lightenColor(stroke, 0.88) ?? stroke;
   const nB = Math.max(1, Math.floor(span / gap));
+  const strokeSeg = (poly, style, lw, alpha) => {
+    if (poly.length < 2) return;
+    ctx.strokeStyle = style;
+    ctx.lineWidth = lw;
+    ctx.globalAlpha = alpha;
+    ctx.beginPath();
+    ctx.moveTo(poly[0][0], poly[0][1]);
+    for (let i = 1; i < poly.length; i++) ctx.lineTo(poly[i][0], poly[i][1]);
+    ctx.stroke();
+  };
   ctx.save();
   ctx.lineCap = 'round';
   for (let k = 0; k < nB; k++) {
@@ -1878,26 +1891,10 @@ function drawBeamStroke(ctx, link, pts, stroke, width, scale) {
     const s1 = Math.min(s0 + bl, fm.total);
     if (s1 - s0 < 1) continue;
     const seg = subPolyPx(flat, fm, s0, s1);
-    if (seg.length > 1) {
-      ctx.strokeStyle = body;
-      ctx.globalAlpha = 0.9;
-      ctx.lineWidth = width;
-      ctx.beginPath();
-      ctx.moveTo(seg[0][0], seg[0][1]);
-      for (let i = 1; i < seg.length; i++) ctx.lineTo(seg[i][0], seg[i][1]);
-      ctx.stroke();
-    }
+    strokeSeg(seg, halo, width * 3, 0.25);
+    strokeSeg(seg, core, width, 1);
     const h0 = Math.max(s1 - 12 / sc, s0);
-    const head = subPolyPx(flat, fm, h0, s1);
-    if (head.length > 1) {
-      ctx.strokeStyle = headCol ?? stroke;
-      ctx.globalAlpha = headCol ? 1 : 0.85;
-      ctx.lineWidth = headCol ? width : width + 1.5;
-      ctx.beginPath();
-      ctx.moveTo(head[0][0], head[0][1]);
-      for (let i = 1; i < head.length; i++) ctx.lineTo(head[i][0], head[i][1]);
-      ctx.stroke();
-    }
+    strokeSeg(subPolyPx(flat, fm, h0, s1), headCol, width * 1.25, 1);
   }
   ctx.restore();
 }
