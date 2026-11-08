@@ -1429,7 +1429,7 @@ function tryCustomRender(ctx, a, b, link, color, start_dir, end_dir, opts) {
       const period = cfg.dashLen + cfg.dashGap;
       if (period > 0) {
         ctx.setLineDash([cfg.dashLen, cfg.dashGap]);
-        ctx.lineDashOffset = dashOffset({ now: performance.now(), speed: cfg.dashSpeed * 60, scale: scaleNow, period });
+        ctx.lineDashOffset = dashOffset({ now: performance.now(), speed: cfg.dashSpeed * 30, scale: scaleNow, period });
         ctx.globalAlpha = 0.92;
       }
     }
