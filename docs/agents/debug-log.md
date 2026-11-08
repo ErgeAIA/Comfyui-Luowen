@@ -2,7 +2,7 @@
 title: Debug Log
 type: debug-log
 project: 络纹（LuoWen）
-updated: 2026-11-07
+updated: 2026-11-08
 description: >
   反复调试的 bug 追加记录，优先级与实现事实对齐。只追加，不删除或改写历史。
   AI 在本文件新增或修改任何条目后，必须同步更新 frontmatter 的 updated 字段为当日日期（YYYY-MM-DD）。
@@ -229,3 +229,38 @@ description: >
   2. 用户设置恢复：cyberpunk + 档位 10 + 动效开（用户明示意图）。
 - **预防规则**：探针触碰任何服务端共享状态前，**先快照全部将改动的键**，结束后按快照逐键还原（不是还原成默认值）；能不碰就不碰。凡「A 开关静默依赖 B 开关」的 UI 设计，要么解耦，要么在 A 的 tooltip 与运行时状态里显式标明依赖。
 - **教训**：无头验收页与用户浏览器共享服务端状态，「页面即弃」不等于「状态即弃」。
+
+***
+
+## BUG-009: 动效 v2 调度器四处缺陷——主题闸门未解耦 / queueRunning 字段错误 / 空转与无效重绘 / 刷新后循环不自启
+
+- **日期**：2026-11-08
+- **来源**：外部研究任务 `luowen-motion-research-prompt-v2.md` 第一阶段审计（静态源码追踪 + `.verify/p6/` 运行时探针）；**用户 2026-11-08 实证确认**（重启后动效不生效，须把开关关再开一次才启动）。
+- **根因（四处，均在动效 RAF 调度子系统）**：
+  1. **主题闸门未解耦**：`shouldAnimate` 已移除主题闸门（BUG-008 修复），但 `flowLoopTick` 的 `on = installed && flowAnim && colorTheme !== 'off'`（renderLinkAdapter.js:1770）与 `syncFlowLoop`（:1787）仍要求主题开——主题关闭时循环死、虚线冻结，与解耦意图直接矛盾。实测 theme=off + flowAnim=on + mode=all：1.5s setDirty=0/drawConn=0；切 dark 即恢复 60/s。
+  2. **`cfg.queueRunning` 字段不存在**：renderLinkAdapter.js:1779 读 `state.settings.queueRunning`，该字段从未存在（真值在 `state.queue.running`，index.js:560-565 事件驱动写入）——分支恒 false。实测 mock 执行中 + DisableAnimOnRun=true：1.5s setDirty=91，生成期间照旧 60fps 全图重绘、仅线条静态，「生成时禁用」未停掉目标开销。
+  3. **循环无自停、无效闸门不拦 setDirty**：`on` 期间无条件重排 RAF（:1783）；hasWork 只查 queue/mode（:1779-1781），不查 reducedMotion / 宿主 DisableAnimations / 缩放≤0.4。实测：selected 空选 setDirty=0 但 rAF 增量 ≈65/s（纯空转）；reduced-motion、宿主开关、zoom=0.35 三态均 60/s 全图重绘静态线。DEC-040「仅执行中模式空闲时循环自停」表述不成立（实为停画不停转）。
+  4. **刷新后循环不自启（用户实证）**：1.55.18 `addSetting` 注册期即 `void onChange(setting, get(id), undefined)`（settingStore-DZ2-HL-F.js.map sourcesContent 取证）→ 非默认值开机恢复正确；但 `syncFlowLoop` 在注册期执行时 `state.installed=false`（install 在 extension setup() 内、晚于设置注册），setup() 显式 apply 清单（index.js:536-550）不含 flowAnim/colorTheme/animMode/flowStyle/disableAnimOnRun，安装后无再同步 → reload 后循环不自启，直到用户真实翻转任一动效设置（同值 set 不触发 onChange）或首个执行事件（setQueueState→syncFlowLoop）。实测 reload 后 mode=all 1.5s setDirty=0（本应 60/s）。
+- **伴随观察（非本条修复范围）**：`flowParams`（linkColors.js:53-60）为死代码，仅 linkColors.test.mjs:10 等引用且断言与 v2 解耦相悖的旧主题闸门行为；setSettings:1742 注释「×20」实际 ×30（:1432）；uninstall（:1683-1722）未 `cancelAnimationFrame(flowRaf)`（installed=false 后下一 tick 自停）；宿主执行闪光（triggerSlot→`link._last_time` 白色渐隐）经我方包装后主题开时被取色优先级覆盖、dash 线型 globalAlpha=0.92 覆盖渐隐 alpha（代码静态推断，待运行时验证）。
+- **状态**：未修复。修复属生产代码改动，待用户拍板范围后排期；修复口径建议：①②去主题闸门、改读 `state.queue.running`（最小补丁）；③先把 reducedMotion/宿主开关/缩放并入 hasWork（完整自停+唤醒设计属研究任务阶段五，不在本轮）；④install() 末尾补一次 `syncFlowLoop()`。逐项验证与实测数据见 `.verify/p6/anim-audit-result.json`、`anim-pipeline-result.json`。
+
+### BUG-009 修复实施与验证（2026-11-08，用户拍板「先修复」后同日实施；待用户验收）
+
+- **修复内容（最小补丁，3 文件）**：
+  1. ①去主题闸门：`flowLoopTick`/`syncFlowLoop` 的 `on/want` 不再要求 `colorTheme !== 'off'`（renderLinkAdapter.js:1770 区域）；
+  2. ②改读真值：hasWork 链改 `state.queue.running && cfg.disableAnimOnRun`；
+  3. ③外部闸门并入 hasWork：reducedMotion / 宿主 DisableAnimations / 缩放≤0.4 命中即不 setDirty（RAF 自转保留，完整自停+唤醒设计属研究任务阶段五）；`state.frame.hostAnimOff` 为帧级缓存、停画期会死缓存，tick 内每帧置 null 直读；
+  4. ④install() 在 `state.installed = true` 后补一次 `syncFlowLoop()`（renderLinkAdapter.js installContextMenuHook 之后）——刷新后已保存动效配置免翻转开关即生效；
+  5. E：删除死代码 `flowParams`（linkColors.js）及 linkColors.test.mjs 旧契约断言（新增「无此导出」断言）；顺带修正 setSettings 注释 ×20→×30。
+- **修前 → 修后（同机同页同口径，`.verify/p6/anim-audit-result.json` vs `anim-fix-verify-result.json`）**：
+  | 项 | 修前 | 修后 |
+  |---|---|---|
+  | A theme=off+flowAnim=on+mode=all（1.5s） | setDirty=0（循环死） | 91（60/s 循环活） |
+  | B 执行中+DisableAnimOnRun=true（1.5s） | 91（照常重绘） | 0；execution_success 后恢复 72/1.2s |
+  | C reduced-motion（1.2s） | 72 | 0 |
+  | C 宿主 DisableAnimations（1.2s） | 72 | 0 |
+  | C zoom=0.35（1.2s） | 72 | 0 |
+  | 不变行为 selected 空选（1.5s） | 0 | 0 |
+  | D reload 后自启（theme=off 最严苛，1.5s） | 0（须翻开关） | 90（自启） |
+- **回归**：`node --test tests/unit/*.test.mjs` **120/120**（删 flowParams 旧块 1 项）；`node --check` 三源文件过；两轮探针 `LuoWen.verify()` 均 ok、console 错误 0；设置快照逐键还原 fileCheck ok。宿主副本 SHA256 与仓库一致（renderLinkAdapter `cc2a0150…`、linkColors `87f6c153…`）。视觉证据 `fix-themeoff-anim-1/2.png`（主题关下虚线行进两帧）。
+- **状态**：已部署宿主并自测通过，**待用户验收**（未提交 git）。
