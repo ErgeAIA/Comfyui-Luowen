@@ -73,38 +73,53 @@ export function straightenEdges(model, positions, { maxTolRatio = 0.5 } = {}) {
 }
 
 /**
- * R2 同列交换减交叉（用户反馈 ②）：x 相近（同列）且与同一目标相连/交叉的节点对，
- * 尝试交换两者 y（仅当交换后两节点都不与第三者重叠且交叉数严格下降），贪心、轮数 ≤2。
- * 「加载VAE 放到 K采样器下方线就不打架」的同层版本。
+ * R2 列内重排（用户反馈 ②「VAE 放 K采样器下方」+ ①「同级对齐」）：
+ * 1. 按 x 聚类分列（列内节点 x 差 ≤ colThreshold）
+ * 2. 列内按「目标口平均 y」排序（喂到下层低端口的节点排在下方）
+ * 3. 整列重堆叠（等间距、无重叠、x 统一到该列最小 x 左对齐）
+ * 替换旧版 y 交换——高度不等的节点 y 交换会触发重叠，重排才正确。
  */
-export function swapReduceCrossings(model, positions, { rounds = 2, colGap = 30 } = {}) {
+export function swapReduceCrossings(model, positions, { colGap = 150, nodeGap = 40 } = {}) {
   const pos = new Map(positions);
-  let crossings = countCross(model, pos);
-  let swaps = 0;
-  for (let r = 0; r < rounds; r++) {
-    const byX = [...model.nodes.values()].filter((n) => pos.has(n.id)).sort((a, b) => (pos.get(a.id)[0] - pos.get(b.id)[0]) || a.id.localeCompare(b.id));
-    for (let i = 0; i < byX.length; i++) {
-      for (let j = i + 1; j < byX.length; j++) {
-        const a = byX[i], b = byX[j];
-        const pa = pos.get(a.id), pb = pos.get(b.id);
-        if (Math.abs(pa[0] - pb[0]) > colGap) continue; // 不同列不试
-        if (Math.abs(pa[1] - pb[1]) < 1) continue;
-        // 交换 y
-        pos.set(a.id, [pa[0], pb[1]]);
-        pos.set(b.id, [pb[0], pa[1]]);
-        const after = countCross(model, pos);
-        const clash = overlapsAny(model, pos, a.id) || overlapsAny(model, pos, b.id, new Set([a.id]));
-        if (after < crossings && !clash) {
-          crossings = after;
-          swaps++;
-        } else {
-          pos.set(a.id, pa);
-          pos.set(b.id, pb);
-        }
-      }
-    }
+  const movable = [...model.nodes.values()].filter((n) => pos.has(n.id) && !n.fixed).sort((a, b) => (pos.get(a.id)[0] - pos.get(b.id)[0]) || a.id.localeCompare(b.id));
+  if (movable.length < 2) return { positions: pos, columns: 0, swaps: 0 };
+
+  // 1. 按 x 聚类分列
+  const cols = [];
+  let cur = [movable[0]];
+  for (let i = 1; i < movable.length; i++) {
+    if (pos.get(movable[i].id)[0] - pos.get(movable[i - 1].id)[0] <= colGap) cur.push(movable[i]);
+    else { cols.push(cur); cur = [movable[i]]; }
   }
-  return { positions: pos, crossings, swaps };
+  cols.push(cur);
+
+  // 2. 列内按「目标口平均 y」排序 + 3. 重堆叠
+  const targetYOf = (id) => {
+    let sum = 0, n = 0;
+    for (const e of model.edges) {
+      if (e.src !== id) continue;
+      const t = portPos(model, pos, e.dst, 'in', e.dstPort);
+      if (t) { sum += t[1]; n++; }
+    }
+    return n ? sum / n : pos.get(id)?.[1] ?? 0;
+  };
+  let columns = 0, swaps = 0;
+  for (const col of cols) {
+    if (col.length < 2) continue;
+    const sorted = col.slice().sort((a, b) => targetYOf(a.id) - targetYOf(b.id) || a.id.localeCompare(b.id));
+    const origOrder = col.map((n) => n.id).join(',');
+    const newOrder = sorted.map((n) => n.id).join(',');
+    const isReordered = origOrder !== newOrder;
+    const colX = Math.min(...col.map((n) => pos.get(n.id)[0]));
+    let y = Math.min(...col.map((n) => pos.get(n.id)[1]));
+    for (const n of sorted) {
+      pos.set(n.id, [colX, y]);
+      y += n.size[1] + nodeGap;
+    }
+    if (isReordered) swaps++;
+    columns++;
+  }
+  return { positions: pos, columns, swaps };
 }
 
 function countCross(model, pos) {
@@ -113,7 +128,6 @@ function countCross(model, pos) {
     const a = portPos(model, pos, e.src, 'out', e.srcPort);
     const b = portPos(model, pos, e.dst, 'in', e.dstPort);
     if (a && b) segs.push({ a1: a, a2: b, src: e.src, dst: e.dst });
-    void 0;
   }
   let count = 0;
   for (let i = 0; i < segs.length; i++) {

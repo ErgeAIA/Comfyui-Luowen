@@ -60,7 +60,7 @@ function captureState(app) {
 }
 
 // ---------- ELK 布局（movable 子图 + 端口 FIXED_SIDE） ----------
-async function elkLayout(model, movableIds, { nodeSpacing = 40, layerSpacing = 80 } = {}) {
+async function elkLayout(model, movableIds, { nodeSpacing = 60, layerSpacing = 100 } = {}) {
   const ELK = await loadElk();
   const elk = new ELK();
   const mv = new Set(movableIds.map(String));
@@ -87,6 +87,10 @@ async function elkLayout(model, movableIds, { nodeSpacing = 40, layerSpacing = 8
       'org.eclipse.elk.direction': 'RIGHT',
       'org.eclipse.elk.layered.spacing.nodeNodeBetweenLayers': String(layerSpacing),
       'org.eclipse.elk.spacing.nodeNode': String(nodeSpacing),
+      'org.eclipse.elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
+      'org.eclipse.elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
+      'org.eclipse.elk.layered.compaction.postCompaction.strategy': 'EDGE_LENGTH',
+      'org.eclipse.elk.edgeRouting': 'ORTHOGONAL',
     },
     children,
     edges,
@@ -182,7 +186,7 @@ export async function runAutoLayout(app, { scope = 'full', collapseNotes = false
   const { straightenEdges, swapReduceCrossings } = await import('./refine.js');
   const st = straightenEdges(model, positions);
   positions = st.positions;
-  const sw = swapReduceCrossings(model, positions);
+  const sw = swapReduceCrossings(model, positions, { colGap: 150 });
   positions = sw.positions;
   // 障碍规避：有 fixed/未选（局部）时，把新布局整体平移到 fixed 包围盒右侧空白带（硬约束：不重叠）
   shiftToFreeBand(positions, constraints.obstacles, { margin: 60 });

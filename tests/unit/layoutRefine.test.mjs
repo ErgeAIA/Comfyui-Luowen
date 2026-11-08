@@ -44,11 +44,17 @@ test('layoutRefine.swapReduceCrossings: X 交叉配置交换后 crossings 1→0�
   });
   const pos = new Map([['1', [0, 0]], ['2', [0, 200]], ['3', [400, 0]], ['4', [400, 200]]]);
   assert.equal(countCrossings(m, pos), 1, '前置：X 交叉 1');
-  const { crossings, swaps, positions: swapped } = swapReduceCrossings(m, pos, { rounds: 1 });
-  assert.equal(crossings, 0, '交换后交叉 0');
+  const { swaps, positions: swapped } = swapReduceCrossings(m, pos, { colGap: 150, nodeGap: 40 });
+  const crossings = countCrossings(m, swapped);
+  assert.equal(crossings, 0, '重排后交叉 0（按目标口 y 排序自动消除 X 交叉）');
   assert.equal(swaps, 1);
-  assert.deepEqual(swapped.get('1'), [0, 200]);
-  assert.deepEqual(swapped.get('2'), [0, 0]);
+  // 重排后边全水平：1 出口 y = 4 入口 y；2 出口 y = 3 入口 y（端口 y = node.y + h/2，单端口）
+  const outY1 = swapped.get('1')[1] + 30; // h=60, 1 out port → y + h/2 = y+30
+  const inY4 = swapped.get('4')[1] + 30;
+  assert.ok(Math.abs(outY1 - inY4) < 1e-6, `边 e1 水平（out=${outY1} in=${inY4}）`);
+  const outY2 = swapped.get('2')[1] + 30;
+  const inY3 = swapped.get('3')[1] + 30;
+  assert.ok(Math.abs(outY2 - inY3) < 1e-6, `边 e2 水平（out=${outY2} in=${inY3}）`);
 });
 
 test('layoutRefine.rerouteComponentIds: 含 Reroute 链的分量整体跳过（含链上 Reroute 节点），干净分量不跳', () => {
