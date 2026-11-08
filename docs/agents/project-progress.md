@@ -34,7 +34,7 @@ description: >
   - **决定性数据（full 场景 crossings vs 基线）**：largest 31 vs 116（−73%）、mostGroups 74 vs 187、mostReroute 71 vs 117、mostComponents 66 vs 168（−61%）、largeCollection 0 保持且消除 22 重叠；反向边全归零；边长 −11~46%。dagre 系统性第二（无端口约束，交叉差 2 倍）；自研参考分层交叉爆炸（1585~2930，无交叉最小化环节的实证）。
   - **ELK 短板实证**：无障碍感知——full 场景 largest 残留 7 处重叠（fixed 矩形与新布局重叠）→ 局部布局需自研障碍规避后处理（自研的合理职责定位）。S4 compound 可行但昂贵（crossings 95 优于基线 187 但面积 ×3）→ MVP 用 flat + Group bounds 随成员重算。
   - 指标修正：groupCohesion v1.0（原始 bounds）在全图布局下失效 → v1.1 紧凑度口径（成员面积/包围盒面积，位置无关）+ 测试更新（144/144）。
-  - 报告 （决策矩阵/对照表/钢人论证/推荐=ELK 主引擎+自研障碍规避+captureState）。下一步：Phase D 真实画布原型（页面级注入+硬约束机检+撤销实测）。
+  - 报告 `docs/specs/auto-layout/algorithms.md`（决策矩阵/对照表/钢人论证/推荐=ELK 主引擎+自研障碍规避+captureState）。下一步：Phase D 真实画布原型（页面级注入+硬约束机检+撤销实测）。
 - **本轮自动布局 Phase B：图模型与约束模型（2026-11-08，分支 auto-layout；新增 luowen/web/layout/ 三纯函数模块 + 20 单测，不接宿主）**：
   - graph-model.js（buildModel/foldRerouteEdges/componentsOf/topoOrderOf/fromWorkflowJson）：Reroute 透明路径点折叠口径（DEC-033 引申，manualIntent 标记、分叉/环保守不折叠记 dropped）、Group 成员几何包含推导、非 DAG 返回 null。
   - metrics.js（9 项软指标全可计算）+ constraints.js（局部未选全 fixed+障碍/pinned 恒 fixed/lockedGroup/Reroute 意图 notes）。
