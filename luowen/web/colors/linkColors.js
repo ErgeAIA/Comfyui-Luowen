@@ -78,3 +78,10 @@ export function shouldAnimate({ mode = 'all', link, selectedIds, executingNode, 
   }
   return true;
 }
+
+// 虚线相位：屏幕恒速口径（spec §6.2 修订，DEC-040 补充）——speed 为屏幕像素/秒，
+// 除以当前缩放换算成图坐标位移，任何缩放下视觉速度一致。
+export function dashOffset({ now, speed, scale = 1, period }) {
+  const sc = Number(scale) > 0.05 ? Number(scale) : 0.05;
+  return (-((Number(now) / 1000) * Number(speed)) / sc % period) || 0;
+}

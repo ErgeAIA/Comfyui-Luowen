@@ -94,3 +94,22 @@ test('linkColors.shouldAnimate: 三模式 × 生成时禁用 × 外部闸门', a
   assert.equal(shouldAnimate({ ...base, scale: 0.4 }), false, '缩放 0.4 停');
   assert.equal(shouldAnimate({ ...base, scale: 0.41 }), true);
 });
+
+test('linkColors.dashOffset: 屏幕恒速——不同缩放下单位时间的屏幕位移一致', async () => {
+  const { dashOffset } = await import('../../luowen/web/colors/linkColors.js');
+  // dt=1ms：保证最小缩放(0.2)下图坐标位移(1px) < 周期(20px)，不发生采样混叠
+  const now = 5000, dt = 1, speed = 200, period = 20;
+  const screenDelta = (scale) => {
+    const a = dashOffset({ now, speed, scale, period });
+    const b = dashOffset({ now: now + dt, speed, scale, period });
+    let d = Math.abs(a - b) % period;
+    if (d > period / 2) d = period - d;
+    return d * scale; // 相位差为图坐标位移，×scale = 屏幕位移
+  };
+  const expect = (speed * dt) / 1000; // 屏幕恒速口径：200px/s × 1ms = 0.2 屏幕像素
+  for (const scale of [1.0, 0.9, 0.5, 0.2]) {
+    const got = screenDelta(scale);
+    assert.ok(Math.abs(got - expect) < 1e-6, `${scale} 缩放屏幕位移 ${got.toFixed(4)} ≈ ${expect}`);
+  }
+  assert.equal(dashOffset({ now: 0, speed: 200, scale: 0.02, period: 20 }), 0, '极小缩放钳制下限不发散');
+});

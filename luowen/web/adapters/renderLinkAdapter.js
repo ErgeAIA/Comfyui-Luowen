@@ -13,7 +13,7 @@
 
 import { route } from '../geometry/router.js';
 import { emitBezier, measure as measurePts, pointAt, DEFAULT_RADIUS as DEFAULT_CORNER_RADIUS } from '../geometry/trace.js';
-import { resolveLinkColor, shouldAnimate, setTheme as setLinkColorTheme, themeInfo } from '../colors/linkColors.js';
+import { resolveLinkColor, shouldAnimate, dashOffset, setTheme as setLinkColorTheme, themeInfo } from '../colors/linkColors.js';
 import { DEFAULT_BEVEL_RATIO, chamferPolyline, createChamferIndex, polylineBox, findSharedPoints } from '../geometry/chamfer.js';
 import { previewPath } from '../geometry/preview.js';
 import { obstacleHash, corridorClear } from '../geometry/obstacles.js';
@@ -1367,12 +1367,15 @@ function tryCustomRender(ctx, a, b, link, color, start_dir, end_dir, opts) {
     perfCount('chamfers');
   }
 
+  const tBuild = perfBegin();
   const path = new Path2D();
   // smooth = 真 Bezier（PRD §5.1 骨架曲线化）：拐角三次贝塞尔，骨架 pts 不变，只换绘制表达。
   // cornerRadius 语义不变（0=直角）；与 chamfer 互斥口径不变（chamfer 仅 orthogonal 分支）。
   if (cfg.style === 'smooth') emitBezier(path, pts, cfg.cornerRadius);
   else sharpPath(path, drawPts);
   const mid = pointAt(drawPts, measurePts(drawPts), 0.5); // {x, y, angle}
+  perfAdd('pathBuild', tBuild);
+  const tStroke = perfBegin();
 
   ctx.save();
   ctx.lineWidth = width + (hovered ? 1.5 : 0);
@@ -1395,7 +1398,7 @@ function tryCustomRender(ctx, a, b, link, color, start_dir, end_dir, opts) {
       ctx.lineWidth = width * (1 + 0.45 * Math.sin((performance.now() / 1000) * (Math.PI * 2 * cfg.flowSpeed) / 60));
     } else {
       ctx.setLineDash([cfg.flowDash, cfg.flowGap]);
-      ctx.lineDashOffset = -((performance.now() / 1000) * cfg.flowSpeed) % period;
+      ctx.lineDashOffset = dashOffset({ now: performance.now(), speed: cfg.flowSpeed, scale: scaleNow, period });
       ctx.globalAlpha = 0.92;
     }
   }
@@ -1415,6 +1418,7 @@ function tryCustomRender(ctx, a, b, link, color, start_dir, end_dir, opts) {
   ctx.fill();
   ctx.restore();
 
+  perfAdd('strokeT', tStroke);
   // 命中跟随：覆写渲染产物（不触碰图数据）。
   // 大斜切后按实际折线命中：斜边可悬停/可删除（DEC-012 修订）。
   link.path = path;
@@ -1505,7 +1509,7 @@ export function perfStop() {
 
 export function perfReport() {
   const fs = state.perf.frames;
-  const keys = ['frame', 'begin', 'predict', 'lanes', 'trunks', 'bands', 'astar', 'chamfer', 'render'];
+  const keys = ['frame', 'begin', 'predict', 'lanes', 'trunks', 'bands', 'astar', 'chamfer', 'render', 'pathBuild', 'strokeT'];
   const sum = (k) => fs.reduce((a, s) => a + (s[k] || 0), 0);
   const out = {
     on: state.perf.on,
@@ -1682,7 +1686,7 @@ export function setSettings(partial) {
   if ('flowStyle' in partial) partial.flowStyle = partial.flowStyle === 'glow' || partial.flowStyle === 'pulse' ? partial.flowStyle : 'dash';
   if ('flowDash' in partial) { const n = Number(partial.flowDash); partial.flowDash = Number.isFinite(n) ? Math.max(0, Math.min(30, n)) : prev.flowDash; }
   if ('flowGap' in partial) { const n = Number(partial.flowGap); partial.flowGap = Number.isFinite(n) ? Math.max(0, Math.min(40, n)) : prev.flowGap; }
-  if ('flowSpeed' in partial) { const n = Number(partial.flowSpeed); partial.flowSpeed = Number.isFinite(n) ? Math.max(6, Math.min(200, n)) : prev.flowSpeed; }
+  if ('flowSpeed' in partial) { const n = Number(partial.flowSpeed); partial.flowSpeed = Number.isFinite(n) ? Math.max(6, Math.min(1200, n)) : prev.flowSpeed; }
   if ('disableAnimOnRun' in partial) partial.disableAnimOnRun = !!partial.disableAnimOnRun;
   if ('brotherSpacing' in partial) {
     const n = Number(partial.brotherSpacing);
