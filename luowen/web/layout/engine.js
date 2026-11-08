@@ -61,6 +61,10 @@ function captureState(app) {
 
 // ---------- ELK 布局（movable 子图 + 端口 FIXED_SIDE） ----------
 async function elkLayout(model, movableIds, { nodeSpacing = 60, layerSpacing = 100 } = {}) {
+  // 自适应层间距：统计每个节点的最大入端口数——入口多则线多，层间距需更宽（用户反馈 2026-11-09）
+  let maxInPorts = 0;
+  for (const n of model.nodes.values()) if (n.inPorts.length > maxInPorts) maxInPorts = n.inPorts.length;
+  const adaptiveLayerSpacing = layerSpacing + Math.max(0, maxInPorts - 2) * 30;
   const ELK = await loadElk();
   const elk = new ELK();
   const mv = new Set(movableIds.map(String));
@@ -85,12 +89,9 @@ async function elkLayout(model, movableIds, { nodeSpacing = 60, layerSpacing = 1
     id: 'root',
     layoutOptions: {
       'org.eclipse.elk.direction': 'RIGHT',
-      'org.eclipse.elk.layered.spacing.nodeNodeBetweenLayers': String(layerSpacing),
+      'org.eclipse.elk.layered.spacing.nodeNodeBetweenLayers': String(adaptiveLayerSpacing),
       'org.eclipse.elk.spacing.nodeNode': String(nodeSpacing),
       'org.eclipse.elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
-      'org.eclipse.elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
-      'org.eclipse.elk.layered.compaction.postCompaction.strategy': 'EDGE_LENGTH',
-      'org.eclipse.elk.edgeRouting': 'ORTHOGONAL',
     },
     children,
     edges,
