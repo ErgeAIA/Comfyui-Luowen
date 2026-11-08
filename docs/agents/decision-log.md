@@ -65,6 +65,18 @@ description: >
 - **需用户拍板（prd.md §15）**：D1 折叠写入边界修订（建议批准，默认关）/ D2 MVP 范围（建议 MVP-1+MVP-2）/ D3 Group 重组（建议不做）/ D4 盲测时机（建议实施验收时）。
 - **结果**：DEC-043 全部补记 A–E 结案；实施轮（5 步，每步对照表验收）待用户批准。
 
+### DEC-043 补记 F（2026-11-08，分支 auto-layout，实施轮完成——D1–D4 用户批准后实施）
+
+- **执行**：按 prd.md §17 五步实施（本笔为 1–4 步 + 验收）：
+  1. **布局快照适配器**：`luowen/web/layout/engine.js` snapshotFromGraph（LGraph duck-typed 现场快照，单测 3 项）。
+  2. **ELK 编排**：runAutoLayout(app, {scope, collapseNotes})——vendor 懒加载（浏览器 UMD 解析修正：self.ELK）+ movable 子图 + 端口 FIXED_SIDE + **captureCanvasState 前后双采**（单条 undo，Pinia workflow store 路径）。
+  3. **障碍规避**：shiftToFreeBand（局部场景 movable 布局整体平移到 fixed 包围盒右侧空白带，确定性单次平移，单测 1 项）。
+  4. **Group bounds 重算**：按快照同序索引对齐现场 groups（LGraphGroup 无 id 可靠匹配）+ **正规写入口 setBounds/commitBounds**（_bounding 为 Rectangle 实例，直接 splice 无效——运行时取证修正）+ recomputeInsideNodes 不调用（保留原成员语义）。
+  5. **触发 UI**：`LuoWen.AutoLayout.CollapseNotes` 设置（D1，默认关，i18n 双语）+ `window.LuoWen.autoLayout(scope)` API；菜单/快捷键挂接待宿主命令 API 取证（如实标注）。
+- **D1 落地**：折叠写入 = Note/Markdown 类 collapse(true)+size[1]=30（collapsed 为 getter 只读、collapse() 为正规入口——运行时取证修正）；仅开关开启时写入。PRD §4.2 F-015 已按批准修订（pos 与可选折叠状态）。
+- **验收（六真实样本，`.verify/p7/accept-probe.mjs` + impl-accept.json）**：full 布局全绿——moved 全量、交叉 30/74/66/72/1/0、**重叠全 0**、幂等 N/N、**undo N/N 恢复**、verify ok；折叠开关 on→collapsed+30px、off→不折叠；局部布局 2 动 21 不动（未选零位移）。探针过程缺陷如实：S2 崩溃泄漏 CollapseNotes=true 致 S1 undo 假失败（探针缺 try/finally——BUG-008 纪律重申）+ ELK UMD 浏览器解析（self.ELK）+ evaluateLayout 漏 import + forEach continue 非法 + Group 匹配需索引对齐，均探针/检查抓出后修正。
+- **结果**：实施轮 1–4 步完成并部署（SHA256 一致）；第 5 步性能台账与盲测按 prd.md §12/§13 口径随验收执行（盲测待用户组织）。PRD §4.2 已回写。
+
 ## DEC-042: 动效 v3 实施口径——beam 主线型、自停+唤醒、设置收窄迁移（研究报告 §7 拆分 ②③④）
 
 - **日期**：2026-11-08

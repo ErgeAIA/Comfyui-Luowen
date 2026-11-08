@@ -50,3 +50,29 @@ export function buildConstraints(model, { fixedIds = [], selectedIds = null, dir
 
   return { fixedIds: fixed, movableIds, obstacles, direction, spacing, local, notes };
 }
+
+/**
+ * 障碍规避（局部布局后处理，PRD §17 步骤 3）：把 movable 新布局整体平移到
+ * fixed 障碍包围盒右侧空白带之外——保证硬约束「不与固定节点重叠」（确定性单次平移）。
+ * obstacles 为空（全图）时不平移。返回是否发生平移与 dx。
+ */
+export function shiftToFreeBand(positions, obstacles, { margin = 60 } = {}) {
+  if (!obstacles.length) return { shifted: false, dx: 0 };
+  let maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (const o of obstacles) {
+    maxX = Math.max(maxX, o.x + o.w);
+    minY = Math.min(minY, o.y);
+    maxY = Math.max(maxY, o.y + o.h);
+  }
+  let minX = Infinity, minY2 = Infinity, maxY2 = -Infinity;
+  for (const p of positions.values()) {
+    minX = Math.min(minX, p[0]);
+    minY2 = Math.min(minY2, p[1]);
+    maxY2 = Math.max(maxY2, p[1]);
+  }
+  if (!Number.isFinite(minX)) return { shifted: false, dx: 0 };
+  const dx = maxX + margin - minX;
+  if (dx <= 0) return { shifted: false, dx: 0 };
+  for (const [id, p] of positions) positions.set(id, [p[0] + dx, p[1]]);
+  return { shifted: true, dx: Math.round(dx * 1000) / 1000 };
+}

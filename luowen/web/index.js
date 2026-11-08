@@ -25,6 +25,7 @@ import { installSnap, uninstallSnap, setSnapEnabled, getSnapDebug } from './snap
 const { app } = window.comfyAPI.app;
 
 const LANGUAGE_ID = 'LuoWen.Language';
+const AUTOLAYOUT_COLLAPSE_ID = 'LuoWen.AutoLayout.CollapseNotes';
 const ENABLED_ID = 'LuoWen.Enabled';
 const STYLE_ID = 'LuoWen.WireStyle';
 const AVOID_ID = 'LuoWen.NodeAvoidance';
@@ -257,6 +258,20 @@ app.registerExtension({
         // 值由宿主持久化；t() 每次渲染实时读取本项，无需额外状态
         getStats();
       },
+    },
+    {
+      id: AUTOLAYOUT_COLLAPSE_ID,
+      get name() {
+        return t('AutoLayoutCollapse.name');
+      },
+      category: ['LuoWen', '自动布局', 'CollapseNotes'],
+      sortOrder: 110,
+      get tooltip() {
+        return { value: t('AutoLayoutCollapse.tooltip'), class: TIP_CLASS };
+      },
+      type: 'boolean',
+      defaultValue: false,
+      onChange: (v) => setSettings({ collapseNotes: !!v }),
     },
     {
       id: ENABLED_ID,
@@ -593,9 +608,7 @@ get tooltip() {
       /* 设置读取失败保持默认 */
     }
     setSnapEnabled(!!readSetting(SNAP_ID, true));
-    if (!baseline) baseline = snapshotGraph();
-
-    // 队列执行事件 → 动效「生成时禁用」与「仅执行中」模式（DEC-040；事件名取证 api-DTg5QMcw.js）
+    if (!baseline) baseline = snapshotGraph();    // 队列执行事件 → 动效「生成时禁用」与「仅执行中」模式（DEC-040；事件名取证 api-DTg5QMcw.js）
     try {
       const api = app.api;
       api.addEventListener('execution_start', () => setQueueState({ running: true, executingNode: null }));
@@ -612,6 +625,10 @@ get tooltip() {
       status: () => getStats(),
       colorDebug: () => getColorDebug(),
       i18n: () => i18nDebug(),
+      autoLayout: (scope = 'full', opts = {}) => import('./layout/engine.js').then((m) => m.runAutoLayout(app, {
+        scope,
+        collapseNotes: opts.collapseNotes ?? !!readSetting(AUTOLAYOUT_COLLAPSE_ID, false),
+      })),
       routes: () => getDebugRoutes(),
       trace: () => getTrace(),
       snapDebug: () => getSnapDebug(),

@@ -28,6 +28,11 @@ description: >
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2、Node 24.22.1；Playwright 浏览器实测流程已打通
 - **本轮动效 v3 实施（2026-11-08，用户指示「实施吧」；DEC-042；改 trace.js/renderLinkAdapter.js/index.js + 新增 beamTrace.test.mjs；已部署宿主自测，等用户验收）**：
         - **样本部署宿主（用户指示）**：六份选样工作流复制进 portable 工作流目录（前缀 `LW样本-`，不覆盖同名），宿主 loadGraphData 冒烟通过（最大样本 230 节点 248 链装载 ok、路由接管、verify ok、零报错；routed 计数随视口/缩放符合既有裁剪口径）。脚本 `.verify/p7/deploy-samples.mjs`。
+- **本轮自动布局实施轮（2026-11-08，分支 auto-layout；D1–D4 用户批准后实施；DEC-043 补记 F）**：
+  - 新增 `luowen/web/layout/engine.js`（runAutoLayout 编排：现场快照→buildModel→constraints→ELK 懒加载（浏览器 UMD self.ELK 解析修正）→movable 子图→**captureCanvasState 前后双采单条 undo**→apply（pos+D1 折叠 collapse(true)+size[1]=30）→Group bounds setBounds/commitBounds 重算（索引对齐，Rectangle 非 array 的取证修正））；constraints.js 增 shiftToFreeBand（局部障碍规避）；i18n 增 CollapseNotes 双语；index.js 增 `LuoWen.AutoLayout.CollapseNotes` 设置 + `window.LuoWen.autoLayout(scope)` API。
+  - 验收（accept-probe.mjs）：六样本 full 全绿——moved 全量、交叉 30/74/66/72/1/0、**重叠全 0**、幂等 N/N、undo N/N 恢复、verify ok；折叠开关双向生效（heights=[30]）；局部布局 2 动 21 不动。单测 147/147。
+  - 过程缺陷如实记录：探针 S2 崩溃泄漏设置（BUG-008 纪律重申：try/finally）、collapsed 为 getter 只读（collapse() 为正规入口）、_bounding 为 Rectangle 非 array（setBounds/commitBounds 正规入口）、forEach continue 非法、Group 索引对齐。
+  - PRD §4.2 F-015 已按 D1 批准回写（pos 与可选折叠状态）。剩余：菜单/快捷键挂接（宿主命令 API 取证）、盲测（D4，待组织）、500 节点梯度补测。
 - **本轮自动布局 Phase E：性能台账 + 最终 PRD（2026-11-08，分支 auto-layout；研究任务 A–E 收官）**：
   - performance.md 补记自动布局条目（端到端 ≤300ms@230 节点：build 15 + eval 5 + ELK 95–261；实施轮补 500 节点梯度与完整帧耗时）。
   - 最终 PRD `docs/specs/auto-layout/prd.md`（十六项齐备：方案=ELK 主引擎+自研障碍规避+captureState 单条 undo；硬约束全可机检；MVP=全图流向+选区局部；四项决策项 D1–D4 交用户——D1 折叠写入边界修订建议批准且默认关）。
