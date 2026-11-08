@@ -760,15 +760,17 @@ get tooltip() {
       const btn = document.createElement('button');
       btn.textContent = '⌁ 整理';
       btn.title = '自动布局（流向）';
-      btn.style.cssText = 'position:absolute;bottom:8px;left:8px;z-index:999;padding:4px 10px;border-radius:4px;border:1px solid #444;background:#1a1a2e;color:#ccc;font-size:12px;cursor:pointer;pointer-events:auto;opacity:0.7;transition:opacity 0.2s';
-      btn.addEventListener('mouseenter', () => { btn.style.opacity = '1'; });
-      btn.addEventListener('mouseleave', () => { btn.style.opacity = '0.7'; });
+      btn.className = 'p-button p-component p-button-outlined';
+      btn.style.cssText = 'padding:0.3rem 0.75rem;font-size:0.75rem;cursor:pointer;white-space:nowrap';
       btn.addEventListener('click', () => { window.LuoWen?.autoLayout?.('full'); });
-      const canvasEl = app.canvas.canvas;
-      if (canvasEl && canvasEl.parentElement) {
-        canvasEl.parentElement.style.position = 'relative';
-        canvasEl.parentElement.appendChild(btn);
-      }
+      const injectIntoBar = () => {
+        const bar = document.querySelector('.actionbar');
+        if (!bar) return false;
+        const ref = [...bar.children].find((el) => (el.innerText || '').includes('运行'));
+        bar.insertBefore(btn, ref || bar.firstChild);
+        return true;
+      };
+      if (!injectIntoBar()) setTimeout(() => injectIntoBar(), 2000);
     }
     console.log('[LuoWen] 就绪 — window.LuoWen 可用（status/setEnabled/setStyle/rebase/verify）');
   },
