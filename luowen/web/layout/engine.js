@@ -163,9 +163,27 @@ export async function runAutoLayout(app, { scope = 'full', collapseNotes = false
     return { moved: 0, skipped: 'no-selection' };
   }
   const constraints = buildConstraints(model, { selectedIds });
+  // R3（用户反馈 2026-11-09）：含 Reroute 的分量整体跳过重排——手动意图保护（清除转接点超出整理范畴）
+  const { rerouteComponentIds } = await import('./refine.js');
+  const skipIds = rerouteComponentIds(model);
+  if (skipIds.size) {
+    constraints.movableIds = constraints.movableIds.filter((id) => !skipIds.has(id));
+    for (const n of model.nodes.values()) {
+      if (skipIds.has(n.id) && !constraints.fixedIds.has(n.id)) {
+        constraints.fixedIds.add(n.id);
+        constraints.obstacles.push({ id: n.id, x: n.pos[0], y: n.pos[1], w: n.size[0], h: n.size[1] });
+      }
+    }
+  }
   if (!constraints.movableIds.length) return { moved: 0, skipped: 'nothing-movable' };
 
-  const positions = await elkLayout(model, constraints.movableIds);
+  let positions = await elkLayout(model, constraints.movableIds);
+  // R1/R2 精修后处理（用户反馈：③拉直 ①对齐 ②同列减交叉；重叠守卫内建）
+  const { straightenEdges, swapReduceCrossings } = await import('./refine.js');
+  const st = straightenEdges(model, positions);
+  positions = st.positions;
+  const sw = swapReduceCrossings(model, positions);
+  positions = sw.positions;
   // 障碍规避：有 fixed/未选（局部）时，把新布局整体平移到 fixed 包围盒右侧空白带（硬约束：不重叠）
   shiftToFreeBand(positions, constraints.obstacles, { margin: 60 });
 
@@ -183,6 +201,9 @@ export async function runAutoLayout(app, { scope = 'full', collapseNotes = false
   const positionsFinal = new Map([...model.nodes.values()].map((n) => [n.id, positions.get(n.id) ?? n.pos]));
   return {
     moved,
+    skippedRerouteComponents: skipIds.size ? [...skipIds] : [],
+    straightened: st.movedCount,
+    swaps: sw.swaps,
     noteIdsCollapsed: collapseNotes ? [...noteIds] : [],
     groups: memberIdsByGroupId.size,
     metrics: evaluateLayout(model, positionsFinal, new Map([...model.nodes.values()].map((n) => [n.id, n.pos]))),

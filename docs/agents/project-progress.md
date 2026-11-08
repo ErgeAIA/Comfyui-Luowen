@@ -32,6 +32,17 @@ description: >
   - 新增 `luowen/web/layout/engine.js`（runAutoLayout 编排：现场快照→buildModel→constraints→ELK 懒加载（浏览器 UMD self.ELK 解析修正）→movable 子图→**captureCanvasState 前后双采单条 undo**→apply（pos+D1 折叠 collapse(true)+size[1]=30）→Group bounds setBounds/commitBounds 重算（索引对齐，Rectangle 非 array 的取证修正））；constraints.js 增 shiftToFreeBand（局部障碍规避）；i18n 增 CollapseNotes 双语；index.js 增 `LuoWen.AutoLayout.CollapseNotes` 设置 + `window.LuoWen.autoLayout(scope)` API。
   - 验收（accept-probe.mjs）：六样本 full 全绿——moved 全量、交叉 30/74/66/72/1/0、**重叠全 0**、幂等 N/N、undo N/N 恢复、verify ok；折叠开关双向生效（heights=[30]）；局部布局 2 动 21 不动。单测 147/147。
   - 过程缺陷如实记录：探针 S2 崩溃泄漏设置（BUG-008 纪律重申：try/finally）、collapsed 为 getter 只读（collapse() 为正规入口）、_bounding 为 Rectangle 非 array（setBounds/commitBounds 正规入口）、forEach continue 非法、Group 索引对齐。
+  - **R1/R2/R3 精修后处理（用户三细节反馈，2026-11-09）**：refine.js 纯函数（straightenEdges 端口对齐拉直 + swapReduceCrossings 同列交换减交叉 + rerouteComponentIds Reroute 分量跳过）+ engine 接线（ELK 后、shiftToFreeBand 前）+ 单测 4 项（全量 **151/151**）。效果：mostReroute 175/193 节点不动（Reroute 保护）、midGroups straightened=7/overlaps 0、mostComponents straightened=47/overlaps 0。已知代价：Reroute 分量与重排分量可能空间冲突（PRD 已标注）。
+  - PRD §4.2 F-015 已按 D1 批准回写（pos 与可选折叠状态）。剩余：菜单/快捷键挂接（宿主命令 API 取证）、盲测（D4，待组织）、500 节点梯度补测。
+- **本轮自动布局实施轮（2026-11-08，分支 auto-layout；D1–D4 用户批准后实施；DEC-043 补记 F）**：
+  - 新增 `luowen/web/layout/engine.js`（runAutoLayout 编排：现场快照→buildModel→constraints→ELK 懒加载（浏览器 UMD self.ELK 解析修正）→movable 子图→**captureCanvasState 前后双采单条 undo**→apply（pos+D1 折叠 collapse(true)+size[1]=30）→Group bounds setBounds/commitBounds 重算（索引对齐，Rectangle 非 array 的取证修正））；constraints.js 增 shiftToFreeBand（局部障碍规避）；i18n 增 CollapseNotes 双语；index.js 增 `LuoWen.AutoLayout.CollapseNotes` 设置 + `window.LuoWen.autoLayout(scope)` API。
+  - 验收（accept-probe.mjs）：六样本 full 全绿——moved 全量、交叉 30/74/66/72/1/0、**重叠全 0**、幂等 N/N、undo N/N 恢复、verify ok；折叠开关双向生效（heights=[30]）；局部布局 2 动 21 不动。单测 147/147。
+  - 过程缺陷如实记录：探针 S2 崩溃泄漏设置（BUG-008 纪律重申：try/finally）、collapsed 为 getter 只读（collapse() 为正规入口）、_bounding 为 Rectangle 非 array（setBounds/commitBounds 正规入口）、forEach continue 非法、Group 索引对齐。
+  - PRD §4.2 F-015 已按 D1 批准回写（pos 与可选折叠状态）。剩余：菜单/快捷键挂接（宿主命令 API 取证）、盲测（D4，待组织）、500 节点梯度补测。
+- **本轮自动布局实施轮（2026-11-08，分支 auto-layout；D1–D4 用户批准后实施；DEC-043 补记 F）**：
+  - 新增 `luowen/web/layout/engine.js`（runAutoLayout 编排：现场快照→buildModel→constraints→ELK 懒加载（浏览器 UMD self.ELK 解析修正）→movable 子图→**captureCanvasState 前后双采单条 undo**→apply（pos+D1 折叠 collapse(true)+size[1]=30）→Group bounds setBounds/commitBounds 重算（索引对齐，Rectangle 非 array 的取证修正））；constraints.js 增 shiftToFreeBand（局部障碍规避）；i18n 增 CollapseNotes 双语；index.js 增 `LuoWen.AutoLayout.CollapseNotes` 设置 + `window.LuoWen.autoLayout(scope)` API。
+  - 验收（accept-probe.mjs）：六样本 full 全绿——moved 全量、交叉 30/74/66/72/1/0、**重叠全 0**、幂等 N/N、undo N/N 恢复、verify ok；折叠开关双向生效（heights=[30]）；局部布局 2 动 21 不动。单测 147/147。
+  - 过程缺陷如实记录：探针 S2 崩溃泄漏设置（BUG-008 纪律重申：try/finally）、collapsed 为 getter 只读（collapse() 为正规入口）、_bounding 为 Rectangle 非 array（setBounds/commitBounds 正规入口）、forEach continue 非法、Group 索引对齐。
   - PRD §4.2 F-015 已按 D1 批准回写（pos 与可选折叠状态）。剩余：菜单/快捷键挂接（宿主命令 API 取证）、盲测（D4，待组织）、500 节点梯度补测。
 - **本轮自动布局 Phase E：性能台账 + 最终 PRD（2026-11-08，分支 auto-layout；研究任务 A–E 收官）**：
   - performance.md 补记自动布局条目（端到端 ≤300ms@230 节点：build 15 + eval 5 + ELK 95–261；实施轮补 500 节点梯度与完整帧耗时）。

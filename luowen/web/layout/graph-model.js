@@ -118,6 +118,7 @@ export function foldRerouteEdges(model) {
     if (consumed.has(e.id) || consumed.has(`${e.id}#folded`)) continue;
     if (!rr.has(e.dst)) continue; // 只有「进入 reroute」的边才可能开链
     const chain = [];
+    const walked = [];
     let cur = e.dst;
     let ok = false;
     let guard = 0;
@@ -127,12 +128,14 @@ export function foldRerouteEdges(model) {
       const nxt = outs[0];
       chain.push(nxt.id);
       consumed.add(nxt.id);
+      walked.push(cur);
       cur = nxt.dst;
       if (!rr.has(cur)) { ok = true; break; }
     }
     if (ok && cur !== e.src) {
       e.dst = cur;
       e.rerouteChain = chain.slice();
+      e.rerouteNodes = walked.slice(); // 链上 Reroute 节点 id（跳过分量时一并固定）
       e.manualIntent = true; // 含链连接 = 手动意图（DEC-033 引申）
     } else {
       // 分叉/汇合/成环：保守不折叠，原边保留并如实报告
