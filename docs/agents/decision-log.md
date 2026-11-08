@@ -36,6 +36,16 @@ description: >
 - **beam 可见性不足**：束段改三层伪发光——外晕（3× 宽、α0.25）+ 亮芯（混白 60%）+ 亮头（混白 88%、1.25× 宽）；不用 shadowBlur（§3.4 不可扩展结论不变）。预算：beam p95 1.7ms vs dash 1.5ms（10 线，绝对值远低于 33.4 口径）。视觉：`v3b-beam-glow-zoom.png`（束段外晕+亮芯清晰可辨）。
 - 用户自调参数如实记录：BeamSpeed=6 档、AnimMode=全图（氛围）。
 
+### DEC-042 补记 2（2026-11-08 用户纠正 i18n 架构，当日实施）
+
+- **用户反馈**：语言不应双语拼接显示，应有独立语言设置，文案应放独立文件。
+- **决策**：
+  1. **独立语言文件** `luowen/web/i18n.js`：zh/en 两套字典（52 对 key，含全部 18+1 项设置名/tooltip/combo 选项文案），`t(key)` 取串，缺失回退中文再回退 key。
+  2. **新增设置 `LuoWen.Language`**（基础组，combo：跟随宿主/中文/English，默认跟随宿主）：`auto` 按宿主 `Comfy.Locale` 解析；`t()` 每次渲染实时读取——设置项以 getter 暴露 name/tooltip/options，切换后重开设置面板即生效（无需刷新页面）。
+  3. **撤销双语拼接**：17 项设置名恢复单语（由语言文件按所选语言出词）；codemod 见 `.verify/p6/i18n-codemod.mjs`。
+- **验证**：探针 `.verify/p6/i18n-verify.mjs`——auto(宿主 zh) 下中文名 5/5；切 en 重开面板：英文名 5/5、中文 0/5、选项值全链路本地化（Light Pulse / Executing / High）；还原 auto 回中文；`finalVerifyOk`；截图 `v3d-i18n-zh/en.png`。单测 124/124。
+- **结果**：已部署宿主（index 6adcd33e / i18n 79a57b9a），待用户验收。
+
 ## DEC-041: 连线动效语义四层框架与出厂默认修订——all 降为氛围装饰、selected 设为默认（研究任务 v2 第二阶段裁决）
 
 - **日期**：2026-11-08

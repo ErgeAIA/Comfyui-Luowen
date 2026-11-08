@@ -18,11 +18,13 @@ import {
 } from './adapters/renderLinkAdapter.js';
 import { DEFAULT_RADIUS } from './geometry/trace.js';
 import { graphNodes, linkTuples } from './adapters/graphRead.js';
+import { t, i18nDebug } from './i18n.js';
 import { installSnap, uninstallSnap, setSnapEnabled, getSnapDebug } from './snap/dragSnap.js';
 
 // 前端 1.55.18 只暴露 window.comfyAPI shim（见 docs/phase0/drawing-api-notes.md §2）
 const { app } = window.comfyAPI.app;
 
+const LANGUAGE_ID = 'LuoWen.Language';
 const ENABLED_ID = 'LuoWen.Enabled';
 const STYLE_ID = 'LuoWen.WireStyle';
 const AVOID_ID = 'LuoWen.NodeAvoidance';
@@ -233,13 +235,38 @@ app.registerExtension({
 
   settings: [
     {
+      id: LANGUAGE_ID,
+      get name() {
+        return t('Language.name');
+      },
+      category: ['LuoWen', '基础', 'Language'],
+      sortOrder: 105,
+      get tooltip() {
+        return { value: t('Language.tooltip'), class: TIP_CLASS };
+      },
+      type: 'combo',
+      get options() {
+        return [
+          { text: t('Language.opt.auto'), value: 'auto' },
+          { text: t('Language.opt.zh'), value: 'zh' },
+          { text: t('Language.opt.en'), value: 'en' },
+        ];
+      },
+      defaultValue: 'auto',
+      onChange: (v) => {
+        // 值由宿主持久化；t() 每次渲染实时读取本项，无需额外状态
+        getStats();
+      },
+    },
+    {
       id: ENABLED_ID,
-      name: '启用络纹 Enable LuoWen',
+      get name() {
+        return t('Enabled.name');
+      },
       category: ['LuoWen', '基础', 'Enabled'],
       sortOrder: 100,
-      tooltip: {
-        value: '总开关。\n关闭后完全回归 ComfyUI 原生线路绘制（F-001）。',
-        class: TIP_CLASS,
+      get tooltip() {
+        return { value: t('Enabled.tooltip'), class: TIP_CLASS };
       },
       type: 'boolean',
       defaultValue: true,
@@ -255,13 +282,13 @@ app.registerExtension({
     },
     {
       id: SNAP_ID,
-      name: '对齐吸附 Align Snap',
+      get name() {
+        return t('SnapAlign.name');
+      },
       category: ['LuoWen', '基础', 'SnapAlign'],
       sortOrder: 90,
-      tooltip: {
-        value:
-          '拖动单个节点时，与相连邻居的引脚行按图坐标 10px 对齐吸附。\n离开 15px 才脱离。\n关闭后与未安装一致。',
-        class: TIP_CLASS,
+      get tooltip() {
+        return { value: t('SnapAlign.tooltip'), class: TIP_CLASS };
       },
       type: 'boolean',
       defaultValue: true,
@@ -272,12 +299,13 @@ app.registerExtension({
     },
     {
       id: STYLE_ID,
-      name: '线路样式 Wire Style',
+      get name() {
+        return t('WireStyle.name');
+      },
       category: ['LuoWen', '线路外观', 'WireStyle'],
       sortOrder: 80,
-      tooltip: {
-        value: 'orthogonal：A* 路由的正交折线。\nsmooth：同一骨架的平滑圆角。\native：ComfyUI 原生渲染。',
-        class: TIP_CLASS,
+      get tooltip() {
+        return { value: t('WireStyle.tooltip'), class: TIP_CLASS };
       },
       type: 'combo',
       options: ['orthogonal', 'smooth', 'native'],
@@ -286,13 +314,13 @@ app.registerExtension({
     },
     {
       id: CORNER_RADIUS_ID,
-      name: '拐角曲线 Corner Radius',
+      get name() {
+        return t('CornerRadius.name');
+      },
       category: ['LuoWen', '线路外观', 'CornerRadius'],
       sortOrder: 75,
-      tooltip: {
-        value:
-          '只对 smooth 圆角样式生效。\n设定值即圆角半径上限，单位图坐标像素。\n实际半径取设定值与相邻短段三分之一中的较小值。\n0 为直角，最大 24。\northogonal 样式下此项无效。',
-        class: TIP_CLASS,
+      get tooltip() {
+        return { value: t('CornerRadius.tooltip'), class: TIP_CLASS };
       },
       type: 'slider',
       attrs: { min: 0, max: CORNER_RADIUS_MAX, step: 1 },
@@ -301,32 +329,34 @@ app.registerExtension({
     },
     {
       id: AVOID_ID,
-      name: '节点避障 Node Avoidance',
+      get name() {
+        return t('NodeAvoidance.name');
+      },
       category: ['LuoWen', '线路外观', 'NodeAvoidance'],
       sortOrder: 70,
-      tooltip: {
-        value:
-          '线路绕开节点时的净空档位。\nlow 净空 8，standard 净空 16，high 净空 24。\n数值单位为图坐标像素。',
-        class: TIP_CLASS,
+      get tooltip() {
+        return { value: t('NodeAvoidance.tooltip'), class: TIP_CLASS };
       },
       type: 'combo',
-      options: [
-        { text: '低', value: 'low' },
-        { text: '标准', value: 'standard' },
-        { text: '高', value: 'high' },
-      ],
+get options() {
+        return [
+          { text: t('NodeAvoidance.opt.low'), value: 'low' },
+          { text: t('NodeAvoidance.opt.standard'), value: 'standard' },
+          { text: t('NodeAvoidance.opt.high'), value: 'high' },
+        ];
+      },
       defaultValue: 'standard',
       onChange: (v) => setSettings({ avoidance: v === 'low' ? 'low' : v === 'high' ? 'high' : 'standard' }),
     },
     {
       id: CHAMFER_ID,
-      name: '绕障外角大斜切 Chamfer',
+      get name() {
+        return t('Chamfer.name');
+      },
       category: ['LuoWen', '线路外观', 'Chamfer'],
       sortOrder: 60,
-      tooltip: {
-        value:
-          '仅在正交样式下生效。\n只把为绕开第三方节点而形成的外凸直角切掉一大块。\n三通、分叉与引脚段保持直角。\n关闭后回到直角。\n与 smooth 圆角样式互斥。',
-        class: TIP_CLASS,
+      get tooltip() {
+        return { value: t('Chamfer.tooltip'), class: TIP_CLASS };
       },
       type: 'boolean',
       defaultValue: true,
@@ -334,32 +364,34 @@ app.registerExtension({
     },
     {
       id: COLOR_THEME_ID,
-      name: '连线配色主题 Color Theme',
+      get name() {
+        return t('ColorTheme.name');
+      },
       category: ['LuoWen', '线路外观', 'ColorTheme'],
       sortOrder: 55,
-      tooltip: {
-        value:
-          '按连线的数据类型着色（62 类语义映射）。\n暗色与 Cyberpunk 两套主题均通过对比度与色盲 ΔE 门槛。\n关闭时保持宿主原生配色。',
-        class: TIP_CLASS,
+      get tooltip() {
+        return { value: t('ColorTheme.tooltip'), class: TIP_CLASS };
       },
       type: 'combo',
-      options: [
-        { text: '关闭（原生）', value: 'off' },
-        { text: '暗色（LuoWen Dark）', value: 'luowen-dark' },
-        { text: 'Cyberpunk', value: 'luowen-cyberpunk' },
-      ],
+get options() {
+        return [
+          { text: t('ColorTheme.opt.off'), value: 'off' },
+          { text: t('ColorTheme.opt.luowen-dark'), value: 'luowen-dark' },
+          { text: t('ColorTheme.opt.luowen-cyberpunk'), value: 'luowen-cyberpunk' },
+        ];
+      },
       defaultValue: 'off',
       onChange: (v) => setSettings({ colorTheme: v === 'luowen-dark' || v === 'luowen-cyberpunk' ? v : 'off' }),
     },
     {
       id: FLOW_ID,
-      name: '启用动效 Flow Animation',
+      get name() {
+        return t('FlowAnim.name');
+      },
       category: ['LuoWen', '动效', 'FlowAnim'],
       sortOrder: 100,
-      tooltip: {
-        value:
-          '动效总开关（默认关闭）。\n系统开启减少动态效果时自动改为实线。\n缩放不大于 40% 时自动关闭。',
-        class: TIP_CLASS,
+      get tooltip() {
+        return { value: t('FlowAnim.tooltip'), class: TIP_CLASS };
       },
       type: 'boolean',
       defaultValue: false,
@@ -367,38 +399,42 @@ app.registerExtension({
     },
     {
       id: ANIM_MODE_ID,
-      name: '动效模式 Anim Mode',
+      get name() {
+        return t('AnimMode.name');
+      },
       category: ['LuoWen', '动效', 'AnimMode'],
       sortOrder: 90,
-      tooltip: {
-        value:
-          '仅选中（推荐）：只动与选中节点相连的线，跟随关注焦点。\n仅执行中：只动与正在执行的节点相连的线，动=正在发生。\n全图（氛围）：空闲时也持续动，属装饰，不代表正在执行。\n空闲与无目标时循环自停、零开销。',
-        class: TIP_CLASS,
+      get tooltip() {
+        return { value: t('AnimMode.tooltip'), class: TIP_CLASS };
       },
       type: 'combo',
-      options: [
-        { text: '仅选中（推荐）', value: 'selected' },
-        { text: '仅执行中', value: 'executing' },
-        { text: '全图（氛围）', value: 'all' },
-      ],
+get options() {
+        return [
+          { text: t('AnimMode.opt.selected'), value: 'selected' },
+          { text: t('AnimMode.opt.executing'), value: 'executing' },
+          { text: t('AnimMode.opt.all'), value: 'all' },
+        ];
+      },
       defaultValue: 'selected',
       onChange: (v) => setSettings({ animMode: v }),
     },
     {
       id: FLOW_STYLE_ID,
-      name: '动效线型 Line Style',
+      get name() {
+        return t('FlowStyle.name');
+      },
       category: ['LuoWen', '动效', 'FlowStyle'],
       sortOrder: 80,
-      tooltip: {
-        value:
-          '局部光脉冲（推荐）：一段有限长度的亮束沿连线行进，\n静止时连线保持实线，动=有事正在发生。\n虚线行进：虚线沿连线从源向目标移动（低耗方向档，参数见「动效·虚线」组）。\n旧版「发光/脉冲」线型已移除，保存值自动迁移为局部光脉冲。',
-        class: TIP_CLASS,
+      get tooltip() {
+        return { value: t('FlowStyle.tooltip'), class: TIP_CLASS };
       },
       type: 'combo',
-      options: [
-        { text: '局部光脉冲', value: 'beam' },
-        { text: '虚线行进', value: 'dash' },
-      ],
+get options() {
+        return [
+          { text: t('FlowStyle.opt.beam'), value: 'beam' },
+          { text: t('FlowStyle.opt.dash'), value: 'dash' },
+        ];
+      },
       defaultValue: 'beam',
       // 已存 glow/pulse 值在注册期由宿主原生机制迁移（settingStore.tryMigrateDeprecatedValue），
       // 否则 combo 对不在选项里的旧值显示为空（用户实测 2026-11-08）
@@ -407,13 +443,13 @@ app.registerExtension({
     },
     {
       id: DASH_SPEED_ID,
-      name: '虚线·流速 Dash Speed',
+      get name() {
+        return t('DashSpeed.name');
+      },
       category: ['LuoWen', '动效·虚线', 'DashSpeed'],
       sortOrder: 30,
-      tooltip: {
-        value:
-          '虚线的行进速度，0–10 共 10 档。\n每档 30 屏幕像素/秒（已按缩放补偿，任何缩放下手感一致）。\n档位 10 = 300。只影响虚线行进线型。',
-        class: TIP_CLASS,
+      get tooltip() {
+        return { value: t('DashSpeed.tooltip'), class: TIP_CLASS };
       },
       type: 'slider',
       attrs: { min: 0, max: 10, step: 1 },
@@ -422,10 +458,14 @@ app.registerExtension({
     },
     {
       id: DASH_LEN_ID,
-      name: '虚线·长度 Dash Length',
+      get name() {
+        return t('DashLen.name');
+      },
       category: ['LuoWen', '动效·虚线', 'DashLen'],
       sortOrder: 25,
-      tooltip: { value: '虚线实线段的长度（屏幕像素）。只影响虚线行进线型。', class: TIP_CLASS },
+get tooltip() {
+        return { value: t('DashLen.tooltip'), class: TIP_CLASS };
+      },
       type: 'slider',
       attrs: { min: 0, max: 30, step: 1 },
       defaultValue: 7,
@@ -433,10 +473,14 @@ app.registerExtension({
     },
     {
       id: DASH_GAP_ID,
-      name: '虚线·间距 Dash Gap',
+      get name() {
+        return t('DashGap.name');
+      },
       category: ['LuoWen', '动效·虚线', 'DashGap'],
       sortOrder: 20,
-      tooltip: { value: '虚线空隙的长度（屏幕像素）。只影响虚线行进线型。', class: TIP_CLASS },
+get tooltip() {
+        return { value: t('DashGap.tooltip'), class: TIP_CLASS };
+      },
       type: 'slider',
       attrs: { min: 4, max: 40, step: 1 },
       defaultValue: 13,
@@ -444,13 +488,13 @@ app.registerExtension({
     },
     {
       id: BEAM_SPEED_ID,
-      name: '光束·流速 Beam Speed',
+      get name() {
+        return t('BeamSpeed.name');
+      },
       category: ['LuoWen', '动效·光束', 'BeamSpeed'],
       sortOrder: 30,
-      tooltip: {
-        value:
-          '亮束的行进速度，0–10 共 10 档。\n每档 30 屏幕像素/秒（已按缩放补偿，任何缩放下手感一致）。\n只影响局部光脉冲线型。',
-        class: TIP_CLASS,
+      get tooltip() {
+        return { value: t('BeamSpeed.tooltip'), class: TIP_CLASS };
       },
       type: 'slider',
       attrs: { min: 0, max: 10, step: 1 },
@@ -459,10 +503,14 @@ app.registerExtension({
     },
     {
       id: BEAM_LEN_ID,
-      name: '光束·长度 Beam Length',
+      get name() {
+        return t('BeamLen.name');
+      },
       category: ['LuoWen', '动效·光束', 'BeamLen'],
       sortOrder: 25,
-      tooltip: { value: '亮束的长度（屏幕像素）。只影响局部光脉冲线型。', class: TIP_CLASS },
+get tooltip() {
+        return { value: t('BeamLen.tooltip'), class: TIP_CLASS };
+      },
       type: 'slider',
       attrs: { min: 24, max: 120, step: 4 },
       defaultValue: 48,
@@ -470,13 +518,13 @@ app.registerExtension({
     },
     {
       id: BEAM_SPACING_ID,
-      name: '光束·间距 Beam Spacing',
+      get name() {
+        return t('BeamSpacing.name');
+      },
       category: ['LuoWen', '动效·光束', 'BeamSpacing'],
       sortOrder: 20,
-      tooltip: {
-        value:
-          '长连线上相邻亮束的间距（屏幕像素）。\n短于间距的连线保持单束。\n只影响局部光脉冲线型。',
-        class: TIP_CLASS,
+      get tooltip() {
+        return { value: t('BeamSpacing.tooltip'), class: TIP_CLASS };
       },
       type: 'slider',
       attrs: { min: 120, max: 480, step: 20 },
@@ -485,13 +533,13 @@ app.registerExtension({
     },
     {
       id: DISABLE_ANIM_ON_RUN_ID,
-      name: '生成时禁用动效 Pause on Run',
+      get name() {
+        return t('DisableAnimOnRun.name');
+      },
       category: ['LuoWen', '动效', 'DisableAnimOnRun'],
       sortOrder: 40,
-      tooltip: {
-        value:
-          '工作流运行期间暂停全部动效，结束后自动恢复。\n与宿主「禁用动画」开关独立；\n若想让「仅执行中」模式在运行时可视化数据流，请关闭本项。',
-        class: TIP_CLASS,
+      get tooltip() {
+        return { value: t('DisableAnimOnRun.tooltip'), class: TIP_CLASS };
       },
       type: 'boolean',
       defaultValue: true,
@@ -499,14 +547,14 @@ app.registerExtension({
     },
     {
       id: CROSS_CLEANUP_ID,
-      name: '离线交叉清理',
+      get name() {
+        return t('CrossCleanup.name');
+      },
       category: ['LuoWen', '实验', 'CrossCleanup'],
       sortOrder: 50,
       experimental: true,
-      tooltip: {
-        value:
-          '布局静止 400ms 后，\n只对存在垂直交叉的线路对做一次离线重解。\n交叉对数严格下降。\n参与线路总长增幅不超过 15% 时才采纳。\n否则保持原画面。\n默认关闭。',
-        class: TIP_CLASS,
+      get tooltip() {
+        return { value: t('CrossCleanup.tooltip'), class: TIP_CLASS };
       },
       type: 'boolean',
       defaultValue: false,
@@ -563,6 +611,7 @@ app.registerExtension({
     window.LuoWen = {
       status: () => getStats(),
       colorDebug: () => getColorDebug(),
+      i18n: () => i18nDebug(),
       routes: () => getDebugRoutes(),
       trace: () => getTrace(),
       snapDebug: () => getSnapDebug(),
