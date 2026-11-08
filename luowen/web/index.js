@@ -46,11 +46,16 @@ const TIP_CLASS = 'luowen-tooltip';
 
 // 设置项提示框宽度：1.55.18 的 PrimeVue 默认 max-width 为 200px（实测）。
 // v-tooltip 的对象形式支持附加 class，因此只放宽带此标记的提示框，不影响其他扩展与全局设置页。
+// 另：LuoWen 的 combo 控件根元素带 setting id（FormItem.vue :id 透传），可按 id 精准放宽——
+// 只动我方 5 个下拉框（用户反馈 2026-11-08：动效线型值「局部光脉冲」截断），不碰宿主全局样式。
 function installTooltipStyle() {
   if (document.getElementById('luowen-tooltip-style')) return;
   const style = document.createElement('style');
   style.id = 'luowen-tooltip-style';
-  style.textContent = `.p-tooltip.${TIP_CLASS}{width:max-content;max-width:min(560px,calc(100vw - 2rem))}`;
+  style.textContent = [
+    `.p-tooltip.${TIP_CLASS}{width:max-content;max-width:min(560px,calc(100vw - 2rem))}`,
+    `#LuoWen\\.FlowStyle,#LuoWen\\.AnimMode,#LuoWen\\.WireStyle,#LuoWen\\.NodeAvoidance,#LuoWen\\.ColorTheme{min-width:15rem}`,
+  ].join('\n');
   document.head.appendChild(style);
 }
 
@@ -229,7 +234,7 @@ app.registerExtension({
   settings: [
     {
       id: ENABLED_ID,
-      name: '启用络纹',
+      name: '启用络纹 Enable LuoWen',
       category: ['LuoWen', '基础', 'Enabled'],
       sortOrder: 100,
       tooltip: {
@@ -250,7 +255,7 @@ app.registerExtension({
     },
     {
       id: SNAP_ID,
-      name: '对齐吸附',
+      name: '对齐吸附 Align Snap',
       category: ['LuoWen', '基础', 'SnapAlign'],
       sortOrder: 90,
       tooltip: {
@@ -267,7 +272,7 @@ app.registerExtension({
     },
     {
       id: STYLE_ID,
-      name: '线路样式',
+      name: '线路样式 Wire Style',
       category: ['LuoWen', '线路外观', 'WireStyle'],
       sortOrder: 80,
       tooltip: {
@@ -281,7 +286,7 @@ app.registerExtension({
     },
     {
       id: CORNER_RADIUS_ID,
-      name: '拐角曲线',
+      name: '拐角曲线 Corner Radius',
       category: ['LuoWen', '线路外观', 'CornerRadius'],
       sortOrder: 75,
       tooltip: {
@@ -296,7 +301,7 @@ app.registerExtension({
     },
     {
       id: AVOID_ID,
-      name: '节点避障',
+      name: '节点避障 Node Avoidance',
       category: ['LuoWen', '线路外观', 'NodeAvoidance'],
       sortOrder: 70,
       tooltip: {
@@ -315,7 +320,7 @@ app.registerExtension({
     },
     {
       id: CHAMFER_ID,
-      name: '绕障外角大斜切',
+      name: '绕障外角大斜切 Chamfer',
       category: ['LuoWen', '线路外观', 'Chamfer'],
       sortOrder: 60,
       tooltip: {
@@ -329,7 +334,7 @@ app.registerExtension({
     },
     {
       id: COLOR_THEME_ID,
-      name: '连线配色主题',
+      name: '连线配色主题 Color Theme',
       category: ['LuoWen', '线路外观', 'ColorTheme'],
       sortOrder: 55,
       tooltip: {
@@ -348,7 +353,7 @@ app.registerExtension({
     },
     {
       id: FLOW_ID,
-      name: '启用动效',
+      name: '启用动效 Flow Animation',
       category: ['LuoWen', '动效', 'FlowAnim'],
       sortOrder: 100,
       tooltip: {
@@ -362,7 +367,7 @@ app.registerExtension({
     },
     {
       id: ANIM_MODE_ID,
-      name: '动效模式',
+      name: '动效模式 Anim Mode',
       category: ['LuoWen', '动效', 'AnimMode'],
       sortOrder: 90,
       tooltip: {
@@ -381,7 +386,7 @@ app.registerExtension({
     },
     {
       id: FLOW_STYLE_ID,
-      name: '动效线型',
+      name: '动效线型 Line Style',
       category: ['LuoWen', '动效', 'FlowStyle'],
       sortOrder: 80,
       tooltip: {
@@ -391,7 +396,7 @@ app.registerExtension({
       },
       type: 'combo',
       options: [
-        { text: '局部光脉冲（推荐）', value: 'beam' },
+        { text: '局部光脉冲', value: 'beam' },
         { text: '虚线行进', value: 'dash' },
       ],
       defaultValue: 'beam',
@@ -402,7 +407,7 @@ app.registerExtension({
     },
     {
       id: DASH_SPEED_ID,
-      name: '虚线·流速',
+      name: '虚线·流速 Dash Speed',
       category: ['LuoWen', '动效·虚线', 'DashSpeed'],
       sortOrder: 30,
       tooltip: {
@@ -417,7 +422,7 @@ app.registerExtension({
     },
     {
       id: DASH_LEN_ID,
-      name: '虚线·长度',
+      name: '虚线·长度 Dash Length',
       category: ['LuoWen', '动效·虚线', 'DashLen'],
       sortOrder: 25,
       tooltip: { value: '虚线实线段的长度（屏幕像素）。只影响虚线行进线型。', class: TIP_CLASS },
@@ -428,7 +433,7 @@ app.registerExtension({
     },
     {
       id: DASH_GAP_ID,
-      name: '虚线·间距',
+      name: '虚线·间距 Dash Gap',
       category: ['LuoWen', '动效·虚线', 'DashGap'],
       sortOrder: 20,
       tooltip: { value: '虚线空隙的长度（屏幕像素）。只影响虚线行进线型。', class: TIP_CLASS },
@@ -439,7 +444,7 @@ app.registerExtension({
     },
     {
       id: BEAM_SPEED_ID,
-      name: '光束·流速',
+      name: '光束·流速 Beam Speed',
       category: ['LuoWen', '动效·光束', 'BeamSpeed'],
       sortOrder: 30,
       tooltip: {
@@ -454,7 +459,7 @@ app.registerExtension({
     },
     {
       id: BEAM_LEN_ID,
-      name: '光束·长度',
+      name: '光束·长度 Beam Length',
       category: ['LuoWen', '动效·光束', 'BeamLen'],
       sortOrder: 25,
       tooltip: { value: '亮束的长度（屏幕像素）。只影响局部光脉冲线型。', class: TIP_CLASS },
@@ -465,7 +470,7 @@ app.registerExtension({
     },
     {
       id: BEAM_SPACING_ID,
-      name: '光束·间距',
+      name: '光束·间距 Beam Spacing',
       category: ['LuoWen', '动效·光束', 'BeamSpacing'],
       sortOrder: 20,
       tooltip: {
@@ -480,7 +485,7 @@ app.registerExtension({
     },
     {
       id: DISABLE_ANIM_ON_RUN_ID,
-      name: '生成时禁用动效',
+      name: '生成时禁用动效 Pause on Run',
       category: ['LuoWen', '动效', 'DisableAnimOnRun'],
       sortOrder: 40,
       tooltip: {

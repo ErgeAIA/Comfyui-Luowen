@@ -27,7 +27,8 @@ description: >
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2、Node 24.22.1；Playwright 浏览器实测流程已打通
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2、Node 24.22.1；Playwright 浏览器实测流程已打通
 - **本轮动效 v3 实施（2026-11-08，用户指示「实施吧」；DEC-042；改 trace.js/renderLinkAdapter.js/index.js + 新增 beamTrace.test.mjs；已部署宿主自测，等用户验收）**：
-  - **验收反馈两则修复（同日，DEC-042 补记）**：①线型下拉框空显——改用宿主原生 `migrateDeprecatedValue`（注册期迁移并回写 store，探针实测 storeAfterReload=beam）；②beam 可见性不足——束段三层伪发光（外晕 3×/α0.25 + 亮芯混白 60% + 亮头混白 88%），不用 shadowBlur；预算 beam p95 1.7 vs dash 1.5ms（10 线）。部署 SHA256 aacb540f/67038cc3，单测 124/124，`.verify/p6/anim-v3b-result.json` 全绿，restoreOk/finalVerifyOk。
+    - **验收反馈第三轮（同日）**：①动效线型值「局部光脉冲」截断——选项文本精简 + LuoWen 五个 combo 按 FormItem 透传的 setting id 精准放宽至 240px（CSS 按控件根元素 id 定位，不碰宿主全局）；②设置项名称双语化 17 项（如「动效线型 Line Style」，双语顺带提升英文搜索命中；宿主 i18n 为语言包机制、扩展不可注入消息，故直出双语）；③performance.md 补记 v3 台账（beam 预算/自停计数/注入口径，结算欠账）。面板实测（`v3c-settings-panel.png`）：双语名 6/6 可见、combo 240px、值完整显示。
+- **验收反馈两则修复（同日，DEC-042 补记）**：①线型下拉框空显——改用宿主原生 `migrateDeprecatedValue`（注册期迁移并回写 store，探针实测 storeAfterReload=beam）；②beam 可见性不足——束段三层伪发光（外晕 3×/α0.25 + 亮芯混白 60% + 亮头混白 88%），不用 shadowBlur；预算 beam p95 1.7 vs dash 1.5ms（10 线）。部署 SHA256 aacb540f/67038cc3，单测 124/124，`.verify/p6/anim-v3b-result.json` 全绿，restoreOk/finalVerifyOk。
   - ②自停+唤醒：flowLoopTick 无 work/隐藏/指针按下即自停（不重排 RAF）；唤醒=设置 onChange/执行事件/keyup/wheel/pointerup/visibilitychange/reduced-motion change/afterConfigureGraph/legacy onSelectionChange（链式）；相位改 dt 累加器（≤100ms 钳制），dash/beam 统一吃累加器，暂停/恢复/隐藏无跳变；uninstall 收编 cancelAnimationFrame+监听拆除+选择钩子还原。
   - ③beam 线型：trace.js 新增 flattenBezier/pointAtPx/subPolyPx（弧长工具，拐角按曲线 6px 步长采样与描边对齐）；适配器 drawBeamStroke（混白束身+亮头，束长/间距屏幕像素口径）+ beamSkipArc 主干去重（首成员画全路径、其余跳 [0,forkT)）；FlowStyle 收窄 beam/dash、glow/pulse 值运行态迁移；Glow*/Pulse* 4 设置项删除、Beam* 3 项新增（动效·光束组）。
   - ④DEC-041 落地：AnimMode 默认 selected、三档文案重写（全图（氛围）如实标注）、FlowStyle 默认 beam；PRD §4.3 注记/GLOSSARY 对齐/conventions §2.9 补注册期 onChange 契约。
