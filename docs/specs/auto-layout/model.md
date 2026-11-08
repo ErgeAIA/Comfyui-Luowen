@@ -33,7 +33,7 @@
 | backwardEdges | 目标口 x < 源口 x 的边数及总长 | 以端口坐标为准 |
 | estimatedBends | dx 与 dy 均非零的边数（L 形曼哈顿路径转角估算） | 真实折线弯折数待对照 |
 | portAlignment | dx 或 dy ≈0 的边占比 | — |
-| groupCohesion | 成员中心距 Group 中心 ≤ 对角线半径 的占比（≥2 成员的组） | bounds 随成员移动的口径在 Phase D 定 |
+| groupCohesion（v1.1） | 每组 = 成员面积和 / 成员包围盒面积（≤1，钳制），≥2 成员的组取平均；与 bounds 无关，全图/局部两用 | 原始 bounds 口径在全图布局下失效，v1.0→v1.1 已改（2026-11-08） |
 | canvasFootprint | 节点包围盒 w/h/area/aspect | — |
 | nodeOverlaps | 包围盒相交对数 | — |
 | displacement | 基线→输出逐节点欧氏位移 {mean,max} | 硬约束机检也用它（未选=0） |

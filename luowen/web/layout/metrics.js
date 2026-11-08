@@ -94,24 +94,28 @@ export function portAlignment(model, positions) {
   return aligned / model.edges.length;
 }
 
-/** Group 凝聚度：成员中心到 Group 中心距离 ≤ 对角线半径 的成员占比（按几何包含成员）。 */
+/** Group 凝聚度（v1.1 紧凑度口径）：每组 = 成员面积和 / 成员包围盒面积（≤1，钳制）；位置无关 bounds，全图/局部两用。≥2 成员的组参与平均。 */
 export function groupCohesion(model, positions) {
   const groups = model.groups.filter((g) => g.memberIds.length >= 2);
   if (!groups.length) return 1;
-  let ok = 0, total = 0;
+  let sum = 0, total = 0;
   for (const g of groups) {
-    const [gx, gy, gw, gh] = g.bounds;
-    const cx = gx + gw / 2, cy = gy + gh / 2;
-    const radius = Math.hypot(gw, gh) / 2;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity, areaSum = 0, n = 0;
     for (const id of g.memberIds) {
-      const n = model.nodes.get(id);
-      if (!n) continue;
-      const c = nodeCenter(n, positions);
-      total++;
-      if (Math.hypot(c[0] - cx, c[1] - cy) <= radius) ok++;
+      const nd = model.nodes.get(id);
+      if (!nd) continue;
+      const p = positions.get(id) ?? nd.pos;
+      minX = Math.min(minX, p[0]); minY = Math.min(minY, p[1]);
+      maxX = Math.max(maxX, p[0] + nd.size[0]); maxY = Math.max(maxY, p[1] + nd.size[1]);
+      areaSum += nd.size[0] * nd.size[1];
+      n++;
     }
+    if (!n) continue;
+    const bbox = (maxX - minX) * (maxY - minY);
+    total++;
+    sum += bbox > 0 ? Math.min(1, areaSum / bbox) : 1;
   }
-  return total ? ok / total : 1;
+  return total ? sum / total : 1;
 }
 
 /** 画布占位：节点包围盒 { w, h, area, aspect }。 */

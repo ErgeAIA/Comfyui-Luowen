@@ -93,14 +93,18 @@ test('layoutMetrics.evaluateLayout: 汇总输出结构齐全且含基线位移',
   assert.deepEqual(out.displacement, { mean: 5, max: 10 });
 });
 
-test('layoutMetrics.groupCohesion: 全员在界=1；无 Group=1（中性）', () => {
+test('layoutMetrics.groupCohesion: 紧凑度口径（成员面积/包围盒面积）；无 Group=1（中性）', () => {
   const m = buildModel({
     nodes: [N(1, 'A', [10, 10], [100, 60]), N(2, 'B', [130, 10], [100, 60])],
     links: [],
     groups: [{ id: 'g1', title: '', bounds: [0, 0, 300, 120] }],
   });
   const pos = new Map([['1', [10, 10]], ['2', [130, 10]]]);
-  assert.equal(groupCohesion(m, pos), 1);
+  // 成员面积和 12000 / 包围盒 220×60=13200 → 0.909
+  assert.ok(Math.abs(groupCohesion(m, pos) - 12000 / 13200) < 1e-6);
+  // 拉开距离后紧凑度下降
+  const posFar = new Map([['1', [10, 10]], ['2', [2000, 10]]]);
+  assert.ok(groupCohesion(m, posFar) < 0.2);
   const mNoGroups = buildModel({ nodes: [N(1, 'A', [0, 0], [100, 60])], links: [], groups: [] });
   assert.equal(groupCohesion(mNoGroups, pos), 1);
 });
