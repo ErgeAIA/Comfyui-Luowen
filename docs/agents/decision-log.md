@@ -37,6 +37,17 @@ description: >
   4. 样本征集待用户（缺失期间以合成样本+fixture14 代替并如实标注）。
 - **验证**：探针 .verify/p7/（arrange-probe/2 + host-ga.js + host-layoutStore.js 全文摘录）；audit.md 逐条带证据。
 
+### DEC-043 补记 B（2026-11-08，分支 auto-layout，Phase B 完成）
+
+- **执行**：图模型与约束模型落地 `luowen/web/layout/`（graph-model.js/metrics.js/constraints.js，纯计算层零 import、grep 已证）+ 单测 20 项（layoutModel 11 + layoutMetrics 9），全量 **144/144**。规格 `docs/specs/auto-layout/model.md`。
+- **关键口径**：
+  1. Reroute 折叠（DEC-033 引申）：进链沿唯一出边折叠、被吞段移除并记 rerouteChain、边标 manualIntent；分叉/汇合/成环保守不折叠 + dropped 如实；Reroute 不计分量/拓扑序但保留位置布置。
+  2. Group 成员按几何包含推导（serialize 无显式成员）。
+  3. 指标 9 项全可计算（crossings/length/backward/bends/portAlignment/cohesion/footprint/overlaps/displacement），MVP 口径限制（端口均分投影/直连线段/曼哈顿弯折）如实标注待 Phase D 校准。
+  4. 约束模型：局部布局未选全 fixed+障碍、pinned 恒 fixed、lockedGroup 并入、Reroute 意图进 notes。
+- **验证**：真实样本冒烟（`.verify/p7/sample-smoke.json`，207 份样本库六维选样）——largest 230 节点 build+eval 19ms；mostReroute 116 Reroute 折叠后边数 226→114；三样本全部 topoOrderValid；现状基线 largest=116 交叉/9 重叠/35 反向（mostGroups）。缺陷与修复如实：折叠初版未移除被吞链尾边 + 分叉首断漏记 dropped + components/topo 含 reroute——单测抓出后修正；两处测试期望自身算错（bounding 范围/链段方向）修正。
+- **结果**：阶段 B 完成，停等用户验收；阶段 C（算法对照，vendor 政策先决）待启动。
+
 ## DEC-042: 动效 v3 实施口径——beam 主线型、自停+唤醒、设置收窄迁移（研究报告 §7 拆分 ②③④）
 
 - **日期**：2026-11-08
