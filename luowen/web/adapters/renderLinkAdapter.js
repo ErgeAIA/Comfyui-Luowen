@@ -312,11 +312,24 @@ function carriesReroute(link) {
 }
 
 function planTrunks(graph, canvas, epMap) {
+  // 整计划 memo（DEC-035 帧内复用）：拓扑(linksHash) + 端点版本 + lane 指纹 + 相关设置全部未变时，
+  // 静态帧直接复用上一帧的组计划（499 次 key 拼接 + 372 组 sig/Map 构造 → O(1)）。
+  const memoKey =
+    `${state.frame.linksHashStr}|${state.endpointsVer}|${state.frame.laneHashStr}|` +
+    `${state.settings.avoidance}|${state.settings.style}|${state.settings.trunkCap ?? ''}|${state.settings.enabled ? 1 : 0}`;
+  if (state.trunkPlanMemo && state.trunkPlanMemo.key === memoKey) {
+    const m = state.trunkPlanMemo;
+    state.frame.trunks = m.trunks;
+    state.frame.trunkShared = m.trunkShared;
+    state.frame.trunkInfo = m.trunkInfo;
+    state.frame.trunkDebug = m.trunkDebug;
+    return;
+  }
   state.frame.trunks = new Map();
   state.frame.trunkShared = new Map();
   state.frame.trunkInfo = [];
   state.frame.trunkDebug = { endpoints: epMap?.size ?? 0, epsVer: state.endpointsVer, version: state.frame.version, groups: 0, candidates: 0 };
-  if (!state.settings.enabled || state.settings.style === 'native') return; // 不绘制时不求解
+  if (!state.settings.enabled || state.settings.style === 'native') { state.trunkPlanMemo = { key: memoKey, trunks: state.frame.trunks, trunkShared: state.frame.trunkShared, trunkInfo: state.frame.trunkInfo, trunkDebug: state.frame.trunkDebug }; return; } // 不绘制时不求解
   // 端点改用「本帧预测」（节点 pos + 上一帧引脚偏移），不再等上一帧记录完再自请求一帧：
   // 否则版本变更帧 trunks 为空走独立路径、下一帧恢复主干，竖线位置逐帧翻转（两态翻转）。
   // 尚无任何端点记录（刚安装/新图首帧）仍要一帧来采样引脚偏移。
@@ -402,6 +415,14 @@ function planTrunks(graph, canvas, epMap) {
       });
     }
   }
+  state.trunkPlanMemo = {
+    key: memoKey,
+    trunks: state.frame.trunks,
+    trunkShared: state.frame.trunkShared,
+    trunkInfo: state.frame.trunkInfo,
+    trunkDebug: state.frame.trunkDebug,
+  };
+
 }
 
 // ---------- 阶段 2B：同目标等距带（DEC-028） ----------

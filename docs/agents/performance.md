@@ -191,3 +191,13 @@ description: >
 每绘成本 dash=solid（±噪声）；开启动效 = 持续 60fps 重绘（每秒 render 占用 ≈ 9.6ms×60 ≈ 58% 帧预算）——这正是「生成时禁用动效」（默认开）的直接依据：推理期间砍掉的就是这块持续占用。空闲零重绘已在 `仅执行中` 模式实现（空闲时 rAF 循环自停）。
 
 **协议教训**：scale ≤0.4 时动效闸门自动关闭，此 scale 下测「动效开」只会测到 rAF 循环的双绘开销（renders ×2、frame 虚高）——动效性能测量必须 scale >0.4 并成对同页 A/B。
+
+### 2026-11-08 性能冲刺 D-1：render 细分插桩 + trunk 整计划 memo
+
+**插桩**：perf 新增 `pathBuild`（emitBezier+measure+pointAt）与 `strokeT`（stroke+命中覆写）两桶；500 线 smooth 实测 pathBuild 0.34 / strokeT 0.75——**我方逐线绘制成本仅 1.1ms，render 桶其余 ~26ms 为宿主 drawConnections 循环与栅格化**（原「先单独计时路径构建占比」的既定路线已执行，结论：路径构建不再是优化对象）。
+
+**trunk 整计划 memo**（DEC-035 帧内复用候选的落地）：planTrunks 的 memoKey = linksHash|endpointsVer|laneHash|avoidance|style|trunkCap|enabled，未变则整计划 O(1) 复用（此前静态帧每帧仍做 499 次 key 字符串拼接 + cache 查询 + 372 组 sig/Map 构造）。500 线实测 trunks 8.9 → **0.008ms**；真实图 fp `3664953215` 与历史一致、主干不变、`verify() ok`——行为不变。
+
+**§10.6 现状（如实）**：500 线 smooth 40 帧 p50 39.4 / p95 43.3——距 33.4ms（30fps）仍差 ~18%，且 40/40 帧超标。热点已从「我方算法」整体转移到「宿主绘制循环 + 栅格化」；我方可控面内（路径构建/主干/缓存/lanes）均已压至 ~2ms 级。进一步达标需要接管整个连线渲染层（自绘全部连线、绕开宿主逐线机器）——属重决策，另行拍板。
+
+**协议**：500 LatentBlend（clear 后 499 链）scale 0.22 全可见，40 帧成对；脚本 `.verify/p5/perf-smooth-ab.mjs`；跨页机器噪声带 ±18%（before-1 45.8 vs before-2 38.7 先例），单次对比不作数。
