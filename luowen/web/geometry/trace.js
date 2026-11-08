@@ -91,6 +91,83 @@ export function pointAt(pts, m, t) {
   return { x: last[0], y: last[1], angle: 0 }
 }
 
+// ---------- beam 线型（研究报告 §7 主方案）弧长工具：像素口径，与描边曲线对齐 ----------
+
+// 把 emitBezier 的「折线+拐角二次曲线」扁平化为密集折线（拐角按曲线长约 6px 步长采样），
+// 使 beam 覆盖段的弧长参数化与实际描边路径一致（deviation ≤ 采样步长/2，非扁平化时束会切角）。
+// radius=0（orthogonal）或共线角退化为原折线。
+export function flattenBezier(pts, radius = RADIUS) {
+  if (!pts.length) return []
+  const out = [[pts[0][0], pts[0][1]]]
+  for (let k = 1; k < pts.length - 1; k++) {
+    const p = pts[k - 1], c = pts[k], n = pts[k + 1]
+    const dp = dist(p, c)
+    const dn = dist(c, n)
+    const d = filletRadius(radius, dp, dn)
+    const cross = (c[0] - p[0]) * (n[1] - c[1]) - (c[1] - p[1]) * (n[0] - c[0])
+    if (!(d > 0) || dp === 0 || dn === 0 || Math.abs(cross) < 1e-9) {
+      out.push([c[0], c[1]])
+      continue
+    }
+    const t1 = [c[0] + ((p[0] - c[0]) / dp) * d, c[1] + ((p[1] - c[1]) / dp) * d]
+    const t2 = [c[0] + ((n[0] - c[0]) / dn) * d, c[1] + ((n[1] - c[1]) / dn) * d]
+    out.push(t1)
+    // 二次贝塞尔 (t1 → c → t2)：曲线长介于弦 d 与两腰和 2d 之间，按 ~6px 目标步长采样
+    const steps = Math.max(2, Math.min(16, Math.round((d * 1.5) / 6)))
+    for (let i = 1; i < steps; i++) {
+      const u = i / steps
+      const a = 1 - u
+      out.push([
+        a * a * t1[0] + 2 * a * u * c[0] + u * u * t2[0],
+        a * a * t1[1] + 2 * a * u * c[1] + u * u * t2[1],
+      ])
+    }
+    out.push(t2)
+  }
+  const last = pts[pts.length - 1]
+  out.push([last[0], last[1]])
+  return out
+}
+
+// Point at arc length s (px) —— beam/粒子按像素推进用（pointAt 是分数口径，勿混用）
+export function pointAtPx(pts, m, s) {
+  let target = Math.max(0, Math.min(m.total, s))
+  for (let k = 0; k < m.seg.length; k++) {
+    if (target <= m.seg[k] || k === m.seg.length - 1) {
+      const f = m.seg[k] > 0 ? target / m.seg[k] : 0
+      const a = pts[k], b = pts[k + 1]
+      return {
+        x: a[0] + (b[0] - a[0]) * f,
+        y: a[1] + (b[1] - a[1]) * f,
+        angle: Math.atan2(b[1] - a[1], b[0] - a[0])
+      }
+    }
+    target -= m.seg[k]
+  }
+  const last = pts[pts.length - 1]
+  return { x: last[0], y: last[1], angle: 0 }
+}
+
+// 弧长区间 [s0, s1]（px，越界钳制、s1<=s0 返回空）内的子折线（两端插值）——beam 覆盖段用
+export function subPolyPx(pts, m, s0, s1) {
+  const a0 = Math.max(0, Math.min(m.total, s0))
+  const a1 = Math.max(0, Math.min(m.total, s1))
+  if (a1 <= a0) return []
+  const out = []
+  const A = pointAtPx(pts, m, a0)
+  out.push([A.x, A.y])
+  let acc = 0
+  for (let k = 0; k < m.seg.length; k++) {
+    const end = acc + m.seg[k]
+    if (end > a0) {
+      if (end <= a1) out.push([pts[k + 1][0], pts[k + 1][1]])
+      else { const P = pointAtPx(pts, m, a1); out.push([P.x, P.y]); break }
+    }
+    acc = end
+  }
+  return out
+}
+
 function dist(a, b) {
   return Math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2)
 }

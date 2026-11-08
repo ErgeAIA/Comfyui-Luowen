@@ -12,7 +12,7 @@
 // 铁律：只改绘制；异常单线隔离；不写图数据。
 
 import { route } from '../geometry/router.js';
-import { emitBezier, measure as measurePts, pointAt, DEFAULT_RADIUS as DEFAULT_CORNER_RADIUS } from '../geometry/trace.js';
+import { emitBezier, measure as measurePts, pointAt, flattenBezier, pointAtPx, subPolyPx, DEFAULT_RADIUS as DEFAULT_CORNER_RADIUS } from '../geometry/trace.js';
 import { resolveLinkColor, shouldAnimate, dashOffset, setTheme as setLinkColorTheme, themeInfo } from '../colors/linkColors.js';
 import { DEFAULT_BEVEL_RATIO, chamferPolyline, createChamferIndex, polylineBox, findSharedPoints } from '../geometry/chamfer.js';
 import { previewPath } from '../geometry/preview.js';
@@ -58,7 +58,8 @@ const state = {
   originalDrawConnections: null,
   wrappedDrawRef: null,
   windowPointerDown: false,
-  settings: { enabled: true, style: 'orthogonal', avoidance: 'standard', chamfer: true, bevelRatio: DEFAULT_BEVEL_RATIO, cornerRadius: DEFAULT_CORNER_RADIUS, trunkCap: null, lanePitch: DEFAULT_LANE_PITCH, brotherSpacing: DEFAULT_BROTHER_SPACING, crossCleanup: false, colorTheme: 'off', flowAnim: false, animMode: 'all', flowStyle: 'dash', flowDash: 7, flowGap: 13, flowSpeed: 48, disableAnimOnRun: true },
+  prevOnSelectionChange: null,
+  settings: { enabled: true, style: 'orthogonal', avoidance: 'standard', chamfer: true, bevelRatio: DEFAULT_BEVEL_RATIO, cornerRadius: DEFAULT_CORNER_RADIUS, trunkCap: null, lanePitch: DEFAULT_LANE_PITCH, brotherSpacing: DEFAULT_BROTHER_SPACING, crossCleanup: false, colorTheme: 'off', flowAnim: false, animMode: 'all', flowStyle: 'beam', dashLen: 7, dashGap: 13, dashSpeed: 4, beamSpeed: 2, beamLen: 48, beamSpacing: 240, disableAnimOnRun: true },
   frame: {
     obstacleHashStr: '',
     version: 0,
@@ -1416,20 +1417,16 @@ function tryCustomRender(ctx, a, b, link, color, start_dir, end_dir, opts) {
   // 信号源 = 自维护 window 指针状态（Vue 拖动不走 legacy canvas.pointer，其 isDown 恒 false——实测）。
   const animSuppressed = state.windowPointerDown === true;
   if (animate && !animSuppressed) {
-    if (cfg.flowStyle === 'glow') {
-      // 发光：光晕大小 + 呼吸起伏（各自独立参数，与虚线无关）
-      const breathe = 1 + (cfg.glowRate > 0 ? 0.35 * Math.sin((performance.now() / 1000) * Math.PI * 2 * cfg.glowRate * 0.2) : 0);
-      ctx.shadowColor = stroke;
-      ctx.shadowBlur = cfg.glowSize * breathe;
-    } else if (cfg.flowStyle === 'pulse') {
-      // 脉冲：频率 + 幅度（各自独立参数，与虚线无关）
-      ctx.lineWidth = width * (1 + (cfg.pulseAmp / 100) * Math.sin((performance.now() / 1000) * Math.PI * 2 * cfg.pulseRate * 0.2));
+    if (cfg.flowStyle === 'beam') {
+      // 局部流动光脉冲（beam，研究报告 §7 主方案 / DEC-041 执行态·关注态语义）：
+      // 有限长度亮束沿路径行进；基础实线已由下方 stroke(path) 完成，这里只叠画束段。
+      drawBeamStroke(ctx, link, drawPts, stroke, width, scaleNow);
     } else {
-      // 虚线行进：流速 = 屏幕线速度（档位 × 60 px/s，缩放补偿）；长度/间距只管形状
+      // 虚线行进（降级方案 / 方向提示档）：流速 = 屏幕线速度（档位 × 30 px/s，缩放补偿）
       const period = cfg.dashLen + cfg.dashGap;
       if (period > 0) {
         ctx.setLineDash([cfg.dashLen, cfg.dashGap]);
-        ctx.lineDashOffset = dashOffset({ now: performance.now(), speed: cfg.dashSpeed * 30, scale: scaleNow, period });
+        ctx.lineDashOffset = dashOffset({ now: flowPhaseMs(), speed: cfg.dashSpeed * 30, scale: scaleNow, period });
         ctx.globalAlpha = 0.92;
       }
     }
@@ -1596,7 +1593,7 @@ export function perfReport() {
 
 let windowPointerListeners = null;
 function onWindowPointerDown() { state.windowPointerDown = true; }
-function onWindowPointerUp() { state.windowPointerDown = false; }
+function onWindowPointerUp() { state.windowPointerDown = false; syncFlowLoop(); }
 function attachWindowPointerListeners() {
   if (windowPointerListeners || typeof window === 'undefined') return;
   window.addEventListener('pointerdown', onWindowPointerDown, { capture: true });
@@ -1636,6 +1633,18 @@ export function install(canvas) {
   // 且 setup() 的显式 apply 清单不含动效键——安装完成后补一次同步，
   // 使重启/刷新后已保存的动效配置无需用户再翻转开关即生效。
   syncFlowLoop();
+  // 唤醒监听（研究报告 §4.4）：keyup/wheel/visibilitychange/reduced-motion change
+  attachWakeListeners();
+  // 选择唤醒补充（§4.1）：Vue 模式不回调此钩子（只置 state.selectionChanged），legacy 模式回调；
+  // 链式保留他人钩子，uninstall 还原
+  if (!state.prevOnSelectionChange) {
+    state.prevOnSelectionChange = typeof canvas.onSelectionChange === 'function' ? canvas.onSelectionChange : null;
+    canvas.onSelectionChange = (...a) => {
+      try { syncFlowLoop(); } catch { /* 唤醒失败不影响选择 */ }
+      const f = state.prevOnSelectionChange;
+      if (typeof f === 'function') f.apply(canvas, a);
+    };
+  }
 
   // 调试入口：内存态兄弟线间距（面板项由设置会话合并后再注册，避免改 index.js）。
   // 等距带默认 8px；上限在 planBands 内按同组接入点最小 y 间距钳制。
@@ -1691,6 +1700,16 @@ export function uninstall() {
     if (state.proto.renderLink === state.wrappedRenderRef) state.proto.renderLink = state.originalRenderLink;
     if (state.proto.drawConnections === state.wrappedDrawRef) state.proto.drawConnections = state.originalDrawConnections;
   }
+  // 自停架构收尾：取消挂起的循环帧 + 拆唤醒监听 + 还原选择钩子（研究报告 §4.4）
+  if (flowRaf) { cancelAnimationFrame(flowRaf); flowRaf = 0; }
+  flowPhaseLast = 0;
+  detachWakeListeners();
+  const el0 = app.canvas;
+  if (el0 && el0.onSelectionChange) {
+    // 无论 prev 是否为 null 都还原（prev=null 表示原本无钩子）；仅当仍是我方包装时
+    el0.onSelectionChange = state.prevOnSelectionChange;
+  }
+  state.prevOnSelectionChange = null;
   const el = app.canvas?.canvas;
   if (el && state.hoverBound) {
     el.removeEventListener('pointermove', onPointerMove);
@@ -1740,10 +1759,14 @@ export function setSettings(partial) {
   }
   if ('flowAnim' in partial) partial.flowAnim = !!partial.flowAnim;
   if ('animMode' in partial) partial.animMode = partial.animMode === 'selected' || partial.animMode === 'executing' ? partial.animMode : 'all';
-  if ('flowStyle' in partial) partial.flowStyle = partial.flowStyle === 'glow' || partial.flowStyle === 'pulse' ? partial.flowStyle : 'dash';
-  if ('flowDash' in partial) { const n = Number(partial.flowDash); partial.flowDash = Number.isFinite(n) ? Math.max(0, Math.min(30, n)) : prev.flowDash; }
-  if ('flowGap' in partial) { const n = Number(partial.flowGap); partial.flowGap = Number.isFinite(n) ? Math.max(0, Math.min(40, n)) : prev.flowGap; }
-  if ('flowSpeed' in partial) { const n = Number(partial.flowSpeed); partial.flowSpeed = Number.isFinite(n) ? Math.max(0, Math.min(10, Math.round(n))) : prev.flowSpeed; } // 档位 0-10，绘制时 ×30（屏幕像素/秒/档）
+  // FlowStyle 收窄（研究报告 §7）：仅 beam/dash；已存 glow/pulse 值迁移到 beam（DEC-042）
+  if ('flowStyle' in partial) partial.flowStyle = partial.flowStyle === 'dash' ? 'dash' : 'beam';
+  if ('dashLen' in partial) { const n = Number(partial.dashLen); partial.dashLen = Number.isFinite(n) ? Math.max(0, Math.min(30, n)) : prev.dashLen; }
+  if ('dashGap' in partial) { const n = Number(partial.dashGap); partial.dashGap = Number.isFinite(n) ? Math.max(4, Math.min(40, n)) : prev.dashGap; }
+  if ('dashSpeed' in partial) { const n = Number(partial.dashSpeed); partial.dashSpeed = Number.isFinite(n) ? Math.max(0, Math.min(10, Math.round(n))) : prev.dashSpeed; } // 档位 0-10，绘制时 ×30（屏幕像素/秒/档）
+  if ('beamSpeed' in partial) { const n = Number(partial.beamSpeed); partial.beamSpeed = Number.isFinite(n) ? Math.max(0, Math.min(10, Math.round(n))) : prev.beamSpeed; } // 档位 0-10，绘制时 ×30
+  if ('beamLen' in partial) { const n = Number(partial.beamLen); partial.beamLen = Number.isFinite(n) ? Math.max(12, Math.min(160, Math.round(n))) : prev.beamLen; } // 屏幕像素
+  if ('beamSpacing' in partial) { const n = Number(partial.beamSpacing); partial.beamSpacing = Number.isFinite(n) ? Math.max(80, Math.min(600, Math.round(n))) : prev.beamSpacing; } // 屏幕像素
   if ('disableAnimOnRun' in partial) partial.disableAnimOnRun = !!partial.disableAnimOnRun;
   if ('brotherSpacing' in partial) {
     const n = Number(partial.brotherSpacing);
@@ -1753,7 +1776,8 @@ export function setSettings(partial) {
   const dirty = ['enabled', 'style', 'avoidance', 'lanePitch', 'brotherSpacing', 'crossCleanup']
     .some((k) => k in partial && partial[k] !== prev[k]);
   if (dirty) invalidateCleanup('settings');
-  if ('colorTheme' in partial || 'flowAnim' in partial) syncFlowLoop();
+  // 任意动效相关键变化都同步循环（自停架构下这是主要唤醒路径之一）
+  syncFlowLoop();
   app?.canvas?.setDirty?.(false, true);
 }
 
@@ -1768,30 +1792,34 @@ function reducedMotionPref() {
 }
 
 let flowRaf = 0;
-function flowLoopTick() {
+// 动效相位累加器（研究报告 §4.4）：dt 累加（单帧步长钳制 ≤100ms），只在「本帧真的会动」时推进；
+// 暂停/恢复/隐藏标签页均无跳变。墙钟口径（dashOffset(now)）就此退役，dash/beam 统一吃本累加器。
+let flowPhaseAcc = 0;
+let flowPhaseLast = 0;
+function flowPhaseMs() { return flowPhaseAcc; }
+
+function flowLoopTick(now) {
   flowRaf = 0;
   const cfg = state.settings;
-  // BUG-009-①：主题是配色选择，不作动效隐藏依赖（与 shouldAnimate 解耦口径一致，BUG-008）
+  // 主题不作动效隐藏依赖（BUG-009-①）：on 只管「装了 + 开了」
   const on = state.installed && cfg.flowAnim;
-  if (!on) return;
-  // 指针按下（拖动/框选/平移）：暂停本循环的 setDirty——拖动自身已有重绘节奏，动效已画实线
-  if (state.windowPointerDown === true) {
-    flowRaf = requestAnimationFrame(flowLoopTick);
-    return;
-  }
-  // 空闲零重绘：仅当存在「本帧该动的线」才驱动重绘（DEC-040 第 5 条）
-  // BUG-009-②：队列运行状态在 state.queue.running（state.settings.queueRunning 从不存在，修前为恒 false 死分支）
-  // BUG-009-③：外部闸门（reduced-motion/宿主开关/缩放≤0.4）命中时逐线门禁本就画静态，循环不再驱动全图重绘
-  //   （RAF 自转保留，完整自停+唤醒设计属研究任务阶段五）；hostAnimOff 缓存是帧级生命周期，
-  //   循环停画期间无人刷新会成死缓存，这里每 tick 直读一次
-  state.frame.hostAnimOff = null;
+  if (!on) { flowPhaseLast = 0; return; }
+  const dt = flowPhaseLast > 0 ? Math.min(100, Math.max(0, now - flowPhaseLast)) : 16.7;
+  flowPhaseLast = now;
+  // 指针按下（拖动/框选/平移）：循环自停（拖动自身已有重绘节奏），pointerup 唤醒
+  if (state.windowPointerDown === true) { flowPhaseLast = 0; return; }
+  // 空闲零重绘（DEC-040 第 5 条）+ BUG-009-②③：队列真值 + 外部门禁并入 hasWork
+  state.frame.hostAnimOff = null; // 帧级缓存会在停画期死缓存，tick 内直读
   const scaleNow = app?.canvas?.ds?.scale ?? 1;
   let hasWork = true;
   if (reducedMotionPref() || hostAnimationsDisabled() || !(Number(scaleNow) > 0.4)) hasWork = false;
   else if (state.queue.running && cfg.disableAnimOnRun) hasWork = false;
   else if (cfg.animMode === 'executing') hasWork = state.queue.executingNode != null;
   else if (cfg.animMode === 'selected') hasWork = (app?.canvas?.selectedItems?.size ?? 0) > 0;
-  if (hasWork && !document.hidden) app?.canvas?.setDirty?.(false, true);
+  // 自停（研究报告 §4.4）：无 work / 页面隐藏 → 停止重排，唤醒事件负责重启
+  if (!hasWork || document.hidden) { flowPhaseLast = 0; return; }
+  flowPhaseAcc += dt;
+  app?.canvas?.setDirty?.(false, true);
   flowRaf = requestAnimationFrame(flowLoopTick);
 }
 
@@ -1800,9 +1828,117 @@ function syncFlowLoop() {
   if (want && !flowRaf) flowRaf = requestAnimationFrame(flowLoopTick);
 }
 
+// ---------- beam 线型绘制（研究报告 §3.2 主干段图 + §7 主方案） ----------
+
+function lightenColor(c, f) {
+  if (typeof c === 'string' && /^#[0-9a-fA-F]{6}$/.test(c)) {
+    const n = parseInt(c.slice(1), 16);
+    const mix = (v) => Math.round(v + (255 - v) * f);
+    return `rgb(${mix((n >> 16) & 255)},${mix((n >> 8) & 255)},${mix(n & 255)})`;
+  }
+  return null; // 非 hex（原生命名色等）：调用方回退，不做混白
+}
+
+// 共享主干去重：组内首成员画全路径（含主干段），其余成员跳过 [0, forkT)——fork 处单流束不叠亮。
+// fork T = trunkPlan 的公共前缀弧长（骨架口径；flatten 后误差 ≤ 拐角收缩量，束长 48px 量级下不可辨）。
+function beamSkipArc(link) {
+  const infos = state.frame.trunkInfo;
+  for (const t of infos) {
+    const merged = t.merged;
+    if (!merged || merged.length < 2) continue;
+    const id = String(link.id);
+    let found = -1;
+    for (let i = 0; i < merged.length; i++) if (String(merged[i]) === id) { found = i; break; }
+    if (found === 0) return 0;
+    if (found > 0) return t.T;
+  }
+  return 0;
+}
+
+function drawBeamStroke(ctx, link, pts, stroke, width, scale) {
+  const cfg = state.settings;
+  const sc = Number(scale) > 0.05 ? Number(scale) : 0.05;
+  const flat = flattenBezier(pts, cfg.cornerRadius);
+  const fm = measurePts(flat);
+  if (!(fm.total > 0)) return;
+  const skip = beamSkipArc(link);
+  const span = fm.total - skip;
+  if (!(span > 4)) return;
+  const v = (cfg.beamSpeed * 30) / sc; // 屏幕恒速：档位 × 30 px/s
+  const bl = Math.max(8, cfg.beamLen) / sc;
+  const gap = Math.max(bl + 8, cfg.beamSpacing) / sc;
+  const base = (flowPhaseAcc / 1000) * v;
+  const body = lightenColor(stroke, 0.4) ?? stroke;
+  const headCol = lightenColor(stroke, 0.72);
+  const nB = Math.max(1, Math.floor(span / gap));
+  ctx.save();
+  ctx.lineCap = 'round';
+  for (let k = 0; k < nB; k++) {
+    const s0 = skip + ((base + k * gap) % span);
+    const s1 = Math.min(s0 + bl, fm.total);
+    if (s1 - s0 < 1) continue;
+    const seg = subPolyPx(flat, fm, s0, s1);
+    if (seg.length > 1) {
+      ctx.strokeStyle = body;
+      ctx.globalAlpha = 0.9;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      ctx.moveTo(seg[0][0], seg[0][1]);
+      for (let i = 1; i < seg.length; i++) ctx.lineTo(seg[i][0], seg[i][1]);
+      ctx.stroke();
+    }
+    const h0 = Math.max(s1 - 12 / sc, s0);
+    const head = subPolyPx(flat, fm, h0, s1);
+    if (head.length > 1) {
+      ctx.strokeStyle = headCol ?? stroke;
+      ctx.globalAlpha = headCol ? 1 : 0.85;
+      ctx.lineWidth = headCol ? width : width + 1.5;
+      ctx.beginPath();
+      ctx.moveTo(head[0][0], head[0][1]);
+      for (let i = 1; i < head.length; i++) ctx.lineTo(head[i][0], head[i][1]);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+// ---------- 唤醒监听（研究报告 §4.4 事件表）：循环自停后由这些事件重启 ----------
+
+let wakeListeners = null;
+function onWakeEvent() { syncFlowLoop(); }
+function reducedMotionQuery() {
+  if (typeof window === 'undefined' || !window.matchMedia) return null;
+  if (!reducedQuery) reducedQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  return reducedQuery;
+}
+function attachWakeListeners() {
+  if (wakeListeners) return;
+  const l = { keyup: onWakeEvent, wheel: onWakeEvent, vis: onWakeEvent, mm: null };
+  window.addEventListener('keyup', l.keyup, { passive: true });
+  window.addEventListener('wheel', l.wheel, { passive: true });
+  document.addEventListener('visibilitychange', l.vis);
+  const mm = reducedMotionQuery();
+  if (mm && typeof mm.addEventListener === 'function') { l.mm = onWakeEvent; mm.addEventListener('change', l.mm); }
+  wakeListeners = l;
+}
+function detachWakeListeners() {
+  if (!wakeListeners) return;
+  window.removeEventListener('keyup', wakeListeners.keyup, { passive: true });
+  window.removeEventListener('wheel', wakeListeners.wheel, { passive: true });
+  document.removeEventListener('visibilitychange', wakeListeners.vis);
+  const mm = reducedMotionQuery();
+  if (wakeListeners.mm && mm && typeof mm.removeEventListener === 'function') mm.removeEventListener('change', wakeListeners.mm);
+  wakeListeners = null;
+}
+
 // 调试/验收入口：当前主题 + 现存连线按类型的解析结果与条数
 // 队列运行时状态（api 事件驱动，index.js 订阅；不持久化）
 state.queue = { running: false, executingNode: null };
+
+// 工作流/子图切换等图级事件的唤醒入口（index.js afterConfigureGraph 调用；研究报告 §4.4）
+export function notifyFlowWake() {
+  syncFlowLoop();
+}
 
 export function setQueueState({ running, executingNode } = {}) {
   if (running != null) state.queue.running = !!running;
@@ -1844,6 +1980,7 @@ export function getColorDebug() {
     animMode: state.settings.animMode, flowStyle: state.settings.flowStyle,
     queue: { running: state.queue.running, executingNode: state.queue.executingNode },
     disableAnimOnRun: !!state.settings.disableAnimOnRun,
+    phaseMs: Math.round(flowPhaseAcc),
     info: themeInfo(id), byType,
   };
 }

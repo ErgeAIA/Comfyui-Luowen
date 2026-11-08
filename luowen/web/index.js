@@ -13,6 +13,7 @@ import {
   runCrossCleanup,
   getColorDebug,
   setQueueState,
+  notifyFlowWake,
   CORNER_RADIUS_MAX,
 } from './adapters/renderLinkAdapter.js';
 import { DEFAULT_RADIUS } from './geometry/trace.js';
@@ -34,10 +35,9 @@ const FLOW_STYLE_ID = 'LuoWen.FlowStyle';
 const DASH_SPEED_ID = 'LuoWen.DashSpeed';
 const DASH_LEN_ID = 'LuoWen.DashLen';
 const DASH_GAP_ID = 'LuoWen.DashGap';
-const GLOW_SIZE_ID = 'LuoWen.GlowSize';
-const GLOW_RATE_ID = 'LuoWen.GlowRate';
-const PULSE_RATE_ID = 'LuoWen.PulseRate';
-const PULSE_AMP_ID = 'LuoWen.PulseAmp';
+const BEAM_SPEED_ID = 'LuoWen.BeamSpeed';
+const BEAM_LEN_ID = 'LuoWen.BeamLen';
+const BEAM_SPACING_ID = 'LuoWen.BeamSpacing';
 const DISABLE_ANIM_ON_RUN_ID = 'LuoWen.DisableAnimOnRun';
 const SNAP_ID = 'LuoWen.SnapAlign';
 const CROSS_CLEANUP_ID = 'LuoWen.CrossCleanup';
@@ -367,16 +367,16 @@ app.registerExtension({
       sortOrder: 90,
       tooltip: {
         value:
-          '全部连线：所有连线一起动。\n仅选中：只动与选中节点相连的线。\n仅执行中：只动与正在执行的节点相连的线。\n空闲时零开销。',
+          '仅选中（推荐）：只动与选中节点相连的线，跟随关注焦点。\n仅执行中：只动与正在执行的节点相连的线，动=正在发生。\n全图（氛围）：空闲时也持续动，属装饰，不代表正在执行。\n空闲与无目标时循环自停、零开销。',
         class: TIP_CLASS,
       },
       type: 'combo',
       options: [
-        { text: '全部连线', value: 'all' },
-        { text: '仅选中', value: 'selected' },
+        { text: '仅选中（推荐）', value: 'selected' },
         { text: '仅执行中', value: 'executing' },
+        { text: '全图（氛围）', value: 'all' },
       ],
-      defaultValue: 'all',
+      defaultValue: 'selected',
       onChange: (v) => setSettings({ animMode: v }),
     },
     {
@@ -386,16 +386,15 @@ app.registerExtension({
       sortOrder: 80,
       tooltip: {
         value:
-          '虚线行进：虚线沿连线从源向目标移动（参数见「动效·虚线」组）。\n发光：光晕随呼吸起伏（参数见「动效·发光」组）。\n脉冲：连线宽度按节律呼吸（参数见「动效·脉冲」组）。',
+          '局部光脉冲（推荐）：一段有限长度的亮束沿连线行进，\n静止时连线保持实线，动=有事正在发生。\n虚线行进：虚线沿连线从源向目标移动（低耗方向档，参数见「动效·虚线」组）。\n旧版「发光/脉冲」线型已移除，保存值自动迁移为局部光脉冲。',
         class: TIP_CLASS,
       },
       type: 'combo',
       options: [
+        { text: '局部光脉冲（推荐）', value: 'beam' },
         { text: '虚线行进', value: 'dash' },
-        { text: '发光', value: 'glow' },
-        { text: '脉冲', value: 'pulse' },
       ],
-      defaultValue: 'dash',
+      defaultValue: 'beam',
       onChange: (v) => setSettings({ flowStyle: v }),
     },
     {
@@ -436,60 +435,45 @@ app.registerExtension({
       onChange: (v) => setSettings({ dashGap: Number(v) }),
     },
     {
-      id: GLOW_SIZE_ID,
-      name: '发光·光晕',
-      category: ['LuoWen', '动效·发光', 'GlowSize'],
-      sortOrder: 18,
+      id: BEAM_SPEED_ID,
+      name: '光束·流速',
+      category: ['LuoWen', '动效·光束', 'BeamSpeed'],
+      sortOrder: 30,
       tooltip: {
         value:
-          '光晕的柔和半径（屏幕像素）。\n只影响发光线型，与虚线参数无关。',
-        class: TIP_CLASS,
-      },
-      type: 'slider',
-      attrs: { min: 2, max: 24, step: 1 },
-      defaultValue: 8,
-      onChange: (v) => setSettings({ glowSize: Number(v) }),
-    },
-    {
-      id: GLOW_RATE_ID,
-      name: '发光·呼吸速度',
-      category: ['LuoWen', '动效·发光', 'GlowRate'],
-      sortOrder: 17,
-      tooltip: {
-        value:
-          '光晕明暗起伏的节奏，0–10 共 10 档。\n每档 0.2 次/秒（档位 5 = 每秒 1 次呼吸）。只影响发光线型。',
+          '亮束的行进速度，0–10 共 10 档。\n每档 30 屏幕像素/秒（已按缩放补偿，任何缩放下手感一致）。\n只影响局部光脉冲线型。',
         class: TIP_CLASS,
       },
       type: 'slider',
       attrs: { min: 0, max: 10, step: 1 },
-      defaultValue: 5,
-      onChange: (v) => setSettings({ glowRate: Number(v) }),
+      defaultValue: 2,
+      onChange: (v) => setSettings({ beamSpeed: Number(v) }),
     },
     {
-      id: PULSE_RATE_ID,
-      name: '脉冲·频率',
-      category: ['LuoWen', '动效·脉冲', 'PulseRate'],
-      sortOrder: 15,
+      id: BEAM_LEN_ID,
+      name: '光束·长度',
+      category: ['LuoWen', '动效·光束', 'BeamLen'],
+      sortOrder: 25,
+      tooltip: { value: '亮束的长度（屏幕像素）。只影响局部光脉冲线型。', class: TIP_CLASS },
+      type: 'slider',
+      attrs: { min: 24, max: 120, step: 4 },
+      defaultValue: 48,
+      onChange: (v) => setSettings({ beamLen: Number(v) }),
+    },
+    {
+      id: BEAM_SPACING_ID,
+      name: '光束·间距',
+      category: ['LuoWen', '动效·光束', 'BeamSpacing'],
+      sortOrder: 20,
       tooltip: {
         value:
-          '宽度呼吸的频率，0–10 共 10 档。\n每档 0.2 次/秒（档位 5 = 每秒 1 次呼吸）。只影响脉冲线型。',
+          '长连线上相邻亮束的间距（屏幕像素）。\n短于间距的连线保持单束。\n只影响局部光脉冲线型。',
         class: TIP_CLASS,
       },
       type: 'slider',
-      attrs: { min: 0, max: 10, step: 1 },
-      defaultValue: 5,
-      onChange: (v) => setSettings({ pulseRate: Number(v) }),
-    },
-    {
-      id: PULSE_AMP_ID,
-      name: '脉冲·幅度',
-      category: ['LuoWen', '动效·脉冲', 'PulseAmp'],
-      sortOrder: 14,
-      tooltip: { value: '宽度呼吸的深浅（相对线宽的百分比）。只影响脉冲线型。', class: TIP_CLASS },
-      type: 'slider',
-      attrs: { min: 0, max: 80, step: 5 },
-      defaultValue: 45,
-      onChange: (v) => setSettings({ pulseAmp: Number(v) }),
+      attrs: { min: 120, max: 480, step: 20 },
+      defaultValue: 240,
+      onChange: (v) => setSettings({ beamSpacing: Number(v) }),
     },
     {
       id: DISABLE_ANIM_ON_RUN_ID,
@@ -525,6 +509,8 @@ app.registerExtension({
   afterConfigureGraph() {
     // 工作流每次加载/切换后重建数据不变性基线
     baseline = snapshotGraph();
+    // 自停架构的唤醒点之一（研究报告 §4.4）：子图/工作流切换后可能具备动效条件
+    notifyFlowWake();
   },
 
   setup() {
@@ -543,10 +529,9 @@ app.registerExtension({
         dashSpeed: (() => { const raw = Number(readSetting(DASH_SPEED_ID, NaN)); if (Number.isFinite(raw) && raw >= 0) return Math.max(0, Math.min(10, raw)); const legacy = Number(readSetting('LuoWen.FlowSpeed', NaN)); return Number.isFinite(legacy) && legacy >= 0 ? Math.max(0, Math.min(10, legacy > 10 ? Math.round(legacy / 60) : legacy)) : 4; })(),
         dashLen: (() => { const raw = Number(readSetting(DASH_LEN_ID, NaN)); return Number.isFinite(raw) && raw >= 0 ? raw : Math.max(0, Math.min(30, Number(readSetting('LuoWen.FlowDash', 7)) || 7)); })(),
         dashGap: (() => { const raw = Number(readSetting(DASH_GAP_ID, NaN)); return Number.isFinite(raw) && raw >= 0 ? raw : Math.max(4, Math.min(40, Number(readSetting('LuoWen.FlowGap', 13)) || 13)); })(),
-        glowSize: Math.max(2, Math.min(24, Number(readSetting(GLOW_SIZE_ID, 8)) || 8)),
-        glowRate: Math.max(0, Math.min(10, Number(readSetting(GLOW_RATE_ID, 5)) || 0)),
-        pulseRate: Math.max(0, Math.min(10, Number(readSetting(PULSE_RATE_ID, 5)) || 0)),
-        pulseAmp: Math.max(0, Math.min(80, Number(readSetting(PULSE_AMP_ID, 45)) || 0)),
+        beamSpeed: (() => { const raw = Number(readSetting(BEAM_SPEED_ID, NaN)); return Number.isFinite(raw) && raw >= 0 ? Math.max(0, Math.min(10, Math.round(raw))) : 2; })(),
+        beamLen: (() => { const raw = Number(readSetting(BEAM_LEN_ID, NaN)); return Number.isFinite(raw) && raw >= 12 ? Math.max(12, Math.min(160, Math.round(raw))) : 48; })(),
+        beamSpacing: (() => { const raw = Number(readSetting(BEAM_SPACING_ID, NaN)); return Number.isFinite(raw) && raw >= 80 ? Math.max(80, Math.min(600, Math.round(raw))) : 240; })(),
       });
     } catch {
       /* 设置读取失败保持默认 */

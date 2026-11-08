@@ -159,7 +159,7 @@ ComfyUI 的节点工作流在连接数量增加后，常出现以下问题：
 
 - 自动创建真实 Reroute 或自动重写工作流图。
 - 复杂的用户自定义布线编辑器。
-- 数据类型重设计（线路颜色语义体系已于 2026-11-08 接入代码：`LuoWen.ColorTheme` / `LuoWen.FlowAnim`，DEC-039；token 规范见 `docs/specs/link-color-tokens/`）。
+- 数据类型重设计（线路颜色语义体系已于 2026-11-08 接入代码：`LuoWen.ColorTheme` / `LuoWen.FlowAnim`，DEC-039；token 规范见 `docs/specs/link-color-tokens/`）。动效 v3（DEC-041/042）：主线型=局部光脉冲，语义分层=执行态＞关注态＞方向提示＞氛围装饰，模式默认「仅选中」，调度=自停+事件唤醒（研究报告 `docs/specs/motion-research.md`）。
 - 工作流语义分析、节点推荐或执行优化。
 
 ---

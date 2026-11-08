@@ -16,6 +16,20 @@ description: >
 > 格式：`## DEC-NNN: 标题`，新条目置顶，NNN 三位递增。
 > 字段：`- **日期**：` / `- **背景**：` / `- **决策**：` / `- **验证**：`
 
+## DEC-042: 动效 v3 实施口径——beam 主线型、自停+唤醒、设置收窄迁移（研究报告 §7 拆分 ②③④）
+
+- **日期**：2026-11-08
+- **背景**：DEC-041 裁决与研究任务 v2 收官后，用户指示「实施吧」。实施范围=研究报告 §7 拆分的 ②自停+唤醒 ③beam 线型 ④DEC-041 落地；BUG-009（①）已随 10e9575 完成。
+- **决策**：
+  1. **beam 参数三档**：`LuoWen.BeamSpeed`（0–10 档，×30=屏幕像素/秒，默认 2）、`LuoWen.BeamLen`（12–160 屏幕像素，默认 48）、`LuoWen.BeamSpacing`（80–600 屏幕像素，默认 240）；「动效·光束」设置组。
+  2. **FlowStyle 收窄**：仅 `beam`/`dash`；已存 glow/pulse 值在运行态映射为 beam（onChange/setSettings 迁移），服务端原值保留不动、用户下次触碰该设置自然覆写。
+  3. **自停+唤醒**：flowLoopTick 无 work/隐藏/指针按下即自停（不重排 RAF）；唤醒=我方设置 onChange、api 执行事件、window keyup/wheel/pointerup、visibilitychange、matchMedia reduced-motion change、afterConfigureGraph、legacy onSelectionChange（链式挂钩）。选择唤醒不依赖选择回调——1.55.18 Vue 模式只置 state.selectionChanged 不回调（selectionAdapter.ts 取证）。
+  4. **相位语义**：墙钟改为 dt 累加器（单帧 ≤100ms 钳制），仅本帧真的会动时推进；暂停/恢复/隐藏无跳变（探针实测 frozenDelta=16ms≈1 帧、resumedDelta=417ms/400ms）。
+  5. **主干去重**：组内首成员画全路径、其余成员跳过 [0,forkT)（forkT=trunkPlan 公共前缀弧长）；颜色构造性一致无需混色规则。
+  6. **glow/pulse 移除**：4 个设置项与绘制分支删除；uninstall 收编 cancelAnimationFrame + 唤醒监听拆除 + 选择钩子还原（BUG-009 观察项 G 落地）。
+- **验证**：单测 124/124（新增 beamTrace 4 项：flatten 端点/弧长/偏差上界、pointAtPx/subPolyPx 区间守恒、beam 覆盖段冒烟）；宿主探针 `.verify/p6/anim-v3-verify-result.json` 全绿——自停（selected 空选/executing 空闲/生成中禁用三态 setDirty=0 且 RAF 增量=0，BUG-009 时代 RAF 仍 +65/s）、点击唤醒、相位冻结、glow→beam 迁移、reload 自启、预算 beam p95 1.2ms vs dash 1.1ms（+9% ≤+10% 口径）、beam 视觉（v3-beam-zoom74/zoomtrunk：正交+圆角+亮束+主干单流束）；restoreOk/finalVerifyOk。
+- **结果**：已部署宿主（SHA256 一致）并自测通过；待用户验收。
+
 ## DEC-041: 连线动效语义四层框架与出厂默认修订——all 降为氛围装饰、selected 设为默认（研究任务 v2 第二阶段裁决）
 
 - **日期**：2026-11-08

@@ -26,6 +26,11 @@ description: >
 - **代码**：`luowen/`（含 `routing/trunkPlan.js` 单主干共享几何、三档避障、预览、缓存、`geometry/chamfer.js` 绕障外角大斜切、`geometry/trace.js` 圆角半径 0–24（默认 10）、`routing/laneAssign.js` 输入侧按接近方向嵌套分道 + 走廊净空顺延 + 同目标等距带（`planBands`、`bandDegraded`/`orderDegraded`）、`snap/alignSnap.js` + `snap/dragSnap.js` 对齐吸附、`routing/crossings.js` + `routing/crossCleanup.js` 交叉枚举与离线清理、主干组高亮 + 组删除菜单），已装本机 custom_nodes 实测
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2、Node 24.22.1；Playwright 浏览器实测流程已打通
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2、Node 24.22.1；Playwright 浏览器实测流程已打通
+- **本轮动效 v3 实施（2026-11-08，用户指示「实施吧」；DEC-042；改 trace.js/renderLinkAdapter.js/index.js + 新增 beamTrace.test.mjs；已部署宿主自测，等用户验收）**：
+  - ②自停+唤醒：flowLoopTick 无 work/隐藏/指针按下即自停（不重排 RAF）；唤醒=设置 onChange/执行事件/keyup/wheel/pointerup/visibilitychange/reduced-motion change/afterConfigureGraph/legacy onSelectionChange（链式）；相位改 dt 累加器（≤100ms 钳制），dash/beam 统一吃累加器，暂停/恢复/隐藏无跳变；uninstall 收编 cancelAnimationFrame+监听拆除+选择钩子还原。
+  - ③beam 线型：trace.js 新增 flattenBezier/pointAtPx/subPolyPx（弧长工具，拐角按曲线 6px 步长采样与描边对齐）；适配器 drawBeamStroke（混白束身+亮头，束长/间距屏幕像素口径）+ beamSkipArc 主干去重（首成员画全路径、其余跳 [0,forkT)）；FlowStyle 收窄 beam/dash、glow/pulse 值运行态迁移；Glow*/Pulse* 4 设置项删除、Beam* 3 项新增（动效·光束组）。
+  - ④DEC-041 落地：AnimMode 默认 selected、三档文案重写（全图（氛围）如实标注）、FlowStyle 默认 beam；PRD §4.3 注记/GLOSSARY 对齐/conventions §2.9 补注册期 onChange 契约。
+  - 验收：单测 **124/124**（新增 beamTrace 4 项）；探针 `.verify/p6/anim-v3-verify-result.json` 全绿——真自停三态（selected 空选/executing 空闲/生成中禁用 setDirty=0 且 **RAF 增量=0**，BUG-009 时代 RAF 仍 +65/s）、点击唤醒恢复 60/s、相位冻结（frozenDelta=16ms≈1 帧、恢复 417ms/400ms 无跳变）、glow→beam 迁移（store 保留原值、运行态映射）、reload 自启、预算 beam p50 0.9/p95 1.2 vs dash 0.8/1.1（+9%≤+10% 口径）、beam 视觉 zoom74/zoomtrunk（正交+圆角+亮束+主干单流束）；restoreOk/finalVerifyOk/errors[]；宿主三文件 SHA256 一致（010571d0/4c756fd1/900725bf）。设置面板 UI 截图缺=headless 无法开窗，面板形态由注册代码与 t5 注册校验保证（如实标注）。
 - **本轮动效研究第五~七阶段 + 最终建议（2026-11-08；报告 §4–§7；已随本笔提交）**：
   - 提交：BUG-009 修复随 `10e9575`、研究文档随 `db8d630` 已 push（用户授权自主提交）。
   - 第五阶段（架构）：唤醒事件源码取证——**Vue 模式选择变化只置 `canvas.state.selectionChanged` 标志、不回调 onSelectionChange**（selectionAdapter.ts sourcemap）→ 选择唤醒走 pointerup/keyup 重读；可见线数上限实测（500 线合成图）——**≤0.4 闸门恰挡住 380+ 线场景，闸门内最坏 144–210 线（静态帧已 29–32ms）、常规 ≥0.75 档 ≤64 线**；四级比较结论=level-1 自停+唤醒为实施架构，level-2 单独收益 <5% 不做，level-3 overlay 触发条件不满足（显式留档），level-4 无证据不做；自停/唤醒设计含 dt 相位累加器（≤100ms 钳制，暂停/恢复/隐藏无跳变）。
