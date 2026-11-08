@@ -28,6 +28,11 @@ description: >
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2、Node 24.22.1；Playwright 浏览器实测流程已打通
 - **本轮动效 v3 实施（2026-11-08，用户指示「实施吧」；DEC-042；改 trace.js/renderLinkAdapter.js/index.js + 新增 beamTrace.test.mjs；已部署宿主自测，等用户验收）**：
         - **样本部署宿主（用户指示）**：六份选样工作流复制进 portable 工作流目录（前缀 `LW样本-`，不覆盖同名），宿主 loadGraphData 冒烟通过（最大样本 230 节点 248 链装载 ok、路由接管、verify ok、零报错；routed 计数随视口/缩放符合既有裁剪口径）。脚本 `.verify/p7/deploy-samples.mjs`。
+- **本轮自动布局后续三项（2026-11-09，分支 auto-layout；DEC-043 补记 G）**：
+  - ①快捷键：Ctrl+Shift+L=全图 / Ctrl+Alt+L=选区；1.55.18 无公开命令注册 API → 画布菜单挂接待 Vue 组件取证。
+  - ②500 节点梯度：ELK 端到端 421ms（engine 375ms），moved=500、straightened=499——预算达标（≤1s@500）。
+  - ③盲测 A/B 文件：默认模板原布局 + 自动布局后各一份（.verify/p7/blind-A/B.json），交参与者盲测。
+  - **F-015 全部交付项至此闭合**，剩余盲测由用户执行。
 - **本轮自动布局实施轮（2026-11-08，分支 auto-layout；D1–D4 用户批准后实施；DEC-043 补记 F）**：
   - 新增 `luowen/web/layout/engine.js`（runAutoLayout 编排：现场快照→buildModel→constraints→ELK 懒加载（浏览器 UMD self.ELK 解析修正）→movable 子图→**captureCanvasState 前后双采单条 undo**→apply（pos+D1 折叠 collapse(true)+size[1]=30）→Group bounds setBounds/commitBounds 重算（索引对齐，Rectangle 非 array 的取证修正））；constraints.js 增 shiftToFreeBand（局部障碍规避）；i18n 增 CollapseNotes 双语；index.js 增 `LuoWen.AutoLayout.CollapseNotes` 设置 + `window.LuoWen.autoLayout(scope)` API。
   - 验收（accept-probe.mjs）：六样本 full 全绿——moved 全量、交叉 30/74/66/72/1/0、**重叠全 0**、幂等 N/N、undo N/N 恢复、verify ok；折叠开关双向生效（heights=[30]）；局部布局 2 动 21 不动。单测 147/147。

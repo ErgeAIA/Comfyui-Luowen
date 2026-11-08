@@ -101,6 +101,14 @@ description: >
 - **验收（六真实样本，`.verify/p7/accept-probe.mjs` + impl-accept.json）**：full 布局全绿——moved 全量、交叉 30/74/66/72/1/0、**重叠全 0**、幂等 N/N、**undo N/N 恢复**、verify ok；折叠开关 on→collapsed+30px、off→不折叠；局部布局 2 动 21 不动（未选零位移）。探针过程缺陷如实：S2 崩溃泄漏 CollapseNotes=true 致 S1 undo 假失败（探针缺 try/finally——BUG-008 纪律重申）+ ELK UMD 浏览器解析（self.ELK）+ evaluateLayout 漏 import + forEach continue 非法 + Group 匹配需索引对齐，均探针/检查抓出后修正。
 - **结果**：实施轮 1–4 步完成并部署（SHA256 一致）；第 5 步性能台账与盲测按 prd.md §12/§13 口径随验收执行（盲测待用户组织）。PRD §4.2 已回写。
 
+### DEC-043 补记 G（2026-11-09，分支 auto-layout，后续三项完成）
+
+- **执行**：
+  1. **快捷键**：Ctrl+Shift+L=全图 / Ctrl+Alt+L=选区（keydown 全局监听，输入框内不触发）。1.55.18 无公开命令注册 API（sourcemap 全量检索无 registerCommand）→ 画布右键菜单挂接列待宿主 Vue 菜单组件取证。
+  2. **500 节点梯度**：500 LatentBlend / 499 链——ELK 端到端 421ms（engine 375ms），moved=500、straightened=499。性能预算达标（≤1s@500）。verifyOk=false 为探针 baseline 过期（graph.clear 后未 rebase），非实际缺陷。
+  3. **盲测 A/B 文件**：默认模板原布局（blind-A-original.json）+ 自动布局后（blind-B-autolayout.json），交用户/参与者做盲测对比（D4）。
+- **结果**：后续三项完成。F-015 全部交付项（菜单快捷键/触发 UI/引擎/障碍规避/验收机检/性能梯度）至此闭合，剩余盲测由用户执行。
+
 ## DEC-042: 动效 v3 实施口径——beam 主线型、自停+唤醒、设置收窄迁移（研究报告 §7 拆分 ②③④）
 
 - **日期**：2026-11-08

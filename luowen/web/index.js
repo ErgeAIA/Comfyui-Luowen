@@ -725,6 +725,16 @@ get tooltip() {
         };
       },
     };
+    // 自动布局快捷键（Ctrl+Shift+L=全图，Ctrl+Alt+L=选区；输入框内不触发）
+    window.addEventListener('keydown', (e) => {
+      if (!e.ctrlKey || e.key !== 'L' && e.key !== 'l') return;
+      if (e.shiftKey && e.altKey) return;
+      const t = e.target;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      e.preventDefault();
+      const scope = e.altKey ? 'selected' : 'full';
+      window.LuoWen?.autoLayout?.(scope).catch(() => {});
+    }, { passive: false });
     console.log('[LuoWen] 就绪 — window.LuoWen 可用（status/setEnabled/setStyle/rebase/verify）');
   },
 });

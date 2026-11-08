@@ -86,10 +86,12 @@ MVP = MVP-1 + MVP-2 + 触发 UI（菜单/快捷键）+ 障碍规避后处理。�
 | D1 | **折叠写入边界修订**：允许布局写 collapsed 标志+折叠尺寸（超 F-015「仅 pos」） | 建议批准（PRD §4.2 F-015 同步修订「pos 与折叠状态」），默认关 |
 | D2 | MVP 范围确认（MVP-1+MVP-2） | 建议采纳 |
 | D3 | Group 自动重组 | 默认不做（语义结构不动） |
-| D4 | 认知盲测（≥5 用户）实施时机 | 建议实施轮验收时执行 |
+| D4 | 认知盲测（≥5 用户）实施时机 | **A/B 文件已备**（.verify/p7/blind-A/B.json，默认模板原布局 vs 自动布局），待参与者 |
 | 风险 | ELK 断环边的视觉流向（本批样本无环，未测）；障碍规避后处理未实现；folded Reroute 节点定位策略 | 实施轮首项/原型补测 |
 
 ## 16. 原始资料与实验数据索引
+
+- 快捷键：Ctrl+Shift+L（全图）/ Ctrl+Alt+L（选区）；1.55.18 无公开命令注册 API，画布菜单挂接待 Vue 组件取证。
 
 - 任务书与评估：`luowen-auto-layout-research-brief.md`（用户提供）→ plan.md §1 核实表。
 - 阶段产出：audit.md / model.md / algorithms.md / prototype-report.md；性能：performance.md §2026-11-08 自动布局条目。
