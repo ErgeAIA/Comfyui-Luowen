@@ -31,9 +31,13 @@ const COLOR_THEME_ID = 'LuoWen.ColorTheme';
 const FLOW_ID = 'LuoWen.FlowAnim';
 const ANIM_MODE_ID = 'LuoWen.AnimMode';
 const FLOW_STYLE_ID = 'LuoWen.FlowStyle';
-const FLOW_DASH_ID = 'LuoWen.FlowDash';
-const FLOW_GAP_ID = 'LuoWen.FlowGap';
-const FLOW_SPEED_ID = 'LuoWen.FlowSpeed';
+const DASH_SPEED_ID = 'LuoWen.DashSpeed';
+const DASH_LEN_ID = 'LuoWen.DashLen';
+const DASH_GAP_ID = 'LuoWen.DashGap';
+const GLOW_SIZE_ID = 'LuoWen.GlowSize';
+const GLOW_RATE_ID = 'LuoWen.GlowRate';
+const PULSE_RATE_ID = 'LuoWen.PulseRate';
+const PULSE_AMP_ID = 'LuoWen.PulseAmp';
 const DISABLE_ANIM_ON_RUN_ID = 'LuoWen.DisableAnimOnRun';
 const SNAP_ID = 'LuoWen.SnapAlign';
 const CROSS_CLEANUP_ID = 'LuoWen.CrossCleanup';
@@ -382,7 +386,7 @@ app.registerExtension({
       sortOrder: 80,
       tooltip: {
         value:
-          '虚线行进：虚线沿连线从源向目标移动。\n发光：连线带恒定光晕。\n脉冲：连线宽度按流速节律呼吸。',
+          '虚线行进：虚线沿连线从源向目标移动（参数见「动效·虚线」组）。\n发光：光晕随呼吸起伏（参数见「动效·发光」组）。\n脉冲：连线宽度按节律呼吸（参数见「动效·脉冲」组）。',
         class: TIP_CLASS,
       },
       type: 'combo',
@@ -395,41 +399,97 @@ app.registerExtension({
       onChange: (v) => setSettings({ flowStyle: v }),
     },
     {
-      id: FLOW_DASH_ID,
-      name: '虚线长度',
-      category: ['LuoWen', '动效', 'FlowDash'],
-      sortOrder: 70,
-      tooltip: { value: '虚线行进线型的实线段长度（屏幕像素）。', class: TIP_CLASS },
-      type: 'slider',
-      attrs: { min: 0, max: 30, step: 1 },
-      defaultValue: 7,
-      onChange: (v) => setSettings({ flowDash: Number(v) }),
-    },
-    {
-      id: FLOW_GAP_ID,
-      name: '虚线间距',
-      category: ['LuoWen', '动效', 'FlowGap'],
-      sortOrder: 65,
-      tooltip: { value: '虚线行进线型的空隙长度（屏幕像素）。', class: TIP_CLASS },
-      type: 'slider',
-      attrs: { min: 0, max: 40, step: 1 },
-      defaultValue: 13,
-      onChange: (v) => setSettings({ flowGap: Number(v) }),
-    },
-    {
-      id: FLOW_SPEED_ID,
-      name: '流速',
-      category: ['LuoWen', '动效', 'FlowSpeed'],
-      sortOrder: 60,
+      id: DASH_SPEED_ID,
+      name: '虚线·流速',
+      category: ['LuoWen', '动效·虚线', 'DashSpeed'],
+      sortOrder: 30,
       tooltip: {
         value:
-          '虚线行进节奏，0–10 共 10 档。\n每档每秒行进 1 个虚线周期（档位 10 = 每秒 10 拍）。\n节奏与虚线长度、间距无关，调间距只改变密度。\n脉冲线型下数值越大呼吸越快。',
+          '虚线的行进速度，0–10 共 10 档。\n每档 60 屏幕像素/秒（已按缩放补偿，任何缩放下手感一致）。\n只影响虚线行进线型。',
         class: TIP_CLASS,
       },
       type: 'slider',
       attrs: { min: 0, max: 10, step: 1 },
-      defaultValue: 3,
-      onChange: (v) => setSettings({ flowSpeed: Number(v) }),
+      defaultValue: 4,
+      onChange: (v) => setSettings({ dashSpeed: Number(v) }),
+    },
+    {
+      id: DASH_LEN_ID,
+      name: '虚线·长度',
+      category: ['LuoWen', '动效·虚线', 'DashLen'],
+      sortOrder: 25,
+      tooltip: { value: '虚线实线段的长度（屏幕像素）。只影响虚线行进线型。', class: TIP_CLASS },
+      type: 'slider',
+      attrs: { min: 0, max: 30, step: 1 },
+      defaultValue: 7,
+      onChange: (v) => setSettings({ dashLen: Number(v) }),
+    },
+    {
+      id: DASH_GAP_ID,
+      name: '虚线·间距',
+      category: ['LuoWen', '动效·虚线', 'DashGap'],
+      sortOrder: 20,
+      tooltip: { value: '虚线空隙的长度（屏幕像素）。只影响虚线行进线型。', class: TIP_CLASS },
+      type: 'slider',
+      attrs: { min: 4, max: 40, step: 1 },
+      defaultValue: 13,
+      onChange: (v) => setSettings({ dashGap: Number(v) }),
+    },
+    {
+      id: GLOW_SIZE_ID,
+      name: '发光·光晕',
+      category: ['LuoWen', '动效·发光', 'GlowSize'],
+      sortOrder: 18,
+      tooltip: {
+        value:
+          '光晕的柔和半径（屏幕像素）。\n只影响发光线型，与虚线参数无关。',
+        class: TIP_CLASS,
+      },
+      type: 'slider',
+      attrs: { min: 2, max: 24, step: 1 },
+      defaultValue: 8,
+      onChange: (v) => setSettings({ glowSize: Number(v) }),
+    },
+    {
+      id: GLOW_RATE_ID,
+      name: '发光·呼吸速度',
+      category: ['LuoWen', '动效·发光', 'GlowRate'],
+      sortOrder: 17,
+      tooltip: {
+        value:
+          '光晕明暗起伏的节奏，0–10 共 10 档。\n每档 0.2 次/秒（档位 5 = 每秒 1 次呼吸）。只影响发光线型。',
+        class: TIP_CLASS,
+      },
+      type: 'slider',
+      attrs: { min: 0, max: 10, step: 1 },
+      defaultValue: 5,
+      onChange: (v) => setSettings({ glowRate: Number(v) }),
+    },
+    {
+      id: PULSE_RATE_ID,
+      name: '脉冲·频率',
+      category: ['LuoWen', '动效·脉冲', 'PulseRate'],
+      sortOrder: 15,
+      tooltip: {
+        value:
+          '宽度呼吸的频率，0–10 共 10 档。\n每档 0.2 次/秒（档位 5 = 每秒 1 次呼吸）。只影响脉冲线型。',
+        class: TIP_CLASS,
+      },
+      type: 'slider',
+      attrs: { min: 0, max: 10, step: 1 },
+      defaultValue: 5,
+      onChange: (v) => setSettings({ pulseRate: Number(v) }),
+    },
+    {
+      id: PULSE_AMP_ID,
+      name: '脉冲·幅度',
+      category: ['LuoWen', '动效·脉冲', 'PulseAmp'],
+      sortOrder: 14,
+      tooltip: { value: '宽度呼吸的深浅（相对线宽的百分比）。只影响脉冲线型。', class: TIP_CLASS },
+      type: 'slider',
+      attrs: { min: 0, max: 80, step: 5 },
+      defaultValue: 45,
+      onChange: (v) => setSettings({ pulseAmp: Number(v) }),
     },
     {
       id: DISABLE_ANIM_ON_RUN_ID,
@@ -480,8 +540,13 @@ app.registerExtension({
         chamfer: !!readSetting(CHAMFER_ID, true),
         cornerRadius: readSetting(CORNER_RADIUS_ID, DEFAULT_RADIUS),
         crossCleanup: !!readSetting(CROSS_CLEANUP_ID, false),
-        // 流速档位迁移：旧版存 px/s（48/140 等 >10 的值），折算 0–10 档（每档 20px/s）
-        flowSpeed: (() => { const raw = Number(readSetting(FLOW_SPEED_ID, 3)); return Number.isFinite(raw) ? (raw > 10 ? Math.max(0, Math.min(10, Math.round(raw / 20))) : Math.max(0, Math.min(10, raw))) : 3; })(),
+        dashSpeed: (() => { const raw = Number(readSetting(DASH_SPEED_ID, NaN)); if (Number.isFinite(raw) && raw >= 0) return Math.max(0, Math.min(10, raw)); const legacy = Number(readSetting('LuoWen.FlowSpeed', NaN)); return Number.isFinite(legacy) && legacy >= 0 ? Math.max(0, Math.min(10, legacy > 10 ? Math.round(legacy / 60) : legacy)) : 4; })(),
+        dashLen: (() => { const raw = Number(readSetting(DASH_LEN_ID, NaN)); return Number.isFinite(raw) && raw >= 0 ? raw : Math.max(0, Math.min(30, Number(readSetting('LuoWen.FlowDash', 7)) || 7)); })(),
+        dashGap: (() => { const raw = Number(readSetting(DASH_GAP_ID, NaN)); return Number.isFinite(raw) && raw >= 0 ? raw : Math.max(4, Math.min(40, Number(readSetting('LuoWen.FlowGap', 13)) || 13)); })(),
+        glowSize: Math.max(2, Math.min(24, Number(readSetting(GLOW_SIZE_ID, 8)) || 8)),
+        glowRate: Math.max(0, Math.min(10, Number(readSetting(GLOW_RATE_ID, 5)) || 0)),
+        pulseRate: Math.max(0, Math.min(10, Number(readSetting(PULSE_RATE_ID, 5)) || 0)),
+        pulseAmp: Math.max(0, Math.min(80, Number(readSetting(PULSE_AMP_ID, 45)) || 0)),
       });
     } catch {
       /* 设置读取失败保持默认 */
