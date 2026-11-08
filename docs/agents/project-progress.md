@@ -27,7 +27,8 @@ description: >
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2、Node 24.22.1；Playwright 浏览器实测流程已打通
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2、Node 24.22.1；Playwright 浏览器实测流程已打通
 - **本轮动效 v3 实施（2026-11-08，用户指示「实施吧」；DEC-042；改 trace.js/renderLinkAdapter.js/index.js + 新增 beamTrace.test.mjs；已部署宿主自测，等用户验收）**：
-      - **本轮自动布局 Phase B：图模型与约束模型（2026-11-08，分支 auto-layout；新增 luowen/web/layout/ 三纯函数模块 + 20 单测，不接宿主）**：
+        - **样本部署宿主（用户指示）**：六份选样工作流复制进 portable 工作流目录（前缀 `LW样本-`，不覆盖同名），宿主 loadGraphData 冒烟通过（最大样本 230 节点 248 链装载 ok、路由接管、verify ok、零报错；routed 计数随视口/缩放符合既有裁剪口径）。脚本 `.verify/p7/deploy-samples.mjs`。
+- **本轮自动布局 Phase B：图模型与约束模型（2026-11-08，分支 auto-layout；新增 luowen/web/layout/ 三纯函数模块 + 20 单测，不接宿主）**：
   - graph-model.js（buildModel/foldRerouteEdges/componentsOf/topoOrderOf/fromWorkflowJson）：Reroute 透明路径点折叠口径（DEC-033 引申，manualIntent 标记、分叉/环保守不折叠记 dropped）、Group 成员几何包含推导、非 DAG 返回 null。
   - metrics.js（9 项软指标全可计算）+ constraints.js（局部未选全 fixed+障碍/pinned 恒 fixed/lockedGroup/Reroute 意图 notes）。
   - 单测 20 项（layoutModel 11 + layoutMetrics 9），全量 **144/144**；真实样本冒烟：207 份样本库选样 6 份（230 节点最大/116 Reroute/55 分量/37 Group），reroute 折叠 226→114 边、build+eval ≤20ms、三样本全 DAG；现状基线 largest=116 交叉/9 重叠（自动布局价值实证）。规格 model.md（五类模型/折叠规则/指标口径/阶段 C 契约）。
