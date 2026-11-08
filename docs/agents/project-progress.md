@@ -28,6 +28,10 @@ description: >
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2、Node 24.22.1；Playwright 浏览器实测流程已打通
 - **本轮动效 v3 实施（2026-11-08，用户指示「实施吧」；DEC-042；改 trace.js/renderLinkAdapter.js/index.js + 新增 beamTrace.test.mjs；已部署宿主自测，等用户验收）**：
         - **样本部署宿主（用户指示）**：六份选样工作流复制进 portable 工作流目录（前缀 `LW样本-`，不覆盖同名），宿主 loadGraphData 冒烟通过（最大样本 230 节点 248 链装载 ok、路由接管、verify ok、零报错；routed 计数随视口/缩放符合既有裁剪口径）。脚本 `.verify/p7/deploy-samples.mjs`。
+- **本轮自动布局 Phase E：性能台账 + 最终 PRD（2026-11-08，分支 auto-layout；研究任务 A–E 收官）**：
+  - performance.md 补记自动布局条目（端到端 ≤300ms@230 节点：build 15 + eval 5 + ELK 95–261；实施轮补 500 节点梯度与完整帧耗时）。
+  - 最终 PRD `docs/specs/auto-layout/prd.md`（十六项齐备：方案=ELK 主引擎+自研障碍规避+captureState 单条 undo；硬约束全可机检；MVP=全图流向+选区局部；四项决策项 D1–D4 交用户——D1 折叠写入边界修订建议批准且默认关）。
+  - **研究任务 A–E 就此收官（DEC-043 补记 A–E）**；实施轮 5 步（快照适配器→ELK 编排→障碍规避→触发 UI→验收）待用户批准 PRD 后启动。
 - **本轮自动布局 Phase D：真实画布原型（2026-11-08，分支 auto-layout；页面级注入 ELK，不改生产文件）**：
   - 硬约束机检全绿：拓扑不变、**撤销 23/23 恢复**（captureCanvasState 前后双采 + tracker.undo，Pinia workflow store 路径运行时实证）、幂等 23/23（ELK 确定性）、固定节点 0 位移、209 节点 95–117ms、reload 无残留。截图 proto-e1/e2/e3。
   - **Phase A 撤销假设证伪修正**：beforeChange/afterChange 事务无 undo 记录；真实链 = activeWorkflow.changeTracker（activeState 模型，前+后双采；事务内 capture 被跳过）。写入 `prototype-report.md` §2。

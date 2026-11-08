@@ -219,3 +219,37 @@ description: >
 **注入口径参照**（页面级瞬时注入，宿主不改文件）：144 可见线（500 节点图 @0.5）持续帧 24–26ms≈40fps，候选层增量低于同页噪声带（`.verify/p6/inject-ab.json`）——静态基线主导，非动效之过。
 
 **结论**：beam 预算达标（验收线：同图动效开 p95 ≤ 动效关+10% 或 ≤33.4ms）；shadowBlur 维持禁用（§2026-11-08 微基准 209ms@500 线）；beam 发光用三层伪描边（外晕/亮芯/亮头），成本增量 ≈+0.5ms@10 线。
+
+### 2026-11-08 自动布局（F-015）研究性能数据（DEC-043 阶段 C/D，分支 auto-layout）
+
+**测量方法**：Node 端实验（`.verify/p7/algos/run.mjs`，fromWorkflowJson→算法→evaluateLayout 全链路计时）+ 真实宿主探针（`.verify/p7/prototype/phase-d-proto.mjs`，loadGraphData→ELK→pos 写入→setDirty 刷新）。样本=真实工作流 6 份（largest 230 节点/248 链 等，见 model.md §5）。
+
+**端到端数据（ms）**：
+
+| 环节 | largest(230 节点) | 说明 |
+|---|---|---|
+| 图模型构建（含 Reroute 折叠） | 14.6 | 纯函数 |
+| 指标评估（9 项） | 4.5 | 纯函数 |
+| ELK 布局（端口 FIXED_SIDE, LR） | 95–261 | 一次性；durability 无关（非热路径） |
+| dagre | 50–80 | 对照 |
+| 自研参考分层 | 1.3–3.5 | 参考实现（交叉无最小化） |
+| 真实宿主 ELK+写入+刷新（端到端） | 95–117（布局）+ 刷新一帧 | E3 实测；209 节点 |
+
+**结论（研究期）**：布局端到端成本 ≤300ms@230 节点，远低于交互式一次性操作可接受阈（秒级）；分桶热点在 ELK 计算本身（我方转换/指标 ≤20ms）。实施轮须补测：批量 pos 写入→画布刷新的完整帧耗时（Phase D 只测到 setDirty 调用）、500 节点级梯度。基线对照：用户手工布局交叉 116–187（largest/mostGroups），ELK 31–74（−60~93%）。
+
+### 2026-11-08 自动布局（F-015）研究性能数据（DEC-043 阶段 C/D，分支 auto-layout）
+
+**测量方法**：Node 端实验（`.verify/p7/algos/run.mjs`，fromWorkflowJson→算法→evaluateLayout 全链路计时）+ 真实宿主探针（`.verify/p7/prototype/phase-d-proto.mjs`，loadGraphData→ELK→pos 写入→setDirty 刷新）。样本=真实工作流 6 份（largest 230 节点/248 链 等，见 model.md §5）。
+
+**端到端数据（ms）**：
+
+| 环节 | largest(230 节点) | 说明 |
+|---|---|---|
+| 图模型构建（含 Reroute 折叠） | 14.6 | 纯函数 |
+| 指标评估（9 项） | 4.5 | 纯函数 |
+| ELK 布局（端口 FIXED_SIDE, LR） | 95–261 | 一次性；durability 无关（非热路径） |
+| dagre | 50–80 | 对照 |
+| 自研参考分层 | 1.3–3.5 | 参考实现（交叉无最小化） |
+| 真实宿主 ELK+写入+刷新（端到端） | 95–117（布局）+ 刷新一帧 | E3 实测；209 节点 |
+
+**结论（研究期）**：布局端到端成本 ≤300ms@230 节点，远低于交互式一次性操作可接受阈（秒级）；分桶热点在 ELK 计算本身（我方转换/指标 ≤20ms）。实施轮须补测：批量 pos 写入→画布刷新的完整帧耗时（Phase D 只测到 setDirty 调用）、500 节点级梯度。基线对照：用户手工布局交叉 116–187（largest/mostGroups），ELK 31–74（−60~93%）。
