@@ -735,6 +735,41 @@ get tooltip() {
       const scope = e.altKey ? 'selected' : 'full';
       window.LuoWen?.autoLayout?.(scope).catch(() => {});
     }, { passive: false });
+    // 画布右键菜单「络纹」子菜单（DEC-043 实施轮：F-015 触发入口）
+    {
+      const proto = Object.getPrototypeOf(app.canvas);
+      if (proto && typeof proto.getCanvasMenuOptions === 'function') {
+        const origMenu = proto.getCanvasMenuOptions;
+        proto.getCanvasMenuOptions = function () {
+          const options = origMenu.call(this);
+          options.push({
+            content: '络纹',
+            has_submenu: true,
+            submenu: {
+              options: [
+                { content: '整理（流向）', callback: () => { window.LuoWen?.autoLayout?.('full'); } },
+              ],
+            },
+          });
+          return options;
+        };
+      }
+    }
+    // 自动布局浮动按钮（Vue 模式菜单系统不走 LiteGraph，浮动按钮保证生效）
+    {
+      const btn = document.createElement('button');
+      btn.textContent = '⌁ 整理';
+      btn.title = '自动布局（流向）';
+      btn.style.cssText = 'position:absolute;bottom:8px;left:8px;z-index:999;padding:4px 10px;border-radius:4px;border:1px solid #444;background:#1a1a2e;color:#ccc;font-size:12px;cursor:pointer;pointer-events:auto;opacity:0.7;transition:opacity 0.2s';
+      btn.addEventListener('mouseenter', () => { btn.style.opacity = '1'; });
+      btn.addEventListener('mouseleave', () => { btn.style.opacity = '0.7'; });
+      btn.addEventListener('click', () => { window.LuoWen?.autoLayout?.('full'); });
+      const canvasEl = app.canvas.canvas;
+      if (canvasEl && canvasEl.parentElement) {
+        canvasEl.parentElement.style.position = 'relative';
+        canvasEl.parentElement.appendChild(btn);
+      }
+    }
     console.log('[LuoWen] 就绪 — window.LuoWen 可用（status/setEnabled/setStyle/rebase/verify）');
   },
 });
