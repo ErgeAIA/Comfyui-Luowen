@@ -2,6 +2,24 @@
 
 本文件登记仓库中每一个实际复制或改编的第三方代码/文件。
 
+## elkjs（自动布局候选算法，预构建产物）
+
+- **来源仓库**：https://github.com/kieler/elkjs （npm 包 `elkjs@0.9.3`，Eclipse Layout Kernel 的 JS 移植）
+- **许可证**：EPL-2.0（完整许可文本 `luowen/web/vendor/LICENSE-elkjs.md`）
+- **仓库内位置**：`luowen/web/vendor/elk.bundled.js`（官方预构建 bundle，未修改）
+- **修改情况**：未修改（原样副本）
+- **用途**：自动布局阶段 C 的对照算法（ELK Layered）；终选若为自研，本条目随 vendor 产物一并移除
+- **更新策略**：仅手动升级（重新 npm 拉取后覆盖 bundle），版本号在本条目更新
+
+## dagre（自动布局候选算法，预构建产物）
+
+- **来源仓库**：https://github.com/dagrejs/dagre （npm 包 `dagre@0.8.5`）
+- **许可证**：MIT（完整许可文本 `luowen/web/vendor/LICENSE-dagre.txt`）
+- **仓库内位置**：`luowen/web/vendor/dagre.min.js`（官方 dist，未修改）
+- **修改情况**：未修改（原样副本）
+- **用途**：自动布局阶段 C 的对照算法（分层布局）；终选若为自研，本条目随 vendor 产物一并移除
+- **更新策略**：仅手动升级
+
 ## ComfyUI Cable Management（已进入产品代码）
 
 - **来源仓库**：https://github.com/vtokic/comfyui-cable-management （分支 master）
