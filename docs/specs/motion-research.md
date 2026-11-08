@@ -128,3 +128,107 @@ DEC-040「动效唯一语义=正在发生的数据流」与默认 `all` 空闲�
 
 - 按 DEC-041 语义匹配：**执行态/关注态首选候选 2（局部光脉冲）**——「有限能量段经过」的隐喻与「此事正在发生」最贴、方向可读、成本增量小；**关注态备选候选 1（粒子）**——方向感最强、噪声最低。
 - 基线处置倾向：dash 保留（低耗档/方向提示）；pulse 无独立语义（线宽振荡不表方向不表状态）建议退场；glow 受成本约束降级为「选中强调」专用或退场——最终与设置清单一并裁决。
+---
+
+## 第四（报告）节 = 任务书第五阶段：调度与渲染架构研究（2026-11-08）
+
+### 4.1 唤醒事件源码取证（1.55.18，自停设计前提）
+
+| 事件 | 钩子 | 等级 |
+|---|---|---|
+| 我方设置变化 | settingStore 写路径 `await onChange(setting, newValue, oldValue)`（settingStore.ts sourcemap）；我方 onChange→setSettings→syncFlowLoop 已存在 | 代码静态推断 |
+| 队列开始/结束、执行节点变化 | api `execution_*` → setQueueState → syncFlowLoop（现有） | 已实测（mock 链） |
+| 选择集变化 | **Vue 模式经 selectionAdapter 只置 `canvas.state.selectionChanged=true`，不回调 `onSelectionChange`**（selectionAdapter.ts / LGraphCanvas.ts sourcemap；onSelectionChange 仅 legacy 路径调用，注释「Replacement not yet impl」）→ **不可依赖选择回调** | 代码静态推断 |
+| 页面可见性 / 指针 / 键盘 / 滚轮 | DOM window 级事件（pointerup 监听已存在） | 既有实现 |
+| 工作流/子图切换 | afterConfigureGraph（index.js:525 现有钩子） | 既有实现 |
+| reduced-motion 变化 | matchMedia change 事件 | 标准接口 |
+
+**选择唤醒设计**：不依赖选择回调——选择变化本质上伴随用户指针/键盘交互，`pointerup/keyup` 唤醒时重读 `selectedItems` 即可覆盖；补充挂钩 legacy `onSelectionChange`。残留缺口（如实）：纯程序化选择变更延迟到下一自然事件才启动动效。
+
+### 4.2 可见线数上限（level-1 适用边界，已实测）
+
+500 节点/499 线合成图，静态帧（`.verify/p6/visible-lines.json`）：
+
+| ds.scale | 可见线/帧 | frame avg | 备注 |
+|---|---|---|---|
+| 0.3 | 380 | 47.3ms | **≤0.4 闸门以下，动效本就关闭** |
+| 0.4 | 210 | 32.3ms | 闸门边界 |
+| 0.5 | 144 | 28.9ms | 与 2026-11-08 既有 A/B 的 144 可见线吻合（方法互证） |
+| 0.75 | 64 | （样本噪声大） | 常规使用档 |
+| 1.0 | 36 | （样本噪声大） | 真实 10 线图实测整帧 0.82ms（探针 §一） |
+
+结论：**≤0.4 缩放闸门恰好把 380+ 线的大图场景挡在动效之外**；闸门内最坏 ≈144–210 线（0.4–0.5 变焦），静态帧已 29–32ms（无动效也如此，属宿主基线，performance.md §D-1/§10.6）；常规 ≥0.75 档 ≤64 线、远低于 16.7ms。
+
+### 4.3 四级比较（任务书 §八 逐级）
+
+1. **level-1 宿主重绘路径（推荐实施架构）**：真自停单 RAF + 事件唤醒（设计见 4.4）。适用边界（实测）：≤64 可见线 60fps 达标；144–210 线 ≈30–40fps 持续（静态基线本身已在此档）；>210 线被闸门关闭。增量成本=整帧 drawConnections（宿主全量重绘无法只画动效线）。
+2. **level-2 预计算+动态绘制**：我方可控面（pathBuild+strokeT）@500 线仅 1.1ms（performance.md §D-1），宿主 render 桶 ~26ms 不可避——单独收益 <5%，**仅在与 overlay 组合时才有意义 → 不单独做**。
+3. **level-3 独立 overlay**：触发门槛=「宿主整帧重绘经验证无法达预算」。实测：小图达标、中图静态基线已 29–32ms（非动效之过）、DEC-041 后动效范围=执行/关注（线数少）+氛围（opt-in 且受缩放闸门保护）——**不满足触发条件，不做 overlay 原型**。显式留档触发条件：实施后若实测「执行态在 ≥144 可见线场景持续帧 p95>33.4ms 且用户可感卡顿」再立项。
+4. **level-4 WebGL/GPU**：无 Canvas 2D 无法达标的实测证据，不做。
+
+### 4.4 level-1 自停/唤醒设计（实施轮规格）
+
+- **自停**：`flowLoopTick` 算出 hasWork=false → 直接 return（flowRaf=0）不再重排；all 模式=氛围持续（DEC-041 设计使然，不停）；selected/executing 空闲、生成中禁用、reduced-motion、宿主开关、缩放≤0.4 均自停。
+- **唤醒事件表**（每项→syncFlowLoop）：我方设置 onChange（现有）、api execution_*（现有）、window `pointerup/keyup/wheel`（pointer 监听已有，补 keyup/wheel，passive）、`visibilitychange`（新增）、matchMedia reduced-motion change（新增）、afterConfigureGraph（现有钩子补一行）。宿主动画开关变更经用户交互→pointerup 间接覆盖。
+- **相位语义**：由墙钟绝对时间改为 **dt 累加器（单帧步长钳制 ≤100ms）**，仅循环运行且未隐藏、指针未按下时推进——暂停/恢复/隐藏标签页均无相位跳变；`dashOffset` 现为墙钟口径，实施轮一并切换。
+- **卸载**：uninstall() 补 `cancelAnimationFrame(flowRaf)` + 全部唤醒监听移除（收编 BUG-009 观察项 G）。
+
+## 第五（报告）节 = 任务书第六阶段：性能验证（2026-11-08）
+
+### 5.1 候选线型宿主内真实成本（页面级瞬时注入 A/B，`.verify/p6/inject-ab.json`）
+
+方法：不改任何文件——实例级影子包装 `canvas.drawConnections`，在宿主绘制完成后叠加候选层（与原型同参数；trunk 不去重=轻微高估，保守方向）；测后拆层+快照还原+reload（`restoreOk/finalVerifyOk` 全 true）。
+
+| 场景 | off（手动驱动） | dash（生产） | dash+beam 层 | dash+particles 层 |
+|---|---|---|---|---|
+| 真实 10 线 @0.9 frame p50 | （手动口径） | 0.60ms | 0.70ms（+0.1） | 0.70ms（+0.1） |
+| 合成 499 线 @0.5（144 可见）frame p50 | 24.4ms | 25.0ms | 23.8ms（≈±0） | 25.2ms（≈±0） |
+| 同上 frame p95 | 27.1 | 31.8 | 27.9 | 28.6 |
+
+**解读**：候选层在宿主内的增量低于同页跨状态噪声带（协议 ±18%，performance.md）——144 可见线最坏档的持续帧 ≈24–26ms（≈40fps），由宿主静态基线主导，候选层未造成可辨回退；孤立基准换算上界 beam≈3.8ms / particles≈6ms @144 线，与「低于噪声带」相容。**glow 未做注入 A/B**：孤立基准已示 +202ms@500 线量级，无注入必要（安全结论=不可作持续线型）。
+
+### 5.2 预算口径（按实测提出，不预设）
+
+- 单次绘制成本（我方逐线）：dash 0.05 / beam ≈0.09 / particles ≈0.13 ms/线（孤立基准换算）——非瓶颈。
+- 持续绘制成本（动效真实代价）：= 整帧 drawConnections × 60fps 申请。实测持续帧：10 线 0.7–0.8ms（60fps 达标）；144 线 24–26ms（≈40fps，与该图无动效时的拖动/悬停帧同档）；>210 线闸门关闭。
+- 整页预算：维持 performance.md 既有口径（16.7ms 交互/33.4ms 可用）；**动效验收线=同图同取景下「动效开」帧 p95 不高于「动效关」+10% 或绝对值 ≤33.4ms**（先量后改，实施轮 A/B 复核）。
+
+### 5.3 与既有基线的关系（如实区分）
+
+- 500 线 smooth 40 帧 p50 39.4ms（§D-1）为宿主静态基线问题，早于动效存在；本报告所有动效结论不改变该归因。
+- 2026-11-08 旧线型微基准（dash 0.18/glow 0.15ms@500）与本轮真实光栅方法不可比，glow 结论以本轮为准（§3.4）。
+
+## 第六（报告）节 = 任务书第七阶段：独立证据
+
+**技术证据（已具备）**：宿主自动化探针 6 份（`.verify/p6/`：anim-audit / anim-fix-verify / anim-pipeline / visible-lines / inject-ab / protoshoot）+ 原始 JSON；Playwright 截图 25 张（原型对照）+ 修复验证 2 张；`LuoWen.verify()` 全程 ok 记录；1.55.18 sourcemap 取证（renderLink/flow 语义、addSetting 注册期 onChange、selectionAdapter 选择标志、原生执行闪光）。真实队列执行事件=**未验证**（宿主缺 z_image_turbo 模型，沿用 mock 覆盖同一 api 派发路径——与动效 v2 验收同一限制，如实保留）。
+
+**人类感知证据（协议，尚未验证）**：
+
+- 盲测：≥5 名熟悉 ComfyUI 的用户；同画布同路径，随机顺序呈现 dash/beam/particles 三种动效与静态；任务=①判断连线方向 ②在分叉图中追踪指定目标路径 ③识别「正在执行」的关联节点；记录=完成时间、错误率、清晰度评分（1–5）、视觉干扰评分（1–5）。
+- 判读标准（预登记）：beam 需在 ①③ 不劣于 dash 且 ② 优于或持平；干扰评分中位数 ≤ dash。
+- 未招募用户前，所有语义/可读性结论维持「设计假设/原型目测」等级，不写成用户认可。
+
+## 第七（报告）节 = 任务书 §十二 最终建议
+
+**主方案（唯一推荐）：局部流动光脉冲（beam）作为「执行态/关注态」线型**；**降级方案（最多一个）：虚线行进（dash，现状实现）**。
+
+依据链：DEC-041 语义匹配（beam=「有限能量段经过」与执行态最贴，静止时退化为实线不误导）+ 可读性（弯折/交叉/斜切连续，§3.3 截图）+ 成本（宿主增量低于噪声带，§5.1）+ 主干段图可落地（§3.2，fork 单流束相位连续）+ 实现面最小（复用现有弧长工具与闸门，不需要 overlay/WebGL，§4.3）。
+
+**现有设置处置清单**：
+
+| 设置 | 处置 |
+|---|---|
+| LuoWen.FlowAnim / DisableAnimOnRun / DashSpeed / DashLen / DashGap | 保留（dash 为降级方案与方向提示档） |
+| LuoWen.AnimMode | 保留三值；**默认 all→selected（DEC-041）** |
+| LuoWen.FlowStyle | 选项收窄为 `beam`（新默认）/`dash`；`pulse` 移除、`glow` 移除（已存值迁移：pulse/glow→beam） |
+| LuoWen.GlowSize / GlowRate / PulseRate / PulseAmp | 随线型退场移除（实施轮含设置迁移与 tooltip 清理） |
+| 全图模式 | 保留为「氛围装饰」，tooltip 如实标注「空闲也在动，不代表执行」（DEC-041） |
+| beam 参数 | 新增「光束速度/长度/密度」3 项（复用流速档位口径），替代 glow/pulse 四项——净减 1 项 |
+
+**后续实施拆分（最小生产改动顺序，不在研究轮实施）**：
+
+1. ~~BUG-009 调度器修复~~（已完成，`10e9575`）。
+2. **自停+唤醒**（renderLinkAdapter 流循环重写 + §4.4 唤醒监听 + dt 相位累加器 + 卸载清理）——验收：selected/executing 空闲 0 RAF（Performance 面板/探针双证）、各唤醒事件启动、隐藏/恢复无跳变、`verify()` ok。
+3. **beam 线型**（适配器新分支 + 主干段图去重 + 混白取色 + FlowStyle 收窄与迁移）——验收：与原型同条件截图对照、宿主 A/B 帧预算（§5.2 口径）、主干单流束、设置迁移无损。
+4. **DEC-041 实施**（默认值/label/tooltip + PRD §4.3/§6.1 回写 + GLOSSARY 校核）——验收：设置面板与文档一致。
+5. （可选增强）particles 线型作为关注态高密度档；盲测招募后按 §六 协议执行。

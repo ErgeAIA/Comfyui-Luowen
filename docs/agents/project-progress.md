@@ -26,6 +26,12 @@ description: >
 - **代码**：`luowen/`（含 `routing/trunkPlan.js` 单主干共享几何、三档避障、预览、缓存、`geometry/chamfer.js` 绕障外角大斜切、`geometry/trace.js` 圆角半径 0–24（默认 10）、`routing/laneAssign.js` 输入侧按接近方向嵌套分道 + 走廊净空顺延 + 同目标等距带（`planBands`、`bandDegraded`/`orderDegraded`）、`snap/alignSnap.js` + `snap/dragSnap.js` 对齐吸附、`routing/crossings.js` + `routing/crossCleanup.js` 交叉枚举与离线清理、主干组高亮 + 组删除菜单），已装本机 custom_nodes 实测
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2、Node 24.22.1；Playwright 浏览器实测流程已打通
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2、Node 24.22.1；Playwright 浏览器实测流程已打通
+- **本轮动效研究第五~七阶段 + 最终建议（2026-11-08；报告 §4–§7；已随本笔提交）**：
+  - 提交：BUG-009 修复随 `10e9575`、研究文档随 `db8d630` 已 push（用户授权自主提交）。
+  - 第五阶段（架构）：唤醒事件源码取证——**Vue 模式选择变化只置 `canvas.state.selectionChanged` 标志、不回调 onSelectionChange**（selectionAdapter.ts sourcemap）→ 选择唤醒走 pointerup/keyup 重读；可见线数上限实测（500 线合成图）——**≤0.4 闸门恰挡住 380+ 线场景，闸门内最坏 144–210 线（静态帧已 29–32ms）、常规 ≥0.75 档 ≤64 线**；四级比较结论=level-1 自停+唤醒为实施架构，level-2 单独收益 <5% 不做，level-3 overlay 触发条件不满足（显式留档），level-4 无证据不做；自停/唤醒设计含 dt 相位累加器（≤100ms 钳制，暂停/恢复/隐藏无跳变）。
+  - 第六阶段（性能）：页面级瞬时注入 A/B（不改文件，测后还原全 ok）——候选层宿主内增量**低于噪声带**（真实 10 线 +0.1ms；144 可见线最坏档持续帧 24–26ms≈40fps，静态基线主导）；glow 未注入（孤立基准 +202ms@500 已够安全结论）；预算口径=「动效开帧 p95 ≤ 动效关+10% 或 ≤33.4ms」。
+  - 第七阶段（证据）：技术证据清单落盘（探针 6 份+sourcemap 取证）；真实执行事件仍未验证（宿主缺模型，同 v2 验收限制）；盲测协议预登记（≥5 用户、三任务、判读标准），标注尚未验证。
+  - **最终建议（用户已认可倾向）**：主方案=局部光脉冲 beam（执行态/关注态线型）、降级=dash；FlowStyle 收窄 beam/dash、pulse/glow 退场（含迁移）、Glow*/Pulse* 四项移除、beam 新增 3 参数（净减 1 项）、AnimMode 默认 all→selected、全图 tooltip 如实标注。实施拆分 4 步（自停唤醒→beam→DEC-041 实施→可选粒子/盲测），不在研究轮实施。
 - **本轮动效研究第三阶段：视觉候选对比 + 最小原型（2026-11-08，生产代码零改动；报告 `docs/specs/motion-research.md` §3）**：
   - 原型：独立渲染器 `.verify/p6/proto/`（复刻 emitBezier/线宽 3/屏幕恒速口径）；几何=宿主真实 `routes()` fixture（default 10 线含主干 62:0 + dense 内存态构造 7 交叉布局，提取后 reload 还原 verify ok）；色=cyberpunk 六类 hex；截图 25 张含每模式 a/b 运动对（ortho 补样按宿主视图 0.9 拍摄；首轮 ortho 瞬态已重拍排除）。
   - 主干段图（§六）：同 origin 端口组求公共前缀（弧长采样）→ 共享段只由首分支画一次、fork 零重复、相位全组统一连续；颜色构造性一致（同 origin→同 type→同色）；Reroute 链不入组。边界如实列 3 条。
