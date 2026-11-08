@@ -349,7 +349,7 @@ app.registerExtension({
       sortOrder: 100,
       tooltip: {
         value:
-          '动效总开关（默认关闭）。\n仅配色主题开启时生效。\n系统开启减少动态效果时自动改为实线。\n缩放不大于 40% 时自动关闭。',
+          '动效总开关（默认关闭）。\n系统开启减少动态效果时自动改为实线。\n缩放不大于 40% 时自动关闭。',
         class: TIP_CLASS,
       },
       type: 'boolean',

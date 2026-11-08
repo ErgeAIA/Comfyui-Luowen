@@ -63,7 +63,7 @@ export function flowParams({ enabled = false, scale = 1, reducedMotion = false }
 // 返回 true = 该线本帧可动（具体线型由适配器绘制）；false = 画实线。
 export function shouldAnimate({ mode = 'all', link, selectedIds, executingNode, queueRunning = false, disableAnimOnRun = true, enabled = false, scale = 1, reducedMotion = false, hostAnimationsDisabled = false } = {}) {
   if (!enabled) return false;
-  if (!themeId) return false;
+  // 主题不作为闸门（用户反馈「所有动效都不生效」）：主题关时对当前描边色（原生 color || #94a3b8）照样动效
   if (reducedMotion || hostAnimationsDisabled) return false;
   if (!(Number(scale) > 0.4)) return false;
   if (queueRunning && disableAnimOnRun) return false;

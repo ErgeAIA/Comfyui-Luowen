@@ -71,9 +71,9 @@ test('linkColors.shouldAnimate: 三模式 × 生成时禁用 × 外部闸门', a
   const { shouldAnimate } = await import('../../luowen/web/colors/linkColors.js');
   const link = { origin_id: 62, target_id: 67 };
   const base = { mode: 'all', link, enabled: true, scale: 1 };
-  // 主题未开（显式重置：前序用例可能改过模块级主题）
+  // 主题与动效解耦（用户反馈：主题关不该静默灭掉动效）
   setTheme(null);
-  assert.equal(shouldAnimate(base), false, '主题关闭时一律不动');
+  assert.equal(shouldAnimate(base), true, '主题关闭时动效照常（描边回退原取色链）');
   setTheme('luowen-dark');
   assert.equal(shouldAnimate(base), true, 'all 模式：启用即动');
   // selected：命中/未命中

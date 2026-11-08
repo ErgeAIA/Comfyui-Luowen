@@ -214,3 +214,18 @@ description: >
 
 - 对照表确认：`extra.probe_vendor` → `extra-added` 检出、`node.properties` → `node-prop(9)-added: fake.vendor` 检出、删除后均恢复 `ok:true`、真实拖动只进 `moved` 不判失败；宿主自有键不误报引用 `.verify/p4/verify-ab.mjs` 既有 A/B（ds/linkExtensions 均 ok）。**用户确认通过，结案**。
 - 真实第三方（Cable Management / Zip Ties）的键名、写入时序与保存路径仍留待待办 1 运行时验证（矩阵 §5.4 缺口保持，不因本验收关闭）。
+
+***
+
+## BUG-008: 用户动效全灭——探针覆盖服务端共享设置 + 主题闸门静默失效设计
+
+- **日期**：2026-11-08
+- **现象**：用户报告「所有动效都不生效」。排查：`LuoWen.ColorTheme` 被置为 `off`，而动效闸门含「主题关 → shouldAnimate 一律 false」——主题被关，动效全灭且无任何提示。
+- **根因（两层）**：
+  1. **探针覆盖用户设置**：ComfyUI 设置持久化在服务端 `user/default/comfy.settings.json`，与用户浏览器共享。验收探针结束时按「默认值」还原（`ColorTheme=off`、`FlowAnim=false`），而非按**测试前快照**逐键还原——把用户正在使用的 cyberpunk 主题+动效配置清掉了。此错误发生了不止一次（B 项验收轮、动效 v2 轮均发生）。
+  2. **设计缺陷**：动效依赖配色主题（shouldAnimate 的 themeId 闸门）且无任何提示——用户开了动效、关了（或被清了）主题，动效静默全灭。
+- **修复**：
+  1. 动效与主题解耦：`shouldAnimate` 移除 themeId 闸门——主题关时对当前描边色（原生 color || #94a3b8）照样动效；「启用动效」tooltip 去掉「仅配色主题开启时生效」。单测语义翻转（121/121）。
+  2. 用户设置恢复：cyberpunk + 档位 10 + 动效开（用户明示意图）。
+- **预防规则**：探针触碰任何服务端共享状态前，**先快照全部将改动的键**，结束后按快照逐键还原（不是还原成默认值）；能不碰就不碰。凡「A 开关静默依赖 B 开关」的 UI 设计，要么解耦，要么在 A 的 tooltip 与运行时状态里显式标明依赖。
+- **教训**：无头验收页与用户浏览器共享服务端状态，「页面即弃」不等于「状态即弃」。
