@@ -362,7 +362,7 @@ export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 
       const inD = inDeg.get(id) ?? 0;
       let gap = (inD === 1 && (outDeg.get(id) ?? 0) === 1) ? inlineGap : layerGap + Math.max(0, inD - 1) * 20;
       // 可读性优先：扇入密集 / 扇出 / 需要插深度源的主轴段主动放宽
-      if (inD >= 5) gap += 60;
+      if (inD >= 5) gap += 160;
       if ((prev.outPorts?.length || 0) > 1 && inD >= 4) gap += 40;
       // 真正的深度源：hub ← 侧节点 ← 源（中间层必须不是主干，否则每个汇合点都会被误判加宽）
       let hasD2 = false;
