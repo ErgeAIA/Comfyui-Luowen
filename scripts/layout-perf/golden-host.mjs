@@ -97,6 +97,20 @@ const got3 = await read();
 res.samples.midGroups_x3 = { nodes: got3.nodes, hash: hashOf(got3.entries), ms: rep3?.ms ?? null, stages: rep3?.stages ?? null, scale: rep3?.scale ?? null, positions: Object.fromEntries(got3.entries.map(([id, x, y]) => [id, [x, y]])) };
 console.log(`midGroups_x3: nodes=${got3.nodes} hash=${res.samples.midGroups_x3.hash} ms=${rep3?.ms} stages=${JSON.stringify(rep3?.stages ?? null)}`);
 
+// 用户实际工作流（test1 打乱原图 / test2 自动整理后 / test3 手工期望）——真实工作负载口径
+const TEST_FILES = { test1: 'test1.json', test2: 'test2.json', test3: 'test3.json' };
+for (const [tag, file] of Object.entries(TEST_FILES)) {
+  const p = path.join(WORKFLOWS, file);
+  if (!fs.existsSync(p)) { console.log(`${tag}: missing, skipped`); continue; }
+  const wf = JSON.parse(fs.readFileSync(p, 'utf8'));
+  await loadWf(wf);
+  const rep = await page.evaluate(() => window.LuoWen.autoLayout('full'));
+  await page.waitForTimeout(300);
+  const got = await read();
+  res.samples[tag] = { nodes: got.nodes, hash: hashOf(got.entries), ms: rep?.ms ?? null, stages: rep?.stages ?? null, scale: rep?.scale ?? null, positions: Object.fromEntries(got.entries.map(([id, x, y]) => [id, [x, y]])) };
+  console.log(`${tag}: nodes=${got.nodes} hash=${res.samples[tag].hash} ms=${rep?.ms} stages=${JSON.stringify(rep?.stages ?? null)}`);
+}
+
 res.errors = errors;
 fs.writeFileSync(outFile, JSON.stringify(res));
 console.log('written', outFile);

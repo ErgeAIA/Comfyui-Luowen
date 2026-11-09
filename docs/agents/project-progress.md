@@ -31,6 +31,7 @@ description: >
   - 超线性项（Node chain）：`tracks` 1000→2000 段指数 ≈2.1（87.8ms@2000）；`model` 的 `topoOrderOf` O(V·E) 且生产未消费（38.6ms@2000）；`metrics` O(E²)（29.6ms@dense1000）。
   - 噪声：同图 total 极差 9–103%，比较必须 ≥3 次中位数；单次 A/B 不作数。
   - 单测 **157/157**；宿主部署 SHA 一致。**Stage 1 候选清单见 performance.md，待用户确认后实施。**
+  - **口径修正（用户提醒）**：实际只跑过 test1/2/3（14–56 节点）；其余 6 份含大量 Reroute / Set/Get / 注释、人工排布，仅作压力参照。新增 `tests/fixtures/layout-golden/user-tests.json`（两次运行哈希一致）。真实负载：total 12–38ms，ELK 52–61%、capture×2 24–31%、effH ≈4%，N² 项 <1ms → Stage 1 改为 ELK/capture 优先。
 - **本轮自动布局触发 UI 收尾（2026-11-09，分支 auto-layout；DEC-044；改 index.js/i18n.js/renderLinkAdapter.js + 文档；已部署宿主、探针全绿，待用户验收）**：
   - ①**兄弟线间距注册补全**：`index.js` 补 `LuoWen.BrotherSpacing` slider（线路外观组，4–24 步进 2、默认 12、i18n 双语、onChange→setSettings）——`3be484c` 声称已加但实际漏注册，本轮补齐；更正 renderLinkAdapter.js 两处过期注释。确认「节点避障」为另一独立设置项。
   - ②**整理按钮可拖动**：浮动按钮 position:fixed + 指针捕获（4px 阈值区分点击/拖动）+ localStorage 持久化（`luowen.autolayout.btnPos`）+ 视口钳制/resize 重钳，默认停靠 actionbar「运行」左侧；**z=1000**（顶栏覆盖层 z-999 会盖掉低 z 浮层致点击/拖动失效，实测修复）。
