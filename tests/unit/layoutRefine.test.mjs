@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildModel } from '../../luowen/web/layout/graph-model.js';
-import { straightenEdges, spineOf, swapReduceCrossings, rerouteComponentIds } from '../../luowen/web/layout/refine.js';
+import { straightenEdges, spineOf, swapReduceCrossings, compressSpineInline, rerouteComponentIds } from '../../luowen/web/layout/refine.js';
 import { countCrossings } from '../../luowen/web/layout/metrics.js';
 
 const N = (id, type = 'KSampler', pos = [0, 0], size = [80, 60], opts = {}) => ({ id, type, pos, size, inputs: opts.inputs ?? [], outputs: opts.outputs ?? [], ...opts });
@@ -141,6 +141,26 @@ test('layoutRefine.swapReduceCrossings: auto 逐列对齐——单源扇出→�
   const r2 = swapReduceCrossings(m2, pos2, { align: 'auto' });
   assert.equal(r2.positions.get('2')[0], 300, '扇入列右对齐：宽节点 A 左缘 300');
   assert.equal(r2.positions.get('3')[0], 400, '扇入列右对齐：窄节点 B 左缘 400');
+});
+
+test('layoutRefine.compressSpineInline: 1进1出列向上一列收紧到 inlineGap，其余列保持净距', () => {
+  const m = buildModel({
+    nodes: [
+      N(1, 'A', [0, 0], [100, 60], { outputs: [{}] }),
+      N(2, 'B', [300, 0], [100, 60], { inputs: [{}], outputs: [{}] }),
+      N(3, 'C', [600, 0], [100, 60], { inputs: [{}], outputs: [{}] }),
+      N(4, 'D', [900, 0], [100, 60], { inputs: [{}] }),
+    ],
+    links: [L('e1', 1, 0, 2, 0), L('e2', 2, 0, 3, 0), L('e3', 3, 0, 4, 0)],
+    groups: [],
+  });
+  const pos = new Map([['1', [0, 0]], ['2', [300, 0]], ['3', [600, 0]], ['4', [900, 0]]]);
+  const spine = { chain: ['1', '2', '3', '4'], ids: new Set(['1', '2', '3', '4']), anchorTop: 0 };
+  const r = compressSpineInline(m, pos, { inlineGap: 50, spine });
+  assert.equal(r.positions.get('2')[0], 150, 'B（1进1出）收窄到 50');
+  assert.equal(r.positions.get('3')[0], 300, 'C（1进1出）收窄到 50');
+  assert.equal(r.positions.get('4')[0], 600, 'D（非1进1出）随列同幅平移、净距保持');
+  assert.equal(r.compressed, 2);
 });
 
 test('layoutRefine.swapReduceCrossings: 主链锚定——列内顶端为主链节点时起始 y=锚顶', () => {

@@ -75,6 +75,8 @@ const LOCALES = {
     'AutoLayoutGap.tooltip': '自动布局时，同一列内相邻节点之间的垂直间距（上节点底 → 下节点顶）。\n默认 40。\n节点较高或想让扇入/扇出更舒展时可调大。\n仅在「整理」时生效。',
     'AutoLayoutLayerGap.name': '整理时主链水平间距',
     'AutoLayoutLayerGap.tooltip': '自动布局时，主链相邻层（列）之间的水平净距。\n默认 60。\n入口多的节点所在层会自动加宽。\n调小可让主链更紧凑、调大更舒展。\n仅在「整理」时生效。',
+    'AutoLayoutInlineGap.name': '整理时单进单出节点间距',
+    'AutoLayoutInlineGap.tooltip': '自动布局时，主链上「1 进 1 出」过路节点（如采样算法、CFG 归一化）与上一段的水平间距。\n默认 50。\n比「主链水平间距」更小，让这类小节点并排压实、不占多余宽度。\n仅在「整理」时生效。',
   },
 
   en: {
@@ -148,6 +150,8 @@ const LOCALES = {
     'AutoLayoutGap.tooltip': 'Vertical gap between adjacent nodes in the same column during auto-layout (bottom of upper → top of lower).\nDefault 40.\nIncrease for tall nodes or airier fan-in/out.\nApplies on Arrange only.',
     'AutoLayoutLayerGap.name': 'Horizontal Gap on Layout',
     'AutoLayoutLayerGap.tooltip': 'Horizontal gap between adjacent layers (columns) on the main chain during auto-layout.\nDefault 60.\nLayers feeding many-input nodes widen automatically.\nLower = tighter main chain; higher = airier.\nApplies on Arrange only.',
+    'AutoLayoutInlineGap.name': 'Inline Node Gap on Layout',
+    'AutoLayoutInlineGap.tooltip': 'Horizontal gap before pass-through "1-in-1-out" nodes on the main chain (e.g. ModelSampling, CFG-normalize) during auto-layout.\nDefault 50.\nSmaller than the main horizontal gap, packing these small nodes inline instead of wasting width.\nApplies on Arrange only.',
   },
 };
 

@@ -219,6 +219,56 @@ export function swapReduceCrossings(model, positions, { colGap = 150, nodeGap = 
   return { positions: pos, columns, swaps, aligns };
 }
 
+/**
+ * 主链段水平压实（用户校准 2026-11-09）：沿主链把「1 进 1 出」节点所在列向上一列收紧到 inlineGap，
+ * 其余列保持原间距；列整体平移（侧节点随之），列间不相交。让采样算法/CFG 归一化这类过路小节点
+ * 水平并排、更紧凑，同时不牺牲多入口列的可读性。
+ */
+export function compressSpineInline(model, positions, { inlineGap = 50, colGap = 150, spine = null } = {}) {
+  const pos = new Map(positions);
+  if (!spine || !spine.chain || spine.chain.length < 3) return { positions: pos, compressed: 0 };
+  const spineIds = new Set(spine.chain);
+  const inDeg = new Map(), outDeg = new Map();
+  for (const e of model.edges) { inDeg.set(e.dst, (inDeg.get(e.dst) ?? 0) + 1); outDeg.set(e.src, (outDeg.get(e.src) ?? 0) + 1); }
+  const nodes = [...model.nodes.values()].filter((n) => pos.has(n.id)).sort((a, b) => (pos.get(a.id)[0] - pos.get(b.id)[0]) || a.id.localeCompare(b.id));
+  if (nodes.length < 2) return { positions: pos, compressed: 0 };
+  const cols = [];
+  let c0 = [nodes[0]];
+  for (let i = 1; i < nodes.length; i++) {
+    if (pos.get(nodes[i].id)[0] - pos.get(nodes[i - 1].id)[0] <= colGap) c0.push(nodes[i]);
+    else { cols.push(c0); c0 = [nodes[i]]; }
+  }
+  cols.push(c0);
+  const colOf = new Map();
+  cols.forEach((c, i) => c.forEach((n) => colOf.set(n.id, i)));
+  const minX = cols.map((c) => Math.min(...c.map((n) => pos.get(n.id)[0])));
+  const maxX = cols.map((c) => Math.max(...c.map((n) => pos.get(n.id)[0] + n.size[0])));
+  const MIN_GAP = 20;
+  const shift = new Array(cols.length).fill(0);
+  let compressed = 0;
+  for (let i = 1; i < cols.length; i++) {
+    shift[i] = shift[i - 1]; // 默认：整列随上一列同幅平移（非 1进1出 的间距保持不变）
+    const sp = cols[i].find((n) => spineIds.has(n.id));
+    if (sp && inDeg.get(sp.id) === 1 && outDeg.get(sp.id) === 1) {
+      const si = spine.chain.indexOf(sp.id);
+      const pred = si > 0 ? spine.chain[si - 1] : null;
+      const pc = pred != null ? colOf.get(pred) : null;
+      if (pc != null && pc < i) {
+        const predN = model.nodes.get(pred);
+        const predRight = pos.get(pred)[0] + shift[pc] + predN.size[0];
+        const wantShift = predRight + inlineGap - pos.get(sp.id)[0]; // 使 sp 左缘 = pred 右缘 + inlineGap
+        if (wantShift < shift[i]) {
+          const minAllowed = shift[i - 1] + (maxX[i - 1] + MIN_GAP) - minX[i]; // 列不相交下限
+          const applied = Math.max(wantShift, minAllowed);
+          if (applied < shift[i]) { shift[i] = applied; compressed++; }
+        }
+      }
+    }
+  }
+  cols.forEach((c, i) => { if (shift[i]) for (const n of c) { const p = pos.get(n.id); pos.set(n.id, [p[0] + shift[i], p[1]]); } });
+  return { positions: pos, compressed };
+}
+
 function countCross(model, pos) {
   const segs = [];
   for (const e of model.edges) {
