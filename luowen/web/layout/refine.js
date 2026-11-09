@@ -157,6 +157,11 @@ export function spineOf(model, positions, subset = null, { strategy = 'sink-cove
   if (!bestEnd || best.get(bestEnd).len < 3) return empty;
   const chain = [];
   for (let id = bestEnd; id != null; id = best.get(id).prev) chain.unshift(id);
+  // 首节点是纯源、而第二个节点有多个输入 → 它是兄弟之一，不是主轴起点；主轴从汇合点开始
+  while (chain.length >= 4) {
+    const a = chain[0], b = chain[1];
+    if ((prevs.get(a) ?? []).length === 0 && (prevs.get(b) ?? []).length > 1) chain.shift(); else break;
+  }
   return { chain, ids: new Set(chain), anchorTop: pos.get(chain[1])[1] };
 }
 
@@ -348,15 +353,28 @@ export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 
   // 1. 顶线
   const anchorTop = spine.anchorTop != null ? spine.anchorTop : Math.min(...topLine.map((id) => pos.get(id)[1]));
   let cx = Math.min(...topLine.map((id) => pos.get(id)[0]));
+  let cy = anchorTop, cyPrev = anchorTop;
   topLine.forEach((id, k) => {
     const n = model.nodes.get(id);
     if (k > 0) {
-      const prev = model.nodes.get(topLine[k - 1]);
+      const prevId = topLine[k - 1], prev = model.nodes.get(prevId);
       const inD = inDeg.get(id) ?? 0;
       const gap = (inD === 1 && (outDeg.get(id) ?? 0) === 1) ? inlineGap : layerGap + Math.max(0, inD - 1) * 20;
-      cx = pos.get(topLine[k - 1])[0] + prev.size[0] + gap;
+      cx = pos.get(prevId)[0] + prev.size[0] + gap;
+      // 主轴以端口连线水平为准（减少弯折），不再强制顶边共线
+      const es = model.edges.filter((e) => e.src === prevId && e.dst === id);
+      if (es.length) {
+        let sum = 0;
+        for (const e of es) {
+          const outN = prev.outPorts.length || 1, inN = n.inPorts.length || 1;
+          const prevOutY = cyPrev + prev.size[1] * ((e.srcPort + 0.5) / outN);
+          sum += prevOutY - n.size[1] * ((e.dstPort + 0.5) / inN);
+        }
+        cy = sum / es.length;
+      } else cy = anchorTop;
     }
-    pos.set(id, [cx, anchorTop]);
+    pos.set(id, [cx, cy]);
+    cyPrev = cy;
   });
   // 2. BFS 侧节点 → 最近主链锚点 + 侧别(L/R) + 深度
   const adj = new Map();
@@ -426,27 +444,12 @@ export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 
     // 单列过高时折列，但每列都贴同一锚线，顺序与高度同时满足。
     // 行式网格：按目标口顺序逐行填（每行 ≤3 列），行内用 6px 递增偏移保持严格 Y 序；
     // 整块贴主链锚线（上方组底边贴锚顶上方、下方组顶边贴锚底下方），既紧凑又不打乱顺序。
-    const gridOf = (list) => {
-      if (!list.length) return null;
-      const C = Math.min(3, list.length);
-      const rows = [];
-      for (let i = 0; i < list.length; i += C) rows.push(list.slice(i, i + C));
-      const cols = Array.from({ length: C }, () => []);
-      let h = 0;
-      for (const row of rows) {
-        const rh = Math.max(...row.map((id) => effH(id)));
-        row.forEach((id, ci) => cols[ci].push({ id, dy: h + ci * 6 }));
-        h += rh + nodeGap;
-      }
-      const widths = cols.map((col) => Math.max(...col.map((it) => effW(it.id))));
-      const offsets = [];
-      widths.forEach((w, i) => offsets.push(i === 0 ? 0 : offsets[i - 1] + sideGap + widths[i - 1]));
-      return { cols, h: Math.max(0, h - nodeGap), nodes: list, widths, offsets };
-    };
-    const placeGrid = (g, startY) => {
-      if (!g) return;
-      for (let ci = 0; ci < g.cols.length; ci++) for (const it of g.cols[ci]) place(it.id, startY + it.dy, ci, g);
-      placedGroups.push({ nodes: g.nodes, order: startY });
+    const stackPlace = (list, startY) => {
+      if (!list.length) return;
+      const layout = { widths: [maxW], offsets: [0] };
+      let y = startY;
+      for (const id of list) y = place(id, y, 0, layout);
+      placedGroups.push({ nodes: list, order: startY });
     };
     let placed = false;
     if (g.side === 'L' && g.depth === 1 && portOf.size) {
@@ -458,30 +461,45 @@ export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 
         const maxPort = Math.max(...spineSrc.map((s) => s.port));
         const above = ids.filter((id) => (portOf.get(id) ?? 1e9) < minPort).sort((a, b) => portOf.get(a) - portOf.get(b));
         const below = ids.filter((id) => (portOf.get(id) ?? 1e9) > maxPort).sort((a, b) => portOf.get(a) - portOf.get(b));
-        const topY = Math.min(...spineSrc.map((s) => pos.get(s.id)[1]));
-        const botY = Math.max(...spineSrc.map((s) => pos.get(s.id)[1] + effH(s.id)));
-        const gA = gridOf(above), gB = gridOf(below);
-        if (gA) { placeGrid(gA, topY - nodeGap - gA.h); placed = true; }
-        if (gB) { placeGrid(gB, botY + nodeGap); placed = true; }
+        const pinY = (slot) => hubPos[1] + hubN.size[1] * ((slot + 0.5) / Math.max(1, hubN.inPorts.length));
+        if (above.length) {
+          const anchorSlot = Math.max(...above.map((id) => portOf.get(id) ?? 0));
+          stackPlace(above, pinY(anchorSlot) - nodeGap - hOf(above));
+          placed = true;
+        }
+        if (below.length) {
+          const anchorSlot = Math.min(...below.map((id) => portOf.get(id) ?? 0));
+          stackPlace(below, pinY(anchorSlot) + nodeGap);
+          placed = true;
+        }
       }
     }
     if (!placed) {
       const layout = { widths: [maxW], offsets: [0] };
-      const startY = centerY - totalH / 2;
+      // 无主链锚：兄弟以目标针脚中心线为轴上下对称（前半在上、后半在下），右对齐
+      const pinY = (slot) => hubPos[1] + hubN.size[1] * ((slot + 0.5) / Math.max(1, hubN.inPorts.length));
+      const slotOf = (id) => portOf.get(id) ?? 0;
+      const axis = ids.reduce((s2, id) => s2 + pinY(slotOf(id)), 0) / ids.length;
+      const half = Math.ceil(ids.length / 2);
+      const up = ids.slice(0, half), down = ids.slice(half);
+      const hUp = hOf(up);
+      const startY = axis - nodeGap / 2 - hUp;
       let y = startY;
-      for (const id of ids) y = place(id, y, 0, layout);
-      // 深度≥2：禁止消解器把整列推过父节点（上/下侧锁定）
-      let limit = null;
+      for (const id of up) y = place(id, y, 0, layout);
+      y = axis + nodeGap / 2;
+      for (const id of down) y = place(id, y, 0, layout);
+      // 深度≥2：记录父节点与锁定侧（最终阶段按父节点最终位置复核）
+      let lock = null;
       if (g.depth > 1) {
         const parents = new Set();
         for (const id of ids) for (const e of model.edges) if (e.src === id) { const inf = info.get(e.dst); if (inf && inf.hub === g.hub && inf.depth === g.depth - 1) parents.add(e.dst); }
         if (parents.size) {
           const pTop = Math.min(...[...parents].map((id) => pos.get(id)[1]));
           const pBot = Math.max(...[...parents].map((id) => pos.get(id)[1] + effH(id)));
-          limit = (startY + totalH / 2 <= (pTop + pBot) / 2) ? { type: 'above', y: pTop - nodeGap } : { type: 'below', y: pBot + nodeGap };
+          if (g.side === 'L') lock = { side: 'above', parents: [...parents] };
         }
       }
-      placedGroups.push({ nodes: ids, order: startY, limit });
+      placedGroups.push({ nodes: ids, order: startY, lock });
     }
   }
   // 4. 碰撞消解（整列就近上下、保持列内顺序）：顶线固定；侧列与顶线/已放置对象重叠 → 取最近的合法位置
@@ -518,6 +536,26 @@ export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 
       }
     }
     placed.push(bboxOf(gids));
+  }
+  // 深度≥2 锁定复核：按父节点最终位置，确保不越过父节点（必要时越过挡路列）
+  for (const g of placedGroups) {
+    if (!g.lock) continue;
+    const box = bboxOf(g.nodes);
+    const pTop = Math.min(...g.lock.parents.map((id) => pos.get(id)[1]));
+    const pBot = Math.max(...g.lock.parents.map((id) => pos.get(id)[1] + effH(id)));
+    const own = new Set(g.nodes);
+    const obs = [];
+    for (const n of model.nodes.values()) if (pos.has(n.id) && !own.has(n.id)) obs.push(rect(n.id));
+    const ox = obs.filter((o) => xOv(box, o));
+    let top = box.y;
+    if (g.lock.side === 'above') {
+      top = Math.min(top, pTop - nodeGap - box.h);
+      for (const o of ox) top = Math.min(top, o.y - nodeGap - box.h);
+    } else {
+      top = Math.max(top, pBot + nodeGap);
+      for (const o of ox) top = Math.max(top, o.y + o.h + nodeGap);
+    }
+    if (Math.abs(top - box.y) > 1e-6) for (const id of g.nodes) { const p = pos.get(id); pos.set(id, [p[0], p[1] + (top - box.y)]); }
   }
   // 最终重叠统计
   const allIds = [...pos.keys()].filter(movable);

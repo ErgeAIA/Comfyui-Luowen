@@ -242,7 +242,7 @@ test('layoutRefine.spineOf: strategy=longest 保持现状——外围长链（7�
 test('layoutRefine.spineOf: strategy=sink-coverage 选祖先覆盖最大的汇点——外围长链让位主流程', () => {
   const { m, pos } = makePeripheralVsMain();
   const r = spineOf(m, pos, null, { strategy: 'sink-coverage' });
-  assert.deepEqual(r.chain, ['1', '13', '14', '15', '16'], '汇点 16 祖先 16 > 汇点 23 祖先 7；起点并列取 id 最小');
+  assert.deepEqual(r.chain, ['13', '14', '15', '16'], '纯源 1 是兄弟之一，主轴从汇合点 13 开始');
   assert.equal(r.anchorTop, 1000, '锚顶 = 链上第二个节点 top');
 });
 
@@ -268,7 +268,7 @@ test('layoutRefine.spineOf: 同一分量内等长双链，sink-coverage 按祖�
   const m = buildModel({ nodes, links, groups: [] });
   const pos = new Map(nodes.map((n) => [String(n.id), [n.pos[0], n.pos[1]]]));
   assert.deepEqual(spineOf(m, pos, null, { strategy: 'longest' }).chain, ['1', '2', '3', '4', '5'], '现状：等长时先遇到侧链');
-  assert.deepEqual(spineOf(m, pos, null, { strategy: 'sink-coverage' }).chain, ['1', '14', '15', '16', '17'], '提案：祖先覆盖 13 > 5');
+  assert.deepEqual(spineOf(m, pos, null, { strategy: 'sink-coverage' }).chain, ['14', '15', '16', '17'], '纯源 1 降为兄弟，主轴从汇合点 14 开始');
 });
 
 test('layoutRefine.spineOf: sink-coverage 排除 Note 汇点', () => {
