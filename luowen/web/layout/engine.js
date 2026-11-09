@@ -219,9 +219,9 @@ export async function runAutoLayout(app, { scope = 'full', collapseNotes = false
       const tg = tgts.get(id);
       if (!tg || !tg.length || tg.some((t) => spineIds.has(t))) continue;
       let sum = 0, n = 0;
-      for (const t of tg) { const p = positions.get(t) ?? model.nodes.get(t)?.pos; if (p) { sum += p[1]; n++; } }
-      const p = positions.get(id);
-      if (p && n) positions.set(id, [p[0], sum / n]);
+      for (const t of tg) { const tn = model.nodes.get(t); const p = positions.get(t) ?? tn?.pos; if (p && tn) { sum += p[1] + tn.size[1] / 2; n++; } }
+      const p = positions.get(id); const selfN = model.nodes.get(id);
+      if (p && n && selfN) positions.set(id, [p[0], sum / n - selfN.size[1] / 2]); // 源中心线 = 目标中心线均值
     }
   }
   // 主链段水平压实：1 进 1 出节点并排收紧（用户校准 2026-11-09）

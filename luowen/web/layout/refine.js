@@ -199,8 +199,11 @@ export function swapReduceCrossings(model, positions, { colGap = 150, nodeGap = 
       for (const e of model.edges) {
         const sIn = ids.has(e.src), dIn = ids.has(e.dst);
         if (sIn === dIn) continue;
-        const t = sIn ? portPos(model, ori, e.dst, 'in', e.dstPort) : portPos(model, ori, e.src, 'out', e.srcPort);
-        if (t) { hubSum += t[1]; hubN++; }
+        // 以对端节点的「中心线」为轴（而非端口 y），扇出/扇入才真正对称
+        const otherId = sIn ? e.dst : e.src;
+        const on = model.nodes.get(otherId);
+        const op = pos.get(otherId) ?? ori.get(otherId);
+        if (on && op) { hubSum += op[1] + on.size[1] / 2; hubN++; }
       }
       startY = hubN ? hubSum / hubN - totalH / 2 : Math.min(...col.map((n) => ori.get(n.id)[1]));
     }
