@@ -930,6 +930,12 @@ get tooltip() {
         }
       });
     }
+    // 空闲预热 ELK：把首次「整理」的 bundle 装载与冷 JIT 挪到浏览器空闲期（只跑脱离图的 2 节点布局）
+    {
+      const warm = () => { import('./layout/engine.js').then((m) => m.warmupAutoLayout?.()).catch(() => {}); };
+      if (typeof requestIdleCallback === 'function') requestIdleCallback(warm, { timeout: 8000 });
+      else setTimeout(warm, 4000);
+    }
     console.log('[LuoWen] 就绪 — window.LuoWen 可用（status/setEnabled/setStyle/rebase/verify）');
   },
 });

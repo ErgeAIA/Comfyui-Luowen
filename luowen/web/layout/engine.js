@@ -19,6 +19,18 @@ async function loadElk() {
   return elkPromise;
 }
 
+// 空闲预热：只拉起 bundle 并跑一次 2 节点布局，让首次「整理」不必再付装载/冷 JIT（不触碰用户图）
+export async function warmupAutoLayout() {
+  const ELK = await loadElk();
+  const elk = new ELK();
+  await elk.layout({
+    id: 'warmup',
+    children: [{ id: 'a', width: 10, height: 10 }, { id: 'b', width: 10, height: 10 }],
+    edges: [{ id: 'e', sources: ['a'], targets: ['b'] }],
+  });
+  return true;
+}
+
 // ---------- 现场快照（只读 LGraph；duck-typed 便于单测） ----------
 export function snapshotFromGraph(graph) {
   const nodes = (graph._nodes ?? []).map((n) => ({
@@ -59,6 +71,10 @@ function captureState(app) {
   return t;
 }
 
+// ELK 种子缓存：同一结构（节点尺寸/端口数 + 边 + 间距）重复布局时直接复用。
+// ELK 只消费尺寸/端口/边，不读原位置；输出确定，故缓存不改变几何（宿主金标逐样本校验）。
+let elkSeedCache = { key: null, positions: null };
+
 // ---------- ELK 布局（movable 子图 + 端口 FIXED_SIDE） ----------
 async function elkLayout(model, movableIds, { nodeSpacing = 30, layerSpacing = 60 } = {}) {
   // 自适应层间距：按「入边数」计——入线多则层间距更宽（2026-11-09 校准：widget 输入不连线，不计入端口数）
@@ -67,9 +83,18 @@ async function elkLayout(model, movableIds, { nodeSpacing = 30, layerSpacing = 6
   let maxInPorts = 0;
   for (const n of model.nodes.values()) maxInPorts = Math.max(maxInPorts, inDeg.get(n.id) ?? 0);
   const adaptiveLayerSpacing = layerSpacing + Math.max(0, maxInPorts - 2) * 20;
+  const mv = new Set(movableIds.map(String));
+  const keyParts = [`${layerSpacing}|${nodeSpacing}`];
+  for (const n of model.nodes.values()) {
+    if (mv.has(n.id)) keyParts.push(`${n.id},${n.size[0]},${n.size[1]},${n.inPorts.length},${n.outPorts.length}`);
+  }
+  for (const e of model.edges) {
+    if (mv.has(e.src) && mv.has(e.dst)) keyParts.push(`${e.id},${e.src},${e.srcPort},${e.dst},${e.dstPort}`);
+  }
+  const seedKey = keyParts.join(';');
+  if (elkSeedCache.key === seedKey) return new Map(elkSeedCache.positions);
   const ELK = await loadElk();
   const elk = new ELK();
-  const mv = new Set(movableIds.map(String));
   const children = [];
   for (const n of model.nodes.values()) {
     if (!mv.has(n.id)) continue;
@@ -100,7 +125,8 @@ async function elkLayout(model, movableIds, { nodeSpacing = 30, layerSpacing = 6
   });
   const positions = new Map();
   for (const c of result.children ?? []) positions.set(String(c.id), [c.x, c.y]);
-  return positions;
+  elkSeedCache = { key: seedKey, positions };
+  return new Map(positions);
 }
 
 // ---------- 应用写入（仅 pos + D1 折叠；不触碰连接数据） ----------
@@ -171,8 +197,14 @@ export async function runAutoLayout(app, { scope = 'full', collapseNotes = false
   try {
     const scale = app?.canvas?.ds?.scale || 1;
     if (typeof document !== 'undefined') {
+      // 一次扫描建 id→元素表，替代逐节点 querySelector（节点多时是 O(N×DOM)）
+      const byId = new Map();
+      for (const el of document.querySelectorAll('.lg-node[data-node-id]')) {
+        const id = el.getAttribute('data-node-id');
+        if (id != null && !byId.has(id)) byId.set(id, el);
+      }
       for (const s of snapshot.nodes) {
-        const el = document.querySelector(`.lg-node[data-node-id="${s.id}"]`);
+        const el = byId.get(s.id);
         if (el) { const h = el.getBoundingClientRect().height / scale; if (Number.isFinite(h) && h > s.size[1]) s.effH = h; }
       }
     }
@@ -187,10 +219,12 @@ export async function runAutoLayout(app, { scope = 'full', collapseNotes = false
     return { moved: 0, skipped: 'no-selection' };
   }
   const { movableComponents, rerouteComponentIds, straightenEdges, layoutComponents } = await import('./refine.js');
-  const origPos = new Map([...model.nodes.values()].map((n) => [n.id, n.pos.slice()]));
-  const mvComps = movableComponents(model, origPos, null);
-  // 整理选中 = 整理选中节点所在的整条连通流（就地），不是只动选中的几个节点
+  // 全图布局不需要原位置/连通分量；仅「整理选中」需要（省一次全图 BFS + 位置拷贝）
+  let origPos = null, mvComps = null;
   if (scope === 'selected') {
+    origPos = new Map([...model.nodes.values()].map((n) => [n.id, n.pos.slice()]));
+    mvComps = movableComponents(model, origPos, null);
+    // 整理选中 = 整理选中节点所在的整条连通流（就地），不是只动选中的几个节点
     const sel = new Set(selectedIds), keep = new Set();
     for (const comp of mvComps) if (comp.some((id) => sel.has(id))) comp.forEach((id) => keep.add(id));
     selectedIds = [...keep];
@@ -249,8 +283,9 @@ export async function runAutoLayout(app, { scope = 'full', collapseNotes = false
 
   app.canvas.setDirty(true, true);
   lap('refresh');
-  const positionsFinal = new Map([...model.nodes.values()].map((n) => [n.id, positions.get(n.id) ?? n.pos]));
-  const metrics = evaluateLayout(model, positionsFinal, new Map([...model.nodes.values()].map((n) => [n.id, n.pos])));
+  const positionsFinal = new Map(), positionsOrig = new Map();
+  for (const n of model.nodes.values()) { positionsFinal.set(n.id, positions.get(n.id) ?? n.pos); positionsOrig.set(n.id, n.pos); }
+  const metrics = evaluateLayout(model, positionsFinal, positionsOrig);
   lap('metrics');
   stages.total = Math.round((performance.now() - t0) * 100) / 100;
   return {
