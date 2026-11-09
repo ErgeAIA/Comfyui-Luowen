@@ -77,8 +77,8 @@ const read = () => page.evaluate(() => {
 });
 
 const res = { meta, samples: {} };
-// 金标以用户实际工作流 test1 为准（test2/3 已修改，不再参考）；大样本只作压力/回归参照
-const USER_GOLDEN = { test1: 'test1.json' };
+// 用户工作流金标待 test2 验收后建立（test1 为旧备份、test2 随刷新变化）；当前只跑压力样本
+const USER_GOLDEN = {};
 const ONLY_USER = process.env.LUOWEN_ONLY_USER === '1';
 if (!ONLY_USER) for (const [tag, file] of Object.entries(SAMPLE_FILES)) {
   const wf = JSON.parse(fs.readFileSync(`${WORKFLOWS}/LW样本-${file}`, 'utf8'));

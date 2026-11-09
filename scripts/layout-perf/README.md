@@ -41,7 +41,7 @@ node scripts/layout-perf/summarize.mjs
 
 - 默认设置：`columnAlign=auto`、`nodeGap=40`、`layerGap=60`、`inlineGap=50`、`componentLayout=vertical`、折叠关。
 - 宿主金标协议：`loadGraphData` → fit（scale ≤ 0.9）→ 等 `.lg-node` DOM 就绪 → `autoLayout('full')` → 读 `node.pos`。
-- 宿主探针采集 `test1.json` 作为唯一金标（`LUOWEN_ONLY_USER=1` 只跑它）；test2/test3 已修改不可参考，大样本只作压力参照。
+- 用户工作流金标待 test2 验收后建立（test1 为旧备份，test2 随刷新变化）；当前探针只跑压力样本，`LUOWEN_ONLY_USER=1` 可只跑用户工作流。
 - **噪声**：同机同图重复运行的 total 极差实测 9%–103%（含离群）；任何比较用 ≥3 次中位数，单次 A/B 不作数。
 - **金标**：宿主路径的权威基线是 `tests/fixtures/layout-golden/host-path.json`；坐标变化即行为变化，除非用户批准布局改动。
 - 阶段计时来自 `runAutoLayout().stages`（只读观测，不参与布局计算）。
