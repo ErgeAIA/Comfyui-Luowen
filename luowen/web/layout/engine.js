@@ -196,12 +196,11 @@ export async function runAutoLayout(app, { scope = 'full', collapseNotes = false
   if (!constraints.movableIds.length) return { moved: 0, skipped: 'nothing-movable' };
 
   let positions = await elkLayout(model, constraints.movableIds, { layerSpacing: layerGap });
-  // R1 拉直 + 主链独立轨道（阶段 A）：主链水平紧凑、侧分支按最近主链锚点挂靠、全对碰撞消解
-  const { straightenEdges, spineOf, layoutSpineTracks } = await import('./refine.js');
+  // R1 拉直 + 主链独立轨道（阶段 A，多连通分量）：每个分量独立排主链、竖排错开
+  const { straightenEdges, layoutComponents } = await import('./refine.js');
   const st = straightenEdges(model, positions);
   positions = st.positions;
-  const spine = spineOf(model, positions);
-  const track = layoutSpineTracks(model, positions, { spine, inlineGap, layerGap, sideGap: layerGap, nodeGap, align: columnAlign });
+  const track = layoutComponents(model, positions, { inlineGap, layerGap, sideGap: layerGap, nodeGap, align: columnAlign });
   positions = track.positions;
   // 障碍规避：有 fixed/未选（局部）时，把新布局整体平移到 fixed 包围盒右侧空白带（硬约束：不重叠）
   shiftToFreeBand(positions, constraints.obstacles, { margin: 60 });
@@ -222,7 +221,7 @@ export async function runAutoLayout(app, { scope = 'full', collapseNotes = false
     moved,
     skippedRerouteComponents: skipIds.size ? [...skipIds] : [],
     straightened: st.movedCount,
-    spineChain: spine.chain,
+    spineChain: [],
     swaps: 0,
     columnAlign,
     nodeGap,

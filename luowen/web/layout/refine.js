@@ -78,10 +78,10 @@ export function straightenEdges(model, positions, { maxTolRatio = 0.5 } = {}) {
  * 锚定到锚顶——既保证主链顶边成一条线，又不会把扇出列（顶端非主链）的堆叠打断。
  * 链 <3 节点或含环时返回空。
  */
-export function spineOf(model, positions) {
+export function spineOf(model, positions, subset = null) {
   const empty = { chain: [], ids: new Set(), anchorTop: null };
   const pos = positions;
-  const movable = [...model.nodes.values()].filter((n) => pos.has(n.id) && !n.fixed);
+  const movable = [...model.nodes.values()].filter((n) => pos.has(n.id) && !n.fixed && (!subset || subset.has(n.id)));
   if (movable.length < 3) return empty;
   const ids = new Set(movable.map((n) => n.id));
   const prevs = new Map(), nexts = new Map();
@@ -290,13 +290,13 @@ export function compressSpineInline(model, positions, { inlineGap = 50, colGap =
  * - 列内对齐按流向（L/扇入→右缘、R/扇出→左缘），auto 默认可强制；
  * - 最后一道全对碰撞消解：重叠即把非主链节点下移，保证零重叠。
  */
-export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 50, layerGap = 60, sideGap = 60, nodeGap = 40, align = 'auto' } = {}) {
+export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 50, layerGap = 60, sideGap = 60, nodeGap = 40, align = 'auto', only = null } = {}) {
   const pos = new Map(positions);
   if (!spine || !spine.chain || spine.chain.length < 2) return { positions: pos, overlaps: 0 };
   const inDeg = new Map(), outDeg = new Map();
   for (const e of model.edges) { inDeg.set(e.dst, (inDeg.get(e.dst) ?? 0) + 1); outDeg.set(e.src, (outDeg.get(e.src) ?? 0) + 1); }
   const effH = (id) => { const n = model.nodes.get(id); return n ? (n.effH ?? n.size[1]) : 0; };
-  const movable = (id) => { const n = model.nodes.get(id); return n && !n.fixed; };
+  const movable = (id) => { const n = model.nodes.get(id); return !!(n && !n.fixed && (!only || only.has(id))); };
   let topLine = spine.chain.filter((id) => pos.has(id));
   if (topLine.length < 2) return { positions: pos, overlaps: 0 };
   // 主链末端汇点：末端 sink 且前驱还扇出别的兄弟 → 不占顶线（并入扇列）
@@ -319,7 +319,7 @@ export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 
   });
   // 2. BFS 侧节点 → 最近主链锚点 + 侧别(L/R) + 深度
   const adj = new Map();
-  for (const n of model.nodes.values()) if (pos.has(n.id)) adj.set(n.id, []);
+  for (const n of model.nodes.values()) if (pos.has(n.id) && (!only || only.has(n.id))) adj.set(n.id, []);
   for (const e of model.edges) { if (adj.has(e.src) && adj.has(e.dst)) { adj.get(e.src).push({ to: e.dst, down: true }); adj.get(e.dst).push({ to: e.src, down: false }); } }
   const info = new Map(), seen = new Set(topLine), q = topLine.map((id) => ({ id, hub: id, depth: 0 }));
   while (q.length) {
@@ -376,7 +376,9 @@ export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 
   const xOv = (a, b) => a.x < b.x + b.w - 1 && b.x < a.x + a.w - 1;
   const yOv = (a, b) => a.y < b.y + b.h - 1 && b.y < a.y + a.h - 1;
   const bboxOf = (gids) => { let mnx = 1e9, mny = 1e9, mxx = -1e9, mxy = -1e9; for (const id of gids) { const r = rect(id); mnx = Math.min(mnx, r.x); mny = Math.min(mny, r.y); mxx = Math.max(mxx, r.x + r.w); mxy = Math.max(mxy, r.y + r.h); } return { x: mnx, y: mny, w: mxx - mnx, h: mxy - mny }; };
-  const placed = topLine.filter((id) => pos.has(id)).map((id) => ({ ...rect(id), id: 'spine:' + id }));
+  const placed = [];
+  for (const n of model.nodes.values()) if (n.fixed && pos.has(n.id) && (!only || only.has(n.id))) placed.push({ ...rect(n.id), id: 'fixed:' + n.id });
+  for (const id of topLine) if (pos.has(id)) placed.push({ ...rect(id), id: 'spine:' + id });
   const resolveOrder = groupList.filter((g) => g.nodes.some(movable)).slice().sort((a, b) => {
     const ay = Math.min(...a.nodes.filter(movable).map((id) => pos.get(id)[1]));
     const by = Math.min(...b.nodes.filter(movable).map((id) => pos.get(id)[1]));
@@ -401,6 +403,44 @@ export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 
   let finalOv = 0;
   for (let i = 0; i < allIds.length; i++) for (let j = i + 1; j < allIds.length; j++) { const a = rect(allIds[i]), b = rect(allIds[j]); if (xOv(a, b) && yOv(a, b)) finalOv++; }
   return { positions: pos, overlaps: finalOv };
+}
+
+/**
+ * 多连通分量布局：每个分量各算主链、独立走主链轨道排布，再竖排错开（分量间零重叠）。
+ * 修「一个文件多份工作流时只有第一份对」（2026-11-09 用户反馈）。
+ */
+export function layoutComponents(model, positions, opts = {}) {
+  const pos = new Map(positions);
+  const mvIds = [...pos.keys()].filter((id) => { const n = model.nodes.get(id); return n && !n.fixed; });
+  const mv = new Set(mvIds);
+  const adj = new Map();
+  for (const id of mvIds) adj.set(id, []);
+  for (const e of model.edges) { const s = String(e.src), d = String(e.dst); if (mv.has(s) && mv.has(d)) { adj.get(s).push(d); adj.get(d).push(s); } }
+  const seen = new Set(), comps = [];
+  for (const id of mvIds) {
+    if (seen.has(id)) continue;
+    const comp = [], q = [id]; seen.add(id);
+    while (q.length) { const c = q.shift(); comp.push(c); for (const nx of adj.get(c) ?? []) if (!seen.has(nx)) { seen.add(nx); q.push(nx); } }
+    comps.push(comp);
+  }
+  let yCursor = mvIds.length ? Math.min(...mvIds.map((id) => pos.get(id)[1])) : 0;
+  let overlaps = 0;
+  for (const comp of comps) {
+    const set = new Set(comp);
+    const sp = spineOf(model, pos, set);
+    const laid = layoutSpineTracks(model, pos, { ...opts, spine: sp, only: set });
+    let mnx = Infinity, mny = Infinity;
+    for (const id of comp) { const p = laid.positions.get(id); if (p) { mnx = Math.min(mnx, p[0]); mny = Math.min(mny, p[1]); } }
+    if (!Number.isFinite(mnx)) continue;
+    let maxY = -Infinity;
+    for (const id of comp) {
+      const p = laid.positions.get(id), n = model.nodes.get(id);
+      if (p && n) { const np = [p[0] - mnx, p[1] - mny + yCursor]; pos.set(id, np); maxY = Math.max(maxY, np[1] + (n.effH ?? n.size[1])); }
+    }
+    overlaps += laid.overlaps ?? 0;
+    yCursor = maxY + 120;
+  }
+  return { positions: pos, overlaps, components: comps.length };
 }
 
 function countCross(model, pos) {
