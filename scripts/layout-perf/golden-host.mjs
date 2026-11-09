@@ -77,7 +77,10 @@ const read = () => page.evaluate(() => {
 });
 
 const res = { meta, samples: {} };
-for (const [tag, file] of Object.entries(SAMPLE_FILES)) {
+// 金标以用户实际工作流 test1 为准（test2/3 已修改，不再参考）；大样本只作压力/回归参照
+const USER_GOLDEN = { test1: 'test1.json' };
+const ONLY_USER = process.env.LUOWEN_ONLY_USER === '1';
+if (!ONLY_USER) for (const [tag, file] of Object.entries(SAMPLE_FILES)) {
   const wf = JSON.parse(fs.readFileSync(`${WORKFLOWS}/LW样本-${file}`, 'utf8'));
   await loadWf(wf);
   const rep = await page.evaluate(() => window.LuoWen.autoLayout('full'));
@@ -88,18 +91,18 @@ for (const [tag, file] of Object.entries(SAMPLE_FILES)) {
 }
 
 // 多副本：midGroups ×3
-const base = JSON.parse(fs.readFileSync(`${WORKFLOWS}/LW样本-${SAMPLE_FILES.midGroups}`, 'utf8'));
-const wf3 = replicate(base, 3);
-await loadWf(wf3);
-const rep3 = await page.evaluate(() => window.LuoWen.autoLayout('full'));
-await page.waitForTimeout(400);
-const got3 = await read();
-res.samples.midGroups_x3 = { nodes: got3.nodes, hash: hashOf(got3.entries), ms: rep3?.ms ?? null, stages: rep3?.stages ?? null, scale: rep3?.scale ?? null, positions: Object.fromEntries(got3.entries.map(([id, x, y]) => [id, [x, y]])) };
-console.log(`midGroups_x3: nodes=${got3.nodes} hash=${res.samples.midGroups_x3.hash} ms=${rep3?.ms} stages=${JSON.stringify(rep3?.stages ?? null)}`);
+if (!ONLY_USER) {
+  const base = JSON.parse(fs.readFileSync(`${WORKFLOWS}/LW样本-${SAMPLE_FILES.midGroups}`, 'utf8'));
+  const wf3 = replicate(base, 3);
+  await loadWf(wf3);
+  const rep3 = await page.evaluate(() => window.LuoWen.autoLayout('full'));
+  await page.waitForTimeout(400);
+  const got3 = await read();
+  res.samples.midGroups_x3 = { nodes: got3.nodes, hash: hashOf(got3.entries), ms: rep3?.ms ?? null, stages: rep3?.stages ?? null, scale: rep3?.scale ?? null, positions: Object.fromEntries(got3.entries.map(([id, x, y]) => [id, [x, y]])) };
+  console.log(`midGroups_x3: nodes=${got3.nodes} hash=${res.samples.midGroups_x3.hash} ms=${rep3?.ms} stages=${JSON.stringify(rep3?.stages ?? null)}`);
+}
 
-// 用户实际工作流（test1 打乱原图 / test2 自动整理后 / test3 手工期望）——真实工作负载口径
-const TEST_FILES = { test1: 'test1.json', test2: 'test2.json', test3: 'test3.json' };
-for (const [tag, file] of Object.entries(TEST_FILES)) {
+for (const [tag, file] of Object.entries(USER_GOLDEN)) {
   const p = path.join(WORKFLOWS, file);
   if (!fs.existsSync(p)) { console.log(`${tag}: missing, skipped`); continue; }
   const wf = JSON.parse(fs.readFileSync(p, 'utf8'));
