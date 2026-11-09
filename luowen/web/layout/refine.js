@@ -376,6 +376,7 @@ export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 
   const groups = new Map();
   for (const [id, inf] of info) { const key = `${inf.hub}|${inf.side}|${inf.depth}`; if (!groups.has(key)) groups.set(key, { hub: inf.hub, side: inf.side, depth: inf.depth, nodes: [] }); groups.get(key).nodes.push(id); }
   const groupList = [...groups.values()].sort((a, b) => a.depth - b.depth);
+  const placedGroups = [];
   for (const g of groupList) {
     const hubN = model.nodes.get(g.hub), hubPos = pos.get(g.hub);
     if (!hubN || !hubPos) continue;
@@ -389,7 +390,6 @@ export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 
     if (!ids.length) continue;
     const totalH = ids.reduce((s, id) => s + effH(id), 0) + (ids.length - 1) * nodeGap;
     const centerY = hubPos[1] + hubN.size[1] / 2;
-    let y = centerY - totalH / 2;
     const al = align === 'auto' ? (g.side === 'L' ? 'right' : 'left') : align;
     const maxW = Math.max(...ids.map((id) => model.nodes.get(id).size[0]));
     let colLeft, colRight;
@@ -402,16 +402,45 @@ export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 
       const base = parent ? Math.min(...parent.nodes.filter(movable).map((id) => pos.get(id)[0])) - sideGap : hubPos[0] - sideGap;
       colRight = base; colLeft = base - maxW;
     }
-    for (const id of ids) {
+    // 第 k 列：沿背离主轴的方向外扩（L 向左、R 向右），保持组内端口顺序
+    const place = (id, y, k) => {
       const n = model.nodes.get(id);
-      let x = colLeft;
-      if (al === 'right') x = colRight - n.size[0];
-      else if (al === 'center') x = colLeft + (maxW - n.size[0]) / 2;
+      let left, right;
+      if (g.side === 'R') { left = colLeft + k * (sideGap + maxW); right = left + maxW; }
+      else { right = colRight - k * (sideGap + maxW); left = right - maxW; }
+      let x = left;
+      if (al === 'right') x = right - n.size[0];
+      else if (al === 'center') x = left + (maxW - n.size[0]) / 2;
       pos.set(id, [x, y]);
-      y += effH(id) + nodeGap;
+      return y + effH(id) + nodeGap;
+    };
+    // 规则 3：上游源组单列过高（> 2×hub 高且 > 480）→ 折成最多 3 列，列内仍按端口顺序
+    // 只作用于 L 侧：R 侧是输出分支，换列会把保存分支横向拉开（test1 实测宽度 +33%）
+    const maxColH = Math.max(hubN.size[1] * 2, 480);
+    let chunks = [ids];
+    if (g.side === 'L' && totalH > maxColH && ids.length > 1) {
+      const cols = Math.max(2, Math.min(3, Math.ceil(totalH / maxColH)));
+      const target = totalH / cols;
+      chunks = [];
+      let cur = [], h = 0;
+      for (const id of ids) {
+        const add = effH(id) + (cur.length ? nodeGap : 0);
+        if (cur.length && h + add > target + nodeGap / 2 && chunks.length < cols - 1) { chunks.push(cur); cur = [id]; h = effH(id); }
+        else { cur.push(id); h += add; }
+      }
+      if (cur.length) chunks.push(cur);
+      if (chunks.length < 2) chunks = [ids];
+    }
+    for (let k = 0; k < chunks.length; k++) {
+      const chunk = chunks[k];
+      const hC = chunk.reduce((s, id) => s + effH(id), 0) + (chunk.length - 1) * nodeGap;
+      const startY = centerY - hC / 2;
+      let y = startY;
+      for (const id of chunk) y = place(id, y, k);
+      placedGroups.push({ nodes: chunk, order: startY });
     }
   }
-  // 4. 碰撞消解（整组下移、保持列内顺序）：顶线固定；侧组与顶线/已放置组重叠 → 整组下移
+  // 4. 碰撞消解（整列就近上下、保持列内顺序）：顶线固定；侧列与顶线/已放置对象重叠 → 取最近的合法位置
   const rect = (id) => { const n = model.nodes.get(id), p = pos.get(id); return { x: p[0], y: p[1], w: n.size[0], h: effH(id) }; };
   const xOv = (a, b) => a.x < b.x + b.w - 1 && b.x < a.x + a.w - 1;
   const yOv = (a, b) => a.y < b.y + b.h - 1 && b.y < a.y + a.h - 1;
@@ -419,22 +448,27 @@ export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 
   const placed = [];
   for (const n of model.nodes.values()) if (n.fixed && pos.has(n.id) && (!only || only.has(n.id))) placed.push({ ...rect(n.id), id: 'fixed:' + n.id });
   for (const id of topLine) if (pos.has(id)) placed.push({ ...rect(id), id: 'spine:' + id });
-  const resolveOrder = groupList.filter((g) => g.nodes.some(movable)).slice().sort((a, b) => {
-    const ay = Math.min(...a.nodes.filter(movable).map((id) => pos.get(id)[1]));
-    const by = Math.min(...b.nodes.filter(movable).map((id) => pos.get(id)[1]));
-    return ay - by;
-  });
+  const resolveOrder = placedGroups.slice().sort((a, b) => a.order - b.order);
   for (const g of resolveOrder) {
-    const gids = g.nodes.filter(movable);
+    const gids = g.nodes;
     if (!gids.length) continue;
-    let guard = 0;
-    while (guard++ < 300) {
-      const box = bboxOf(gids);
-      const hit = placed.find((o) => xOv(box, o) && yOv(box, o));
-      if (!hit) break;
-      const dy = hit.y + hit.h + nodeGap - box.y; // 整组下移到命中对象下方，保持列内顺序
-      if (dy <= 1e-6) break;
-      for (const id of gids) { const p = pos.get(id); pos.set(id, [p[0], p[1] + dy]); }
+    const box = bboxOf(gids);
+    // 上下就近：找离原位置最近、且与已放置对象（含间距）不冲突的整列顶部
+    const placedX = placed.filter((o) => xOv(box, o));
+    if (placedX.length) {
+      const gaps = placedX.map((o) => [o.y - nodeGap, o.y + o.h + nodeGap]);
+      const fits = (top) => !gaps.some(([a, b]) => top < b - 1e-6 && a < top + box.h - 1e-6);
+      if (!fits(box.y)) {
+        const cands = [];
+        for (const [a, b] of gaps) { cands.push(a - box.h); cands.push(b); }
+        let best = null;
+        for (const c of cands) {
+          if (!fits(c)) continue;
+          const d = Math.abs(c - box.y);
+          if (!best || d < best.d - 1e-9 || (Math.abs(d - best.d) <= 1e-9 && c > best.c)) best = { c, d };
+        }
+        if (best) for (const id of gids) { const p = pos.get(id); pos.set(id, [p[0], p[1] + (best.c - box.y)]); }
+      }
     }
     placed.push(bboxOf(gids));
   }

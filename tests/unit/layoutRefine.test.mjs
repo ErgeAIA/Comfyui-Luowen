@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildModel } from '../../luowen/web/layout/graph-model.js';
-import { straightenEdges, spineOf, swapReduceCrossings, compressSpineInline, rerouteComponentIds } from '../../luowen/web/layout/refine.js';
+import { straightenEdges, spineOf, swapReduceCrossings, compressSpineInline, rerouteComponentIds, layoutSpineTracks } from '../../luowen/web/layout/refine.js';
 import { countCrossings } from '../../luowen/web/layout/metrics.js';
 
 const N = (id, type = 'KSampler', pos = [0, 0], size = [80, 60], opts = {}) => ({ id, type, pos, size, inputs: opts.inputs ?? [], outputs: opts.outputs ?? [], ...opts });
@@ -312,4 +312,27 @@ test('layoutRefine.spineOf: sink-coverage 含环仍返回空链', () => {
   });
   const pos = new Map([['1', [0, 0]], ['2', [200, 0]], ['3', [400, 0]]]);
   assert.deepEqual(spineOf(m, pos, null, { strategy: 'sink-coverage' }).chain, []);
+});
+
+test('layoutRefine.layoutSpineTracks: L 侧源组超高换列，R 侧输出保持单列', () => {
+  const nodes = [];
+  const links = [];
+  let lid = 1;
+  nodes.push(N(1, 'A', [0, 0], [100, 100], { outputs: [{}] }));
+  nodes.push(N(2, 'Hub', [300, 0], [200, 100], { inputs: [{}, {}, {}, {}, {}], outputs: [{}] }));
+  nodes.push(N(3, 'C', [700, 0], [100, 100], { inputs: [{}] }));
+  for (let i = 0; i < 5; i++) nodes.push(N(10 + i, `Src${i}`, [0, 0], [100, 100], { outputs: [{}] }));
+  for (let i = 0; i < 4; i++) nodes.push(N(20 + i, `Out${i}`, [0, 0], [100, 100], { inputs: [{}] }));
+  links.push(L('e1', 1, 0, 2, 0), L('e2', 2, 0, 3, 0));
+  for (let i = 0; i < 5; i++) links.push(L(`s${lid++}`, 10 + i, 0, 2, i));
+  for (let i = 0; i < 4; i++) links.push(L(`o${lid++}`, 2, 0, 20 + i, 0));
+  const m = buildModel({ nodes, links, groups: [] });
+  const pos = new Map(nodes.map((n) => [String(n.id), [0, 0]]));
+  const spine = { chain: ['1', '2', '3'], ids: new Set(['1', '2', '3']), anchorTop: 0 };
+  const r = layoutSpineTracks(m, pos, { spine, inlineGap: 50, layerGap: 60, sideGap: 60, nodeGap: 40, align: 'auto' });
+  const srcX = new Set([0, 1, 2, 3, 4].map((i) => Math.round(r.positions.get(String(10 + i))[0])));
+  const outX = new Set([0, 1, 2, 3].map((i) => Math.round(r.positions.get(String(20 + i))[0])));
+  assert.ok(srcX.size >= 2, `L 侧超高组应换列（实际 ${srcX.size} 列）`);
+  assert.equal(outX.size, 1, 'R 侧输出不换列');
+  assert.equal(r.overlaps, 0, '换列后无重叠');
 });
