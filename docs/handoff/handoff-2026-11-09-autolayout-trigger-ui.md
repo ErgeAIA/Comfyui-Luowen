@@ -14,7 +14,7 @@ description: >
 
 ## 状态
 
-- 分支 `auto-layout`（F-015 工作线）；本轮提交 = DEC-044 触发 UI 收尾 + 文档卫生（SHA 见 `git log`）。**未合入 main**——用户明确「优化完按钮和菜单再合」，合并推迟到用户验收通过。
+- 分支 `auto-layout`（F-015 工作线）；本轮功能提交 = `c45c87b`（DEC-044 触发 UI 收尾 + 文档卫生）。**未合入 main**——用户明确「优化完按钮和菜单再合」，合并推迟到用户验收通过。
 - 代码改动：`luowen/web/index.js`（BrotherSpacing 注册 + 可拖动浮动按钮 + getCanvasMenuItems 钩子、删旧 proto patch）、`i18n.js`（AutoLayout.button/full/selected 双语）、`adapters/renderLinkAdapter.js`（两处过期注释更正）。已部署宿主 `custom_nodes/luowen/web/`，SHA256 与仓库一致。
 - **验收状态**：AI 探针全绿（见下），但按项目纪律**修复结果须用户宿主验证**，尚未点头。
 
