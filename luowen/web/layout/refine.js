@@ -478,14 +478,31 @@ export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 
         const above = ids.filter((id) => (portOf.get(id) ?? 1e9) < minPort).sort((a, b) => portOf.get(a) - portOf.get(b));
         const below = ids.filter((id) => (portOf.get(id) ?? 1e9) > maxPort).sort((a, b) => portOf.get(a) - portOf.get(b));
         const pinY = (slot) => hubPos[1] + hubN.size[1] * ((slot + 0.5) / Math.max(1, hubN.inPorts.length));
+        const outOff = (id) => {
+          const n = model.nodes.get(id);
+          const e = model.edges.find((x) => x.src === id && x.dst === g.hub);
+          const sp = e ? e.srcPort : 0;
+          return n.size[1] * ((sp + 0.5) / Math.max(1, n.outPorts.length));
+        };
         if (above.length) {
-          const anchorSlot = Math.max(...above.map((id) => portOf.get(id) ?? 0));
-          stackPlace(above, pinY(anchorSlot) - nodeGap - hOf(above));
+          const last = above[above.length - 1];
+          let y = pinY(portOf.get(last) ?? 0) - outOff(last);
+          const ys = [];
+          for (let i = above.length - 1; i >= 0; i--) {
+            ys[i] = y;
+            if (i > 0) y -= effH(above[i - 1]) + nodeGap;
+          }
+          const layout = { widths: [maxW], offsets: [0] };
+          for (let i = 0; i < above.length; i++) place(above[i], ys[i], 0, layout);
+          placedGroups.push({ nodes: above, order: ys[0], hub: g.hub, side: g.side, depth: g.depth });
           placed = true;
         }
         if (below.length) {
-          const anchorSlot = Math.min(...below.map((id) => portOf.get(id) ?? 0));
-          stackPlace(below, pinY(anchorSlot) + nodeGap);
+          const first = below[0];
+          let y = pinY(portOf.get(first) ?? 0) - outOff(first);
+          const layout = { widths: [maxW], offsets: [0] };
+          for (const id of below) { y = place(id, y, 0, layout); }
+          placedGroups.push({ nodes: below, order: pinY(portOf.get(first) ?? 0) - outOff(first), hub: g.hub, side: g.side, depth: g.depth });
           placed = true;
         }
       }
