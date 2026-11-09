@@ -339,7 +339,13 @@ export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 
   for (const g of groupList) {
     const hubN = model.nodes.get(g.hub), hubPos = pos.get(g.hub);
     if (!hubN || !hubPos) continue;
-    const ids = g.nodes.filter(movable).sort((a, b) => (pos.get(a)[1] - pos.get(b)[1]) || a.localeCompare(b));
+    const portOf = new Map();
+    for (const e of model.edges) if (e.dst === g.hub) portOf.set(e.src, e.dstPort);
+    const ids = g.nodes.filter(movable).sort((a, b) => {
+      const pa = portOf.get(a), pb = portOf.get(b);
+      if (pa != null && pb != null && pa !== pb) return pa - pb; // 扇入：按目标输入口顺序（正面→负面→Latent）
+      return (pos.get(a)[1] - pos.get(b)[1]) || a.localeCompare(b);
+    });
     if (!ids.length) continue;
     const totalH = ids.reduce((s, id) => s + effH(id), 0) + (ids.length - 1) * nodeGap;
     const centerY = hubPos[1] + hubN.size[1] / 2;
@@ -365,30 +371,35 @@ export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 
       y += effH(id) + nodeGap;
     }
   }
-  // 4. 全对碰撞消解：重叠则把非顶线节点下移，直到零重叠
-  const spineFixed = new Set(topLine);
-  const ids = [...pos.keys()].filter(movable);
+  // 4. 碰撞消解（整组下移、保持列内顺序）：顶线固定；侧组与顶线/已放置组重叠 → 整组下移
   const rect = (id) => { const n = model.nodes.get(id), p = pos.get(id); return { x: p[0], y: p[1], w: n.size[0], h: effH(id) }; };
-  let overlaps = 0;
-  for (let iter = 0; iter < 300; iter++) {
-    let moved = false;
-    for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) {
-      const a = rect(ids[i]), b = rect(ids[j]);
-      if (a.x < b.x + b.w - 1 && b.x < a.x + a.w - 1 && a.y < b.y + b.h - 1 && b.y < a.y + a.h - 1) {
-        const iaF = spineFixed.has(ids[i]), ibF = spineFixed.has(ids[j]);
-        const moveId = iaF && !ibF ? ids[j] : ids[i]; // 优先移动非顶线/靠前者
-        const other = moveId === ids[i] ? b : a;
-        const p = pos.get(moveId);
-        pos.set(moveId, [p[0], other.y + other.h + nodeGap]);
-        moved = true;
-      }
+  const xOv = (a, b) => a.x < b.x + b.w - 1 && b.x < a.x + a.w - 1;
+  const yOv = (a, b) => a.y < b.y + b.h - 1 && b.y < a.y + a.h - 1;
+  const bboxOf = (gids) => { let mnx = 1e9, mny = 1e9, mxx = -1e9, mxy = -1e9; for (const id of gids) { const r = rect(id); mnx = Math.min(mnx, r.x); mny = Math.min(mny, r.y); mxx = Math.max(mxx, r.x + r.w); mxy = Math.max(mxy, r.y + r.h); } return { x: mnx, y: mny, w: mxx - mnx, h: mxy - mny }; };
+  const placed = topLine.filter((id) => pos.has(id)).map((id) => ({ ...rect(id), id: 'spine:' + id }));
+  const resolveOrder = groupList.filter((g) => g.nodes.some(movable)).slice().sort((a, b) => {
+    const ay = Math.min(...a.nodes.filter(movable).map((id) => pos.get(id)[1]));
+    const by = Math.min(...b.nodes.filter(movable).map((id) => pos.get(id)[1]));
+    return ay - by;
+  });
+  for (const g of resolveOrder) {
+    const gids = g.nodes.filter(movable);
+    if (!gids.length) continue;
+    let guard = 0;
+    while (guard++ < 300) {
+      const box = bboxOf(gids);
+      const hit = placed.find((o) => xOv(box, o) && yOv(box, o));
+      if (!hit) break;
+      const dy = hit.y + hit.h + nodeGap - box.y; // 整组下移到命中对象下方，保持列内顺序
+      if (dy <= 1e-6) break;
+      for (const id of gids) { const p = pos.get(id); pos.set(id, [p[0], p[1] + dy]); }
     }
-    if (!moved) break;
-    overlaps++;
+    placed.push(bboxOf(gids));
   }
-  // 最终统计
+  // 最终重叠统计
+  const allIds = [...pos.keys()].filter(movable);
   let finalOv = 0;
-  for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) { const a = rect(ids[i]), b = rect(ids[j]); if (a.x < b.x + b.w - 1 && b.x < a.x + a.w - 1 && a.y < b.y + b.h - 1 && b.y < a.y + a.h - 1) finalOv++; }
+  for (let i = 0; i < allIds.length; i++) for (let j = i + 1; j < allIds.length; j++) { const a = rect(allIds[i]), b = rect(allIds[j]); if (xOv(a, b) && yOv(a, b)) finalOv++; }
   return { positions: pos, overlaps: finalOv };
 }
 

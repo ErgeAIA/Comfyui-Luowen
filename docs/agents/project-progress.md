@@ -58,6 +58,7 @@ description: >
   - 主链按水平线紧凑排（1进1出 inlineGap、多入口 layerGap+自适应）；末端汇点（SaveImage）并入扇列不占顶线；侧分支 BFS 找最近主链锚点+侧别+深度、逐层挂靠居中；全对碰撞消解（下移）保证零重叠。
   - 实测 test2：视觉重叠 **0**、主链间距 **50/50/120**、CLIP 线 60、save 扇 2上2下、loader 间距 40、undo 14/14、verify ok；单测 157/157。
   - 遗留：侧分支（CLIP 列）被碰撞消解推得较散，未完全达到 test3 紧致；阶段 B（候选格点局部搜索）待验收后做。
+  - **补记（用户反馈正面被挤到最底）**：侧组按目标输入口顺序排（正面→负面→Latent）+ 碰撞消解改整组下移保序；实测 CLIP 正面在上/负面居中/Latent 在下，零重叠。
   - **补记3（扇对称）**：扇根以对端节点中心线为轴居中——CLIP加载器中心=两 CLIP文本编码中心均值（diff 0）；save 4 节点视觉中心=VAE解码中心（260）。优先级：主链顶边 > 扇对称。
 - **本轮接手核对（2026-11-09，新会话只读盘点 + 本条记录，未改功能代码）**：分支 auto-layout = origin = `a7d1ec9`，工作区干净；单测实跑 **151/151**；宿主 `custom_nodes/luowen/web/index.js` 与仓库 SHA256 一致（`4c3abbbd…`，含 actionbar 按钮版）。F-015 交付项已闭合（DEC-043 补记 G），待用户事项：①盲测 A/B（`.verify/p7/blind-A/B.json`）②actionbar「⌁整理」按钮宿主验收（`a7d1ec9` 未见于决策日志，验收状态待用户确认）③auto-layout 合入 main 的时机。文档卫生观察（只报告不删历史）：本文件「实施轮」条目与 decision-log DEC-043 补记 F 各有三份重复；四份 handoff 均为 2026-11-07 早于本工作线，最新事实以本文件与 DEC-043 补记 G 为准。
 - **本轮动效 v3 实施（2026-11-08，用户指示「实施吧」；DEC-042；改 trace.js/renderLinkAdapter.js/index.js + 新增 beamTrace.test.mjs；已部署宿主自测，等用户验收）**：
