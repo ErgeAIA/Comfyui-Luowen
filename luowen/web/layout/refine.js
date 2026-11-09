@@ -73,13 +73,69 @@ export function straightenEdges(model, positions, { maxTolRatio = 0.5 } = {}) {
 }
 
 /**
+ * R4 主链顶边对齐（用户校准 2026-11-09）：在可动子图内取最长路径（并列时取起点 top 更小者），
+ * 把链上节点顶边对齐到「链上第二个节点」的 top，其余节点上下平移。
+ * 仅 y 方向平移：同列重叠由随后的 R2 列重排消解，跨列因水平分层不会重叠。
+ * 单链 <3 节点或含环时保守跳过。
+ */
+export function spineTopAlign(model, positions) {
+  const pos = new Map(positions);
+  const movable = [...model.nodes.values()].filter((n) => pos.has(n.id) && !n.fixed);
+  if (movable.length < 3) return { positions: pos, movedCount: 0, chain: [] };
+  const ids = new Set(movable.map((n) => n.id));
+  const prevs = new Map(), nexts = new Map();
+  for (const id of ids) { prevs.set(id, []); nexts.set(id, []); }
+  for (const e of model.edges) {
+    if (!ids.has(e.src) || !ids.has(e.dst)) continue;
+    prevs.get(e.dst).push(e.src);
+    nexts.get(e.src).push(e.dst);
+  }
+  // Kahn 拓扑序；有环则保守跳过（Reroute 分量已在上游 fixed）
+  const indeg = new Map([...ids].map((id) => [id, prevs.get(id).length]));
+  const order = [];
+  const q = [...ids].filter((id) => indeg.get(id) === 0).sort();
+  while (q.length) {
+    const id = q.shift();
+    order.push(id);
+    for (const nx of nexts.get(id)) { indeg.set(nx, indeg.get(nx) - 1); if (indeg.get(nx) === 0) q.push(nx); }
+  }
+  if (order.length !== ids.size) return { positions: pos, movedCount: 0, chain: [] };
+  // 最长路径 DP：len=节点数；并列取起点 top 更小者
+  const best = new Map();
+  let bestEnd = null, bestLen = 0, bestStartY = Infinity;
+  for (const id of order) {
+    let cur = { len: 1, startY: pos.get(id)[1], prev: null };
+    for (const p of prevs.get(id)) {
+      const b = best.get(p);
+      if (!b) continue;
+      if (b.len + 1 > cur.len || (b.len + 1 === cur.len && b.startY < cur.startY)) cur = { len: b.len + 1, startY: b.startY, prev: p };
+    }
+    best.set(id, cur);
+    if (cur.len > bestLen || (cur.len === bestLen && cur.startY < bestStartY)) { bestLen = cur.len; bestStartY = cur.startY; bestEnd = id; }
+  }
+  if (!bestEnd || bestLen < 3) return { positions: pos, movedCount: 0, chain: [] };
+  const chain = [];
+  for (let id = bestEnd; id != null; id = best.get(id).prev) chain.unshift(id);
+  const anchorTop = pos.get(chain[1])[1];
+  let movedCount = 0;
+  for (const id of chain) {
+    if (id === chain[1]) continue;
+    const old = pos.get(id);
+    if (Math.abs(anchorTop - old[1]) < 1e-6) continue;
+    pos.set(id, [old[0], anchorTop]);
+    movedCount++;
+  }
+  return { positions: pos, movedCount, chain };
+}
+
+/**
  * R2 列内重排（用户反馈 ②「VAE 放 K采样器下方」+ ①「同级对齐」）：
  * 1. 按 x 聚类分列（列内节点 x 差 ≤ colThreshold）
  * 2. 列内按「目标口平均 y」排序（喂到下层低端口的节点排在下方）
- * 3. 整列重堆叠（等间距、无重叠、x 统一到该列最小 x 左对齐）
+ * 3. 整列重堆叠（等间距、无重叠；x 按 align 对齐：right 右缘 / left 左缘 / center 居中，默认右对齐）
  * 替换旧版 y 交换——高度不等的节点 y 交换会触发重叠，重排才正确。
  */
-export function swapReduceCrossings(model, positions, { colGap = 150, nodeGap = 40 } = {}) {
+export function swapReduceCrossings(model, positions, { colGap = 150, nodeGap = 40, align = 'right' } = {}) {
   const pos = new Map(positions);
   const movable = [...model.nodes.values()].filter((n) => pos.has(n.id) && !n.fixed).sort((a, b) => (pos.get(a.id)[0] - pos.get(b.id)[0]) || a.id.localeCompare(b.id));
   if (movable.length < 2) return { positions: pos, columns: 0, swaps: 0 };
@@ -110,10 +166,14 @@ export function swapReduceCrossings(model, positions, { colGap = 150, nodeGap = 
     const origOrder = col.map((n) => n.id).join(',');
     const newOrder = sorted.map((n) => n.id).join(',');
     const isReordered = origOrder !== newOrder;
-    const colX = Math.min(...col.map((n) => pos.get(n.id)[0]));
+    const colLeft = Math.min(...col.map((n) => pos.get(n.id)[0]));
+    const colRight = Math.max(...col.map((n) => pos.get(n.id)[0] + n.size[0]));
     let y = Math.min(...col.map((n) => pos.get(n.id)[1]));
     for (const n of sorted) {
-      pos.set(n.id, [colX, y]);
+      let x = colLeft;
+      if (align === 'right') x = colRight - n.size[0];
+      else if (align === 'center') x = colLeft + (colRight - colLeft - n.size[0]) / 2;
+      pos.set(n.id, [x, y]);
       y += n.size[1] + nodeGap;
     }
     if (isReordered) swaps++;

@@ -16,6 +16,17 @@ description: >
 > 格式：`## DEC-NNN: 标题`，新条目置顶，NNN 三位递增。
 > 字段：`- **日期**：` / `- **背景**：` / `- **决策**：` / `- **验证**：`
 
+## DEC-045: 自动布局校准——入边计数间距、主链顶边对齐、列内对齐设置（默认右对齐）
+
+- **日期**：2026-11-09
+- **背景**：test2（旧引擎整理结果）↔ test3（用户手动期望）对比：拓扑/连线/参数逐字节一致，仅布局差异。提取三项改进：①列距 222px 过宽（自适应层间距把 widget 输入计入端口：KSampler 10 而非 4 入边 → 60+(10−2)×20=220）；②主链顶边参差（用户把 ModelSampling→KSampler→VAEDecode→SaveImage+UNETLoader 顶边统一 y≈54）；③中列四节点右对齐（宽节点为锚）。用户要求三项全做，并把列内对齐做成设置项（默认右对齐）。
+- **决策**：
+  1. **间距按入边计数**：engine.elkLayout 的 maxInPorts 改按 in-degree（入边数），widget 输入不连线、不计入；实测列距 222→102px。
+  2. **主链顶边对齐**：新增 refine.spineTopAlign——可动子图内最长路径（并列取起点 top 最小），链上节点顶边对齐到链上第二个节点；engine 在 straightenEdges 后、列重排前调用（同列重叠由列重排消解，跨列因水平分层不会重叠）。实测主链五节点顶边全 53.6。
+  3. **列内对齐可选**：swapReduceCrossings 增加 align 参数（right 默认 / center / left）；新增设置 `LuoWen.AutoLayout.ColumnAlign`（combo，默认右对齐，i18n 双语）；autoLayout API 透传 columnAlign。实测中列右缘全 905。
+- **验证**：单测 **154/154**（新增列对齐 right/left/center + spineTopAlign 最长路径/环跳过 3 项）；宿主探针 `.verify/p7/calibration-probe.mjs`：列距 102、主链顶边 53.6、中列右缘 905、重叠 0、交叉 0、verify ok、undo 10/10、无页面错误、96ms；对比图 `.verify/p7/calibration-after.html`（已渲染验证）。
+- **结果**：三项已实现并部署宿主（SHA 一致）；**待用户宿主验证**；新功能未合 main（按纪律验收后再合）。
+
 ## DEC-044: 自动布局触发 UI 收尾——兄弟线间距注册补全、整理按钮可拖动、菜单迁官方钩子；合并推迟待验收；盲测改三工作流校准
 
 - **日期**：2026-11-09

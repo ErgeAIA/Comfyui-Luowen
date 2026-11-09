@@ -27,6 +27,7 @@ const { app } = window.comfyAPI.app;
 const LANGUAGE_ID = 'LuoWen.Language';
 const BROTHER_SPACING_ID = 'LuoWen.BrotherSpacing';
 const AUTOLAYOUT_COLLAPSE_ID = 'LuoWen.AutoLayout.CollapseNotes';
+const AUTOLAYOUT_ALIGN_ID = 'LuoWen.AutoLayout.ColumnAlign';
 const ENABLED_ID = 'LuoWen.Enabled';
 const STYLE_ID = 'LuoWen.WireStyle';
 const AVOID_ID = 'LuoWen.NodeAvoidance';
@@ -289,6 +290,27 @@ app.registerExtension({
       type: 'boolean',
       defaultValue: false,
       onChange: (v) => setSettings({ collapseNotes: !!v }),
+    },
+    {
+      id: AUTOLAYOUT_ALIGN_ID,
+      get name() {
+        return t('AutoLayoutAlign.name');
+      },
+      category: ['LuoWen', '自动布局', 'ColumnAlign'],
+      sortOrder: 108,
+      get tooltip() {
+        return { value: t('AutoLayoutAlign.tooltip'), class: TIP_CLASS };
+      },
+      type: 'combo',
+      get options() {
+        return [
+          { text: t('AutoLayoutAlign.opt.right'), value: 'right' },
+          { text: t('AutoLayoutAlign.opt.center'), value: 'center' },
+          { text: t('AutoLayoutAlign.opt.left'), value: 'left' },
+        ];
+      },
+      defaultValue: 'right',
+      onChange: (v) => setSettings({ autoLayoutAlign: v === 'center' || v === 'left' ? v : 'right' }),
     },
     {
       id: ENABLED_ID,
@@ -661,6 +683,7 @@ get tooltip() {
       autoLayout: (scope = 'full', opts = {}) => import('./layout/engine.js').then((m) => m.runAutoLayout(app, {
         scope,
         collapseNotes: opts.collapseNotes ?? !!readSetting(AUTOLAYOUT_COLLAPSE_ID, false),
+        columnAlign: opts.columnAlign ?? readSetting(AUTOLAYOUT_ALIGN_ID, 'right'),
       })),
       routes: () => getDebugRoutes(),
       trace: () => getTrace(),

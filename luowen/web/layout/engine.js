@@ -61,9 +61,11 @@ function captureState(app) {
 
 // ---------- ELK 布局（movable 子图 + 端口 FIXED_SIDE） ----------
 async function elkLayout(model, movableIds, { nodeSpacing = 30, layerSpacing = 60 } = {}) {
-  // 自适应层间距：统计每个节点的最大入端口数——入口多则线多，层间距需更宽（用户反馈 2026-11-09）
+  // 自适应层间距：按「入边数」计——入线多则层间距更宽（2026-11-09 校准：widget 输入不连线，不计入端口数）
+  const inDeg = new Map();
+  for (const e of model.edges) inDeg.set(e.dst, (inDeg.get(e.dst) ?? 0) + 1);
   let maxInPorts = 0;
-  for (const n of model.nodes.values()) if (n.inPorts.length > maxInPorts) maxInPorts = n.inPorts.length;
+  for (const n of model.nodes.values()) maxInPorts = Math.max(maxInPorts, inDeg.get(n.id) ?? 0);
   const adaptiveLayerSpacing = layerSpacing + Math.max(0, maxInPorts - 2) * 20;
   const ELK = await loadElk();
   const elk = new ELK();
@@ -154,7 +156,7 @@ function recomputeGroupBounds(graph, memberIdsByGroupId, groupIdsInOrder) {
  * @param {object} opts { scope:'full'|'selected', collapseNotes:boolean }
  * @returns { report } { moved, noteIdsCollapsed, groups, metrics, ms }
  */
-export async function runAutoLayout(app, { scope = 'full', collapseNotes = false } = {}) {
+export async function runAutoLayout(app, { scope = 'full', collapseNotes = false, columnAlign = 'right' } = {}) {
   const graph = app.canvas.graph;
   if (!graph) throw new Error('no graph');
   const t0 = performance.now();
@@ -183,11 +185,15 @@ export async function runAutoLayout(app, { scope = 'full', collapseNotes = false
   if (!constraints.movableIds.length) return { moved: 0, skipped: 'nothing-movable' };
 
   let positions = await elkLayout(model, constraints.movableIds);
-  // R1/R2 精修后处理（用户反馈：③拉直 ①对齐 ②同列减交叉；重叠守卫内建）
-  const { straightenEdges, swapReduceCrossings } = await import('./refine.js');
+  // R1/R2/R4 精修后处理（用户反馈：③拉直 ①对齐 ②同列减交叉；重叠守卫内建）
+  const { straightenEdges, spineTopAlign, swapReduceCrossings } = await import('./refine.js');
   const st = straightenEdges(model, positions);
   positions = st.positions;
-  const sw = swapReduceCrossings(model, positions, { colGap: 150 });
+  // R4 主链顶边对齐（2026-11-09 校准：主流程链顶边拉成一条水平线）
+  const sp = spineTopAlign(model, positions);
+  positions = sp.positions;
+  // R2 列内重排 + 列对齐（默认右对齐，用户校准）
+  const sw = swapReduceCrossings(model, positions, { colGap: 150, align: columnAlign });
   positions = sw.positions;
   // 障碍规避：有 fixed/未选（局部）时，把新布局整体平移到 fixed 包围盒右侧空白带（硬约束：不重叠）
   shiftToFreeBand(positions, constraints.obstacles, { margin: 60 });
@@ -208,7 +214,9 @@ export async function runAutoLayout(app, { scope = 'full', collapseNotes = false
     moved,
     skippedRerouteComponents: skipIds.size ? [...skipIds] : [],
     straightened: st.movedCount,
+    spineAligned: sp.movedCount,
     swaps: sw.swaps,
+    columnAlign,
     noteIdsCollapsed: collapseNotes ? [...noteIds] : [],
     groups: memberIdsByGroupId.size,
     metrics: evaluateLayout(model, positionsFinal, new Map([...model.nodes.values()].map((n) => [n.id, n.pos]))),

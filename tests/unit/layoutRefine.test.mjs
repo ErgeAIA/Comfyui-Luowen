@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildModel } from '../../luowen/web/layout/graph-model.js';
-import { straightenEdges, swapReduceCrossings, rerouteComponentIds } from '../../luowen/web/layout/refine.js';
+import { straightenEdges, spineTopAlign, swapReduceCrossings, rerouteComponentIds } from '../../luowen/web/layout/refine.js';
 import { countCrossings } from '../../luowen/web/layout/metrics.js';
 
 const N = (id, type = 'KSampler', pos = [0, 0], size = [80, 60], opts = {}) => ({ id, type, pos, size, inputs: opts.inputs ?? [], outputs: opts.outputs ?? [], ...opts });
@@ -85,4 +85,58 @@ test('layoutRefine.rerouteComponentIds: 无 Reroute 时返回空集', () => {
     groups: [],
   });
   assert.equal(rerouteComponentIds(m).size, 0);
+});
+
+test('layoutRefine.swapReduceCrossings: 列内对齐 right(默认)/left/center（不同宽度节点）', () => {
+  const m = buildModel({
+    nodes: [
+      N(1, 'A', [0, 0], [200, 60], { outputs: [{}] }),
+      N(2, 'B', [0, 200], [100, 60], { outputs: [{}] }),
+    ],
+    links: [],
+    groups: [],
+  });
+  const pos = new Map([['1', [0, 0]], ['2', [0, 200]]]);
+  const right = swapReduceCrossings(m, pos, { align: 'right' }).positions;
+  assert.equal(right.get('1')[0], 0, 'right：宽节点 A 右缘=200 → x=0');
+  assert.equal(right.get('2')[0], 100, 'right：窄节点 B 右缘对齐 200 → x=100');
+  const left = swapReduceCrossings(m, pos, { align: 'left' }).positions;
+  assert.equal(left.get('1')[0], 0);
+  assert.equal(left.get('2')[0], 0, 'left：左缘对齐');
+  const center = swapReduceCrossings(m, pos, { align: 'center' }).positions;
+  assert.equal(center.get('1')[0], 0);
+  assert.equal(center.get('2')[0], 50, 'center：居中于 [0,200]');
+  assert.equal(swapReduceCrossings(m, pos).positions.get('2')[0], 100, '默认 right');
+});
+
+test('layoutRefine.spineTopAlign: 最长路径顶边对齐到链上第二个节点（并列取起点 top 最小）', () => {
+  const m = buildModel({
+    nodes: [
+      N(1, 'Load', [0, 0], [80, 60], { outputs: [{}] }),
+      N(2, 'Mid', [200, 30], [80, 60], { outputs: [{}] }),
+      N(3, 'Proc', [400, 90], [80, 60], { outputs: [{}] }),
+      N(4, 'Out', [600, 20], [80, 60], { inputs: [{}] }),
+    ],
+    links: [L('e1', 1, 0, 3, 0), L('e2', 2, 0, 3, 0), L('e3', 3, 0, 4, 0)],
+    groups: [],
+  });
+  const pos = new Map([['1', [0, 0]], ['2', [200, 30]], ['3', [400, 90]], ['4', [600, 20]]]);
+  const r = spineTopAlign(m, pos);
+  assert.deepEqual(r.chain, ['1', '3', '4'], '并列最长路径取起点 top 最小（1 的 0 < 2 的 30）');
+  assert.equal(r.positions.get('1')[1], 90, '链首顶边拉到锚 90');
+  assert.equal(r.positions.get('3')[1], 90, '锚保持 90');
+  assert.equal(r.positions.get('4')[1], 90, '链尾顶边拉到锚 90');
+  assert.equal(r.movedCount, 2);
+});
+
+test('layoutRefine.spineTopAlign: 含环保守跳过（不移动）', () => {
+  const m = buildModel({
+    nodes: [N(1, 'A', [0, 0]), N(2, 'B', [200, 0]), N(3, 'C', [400, 0])],
+    links: [L('e1', 1, 0, 2, 0), L('e2', 2, 0, 3, 0), L('e3', 3, 0, 1, 0)],
+    groups: [],
+  });
+  const pos = new Map([['1', [0, 0]], ['2', [200, 0]], ['3', [400, 0]]]);
+  const r = spineTopAlign(m, pos);
+  assert.equal(r.movedCount, 0);
+  assert.deepEqual(r.chain, []);
 });

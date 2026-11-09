@@ -65,6 +65,11 @@ const LOCALES = {
     'AutoLayout.selected': '整理选区（流向）',
     'AutoLayoutCollapse.name': '整理时折叠说明节点',
     'AutoLayoutCollapse.tooltip': '执行自动布局时，把 Note/Markdown 说明节点折叠为标题条（写入折叠标志与折叠高度）。\n默认关闭。\n一次整理 = 一条撤销记录，可整次恢复。',
+    'AutoLayoutAlign.name': '整理时列内对齐',
+    'AutoLayoutAlign.tooltip': '自动布局时，同一列（纵向排列）的节点如何对齐：\n右对齐（默认）：右缘对齐，输出口齐平、朝向下一列更整齐。\n居中：沿列中轴对齐。\n左对齐：左缘对齐。\n仅在「整理」时生效。',
+    'AutoLayoutAlign.opt.right': '右对齐',
+    'AutoLayoutAlign.opt.center': '居中',
+    'AutoLayoutAlign.opt.left': '左对齐',
   },
 
   en: {
@@ -128,6 +133,11 @@ const LOCALES = {
     'AutoLayout.selected': 'Arrange Selection (Flow)',
     'AutoLayoutCollapse.name': 'Collapse Notes on Layout',
     'AutoLayoutCollapse.tooltip': 'When running auto-layout, collapses Note/Markdown nodes to their title bar (writes the collapsed flag and height).\nDefault off.\nOne layout run = one undo entry; a single undo restores everything.',
+    'AutoLayoutAlign.name': 'Column Alignment on Layout',
+    'AutoLayoutAlign.tooltip': 'How nodes stacked in the same column align during auto-layout:\nRight (default): right edges align, outputs line up toward the next column.\nCenter: aligned on the column center axis.\nLeft: left edges align.\nApplies on Arrange only.',
+    'AutoLayoutAlign.opt.right': 'Right',
+    'AutoLayoutAlign.opt.center': 'Center',
+    'AutoLayoutAlign.opt.left': 'Left',
   },
 };
 
