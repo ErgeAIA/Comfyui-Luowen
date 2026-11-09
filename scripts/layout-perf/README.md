@@ -9,6 +9,7 @@
 | `bench-node.mjs` | Node 端全管线（mock LGraph，无 DOM → 无 effH）。模式：`golden` / `scale` / `one` |
 | `golden-host.mjs` | 宿主真实 DOM 金标（需 ComfyUI 运行于 127.0.0.1:8188） |
 | `summarize.mjs` | 汇总 `.verify/p8` 下的多次运行 → 阶段中位数 / 噪声带 / 幂指数 |
+| `compare-spine.mjs` | 主链判据 A/B 对照：longest vs sink-coverage，产出 `.verify/p8/spine-compare.{html,png}` |
 
 ## 前置
 

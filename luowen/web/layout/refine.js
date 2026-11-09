@@ -105,13 +105,13 @@ function pickCoverageSink(model, ids, order, prevs, nexts, best) {
 }
 
 /**
- * 主链识别（用户校准 2026-11-09）：在可动子图内取最长路径（并列时取起点 top 更小者），
+ * 主链识别（用户校准 2026-11-09）：默认取「祖先覆盖最大的汇点」的最长上游链（并列按长度/起点 top），
  * 返回链节点 ids 与锚顶（链上第二个节点的 top）。定位交给 R2 列重排：列内顶端是主链节点的列
  * 锚定到锚顶——既保证主链顶边成一条线，又不会把扇出列（顶端非主链）的堆叠打断。
- * strategy='sink-coverage' 时改为「祖先覆盖最大的汇点 + 以它结尾的最长路径」（仍是纯拓扑）。
+ * 默认 strategy='sink-coverage'：「祖先覆盖最大的汇点 + 以它结尾的最长路径」（仍是纯拓扑）；'longest' 保留供回退/测试。
  * 链 <3 节点或含环时返回空。
  */
-export function spineOf(model, positions, subset = null, { strategy = 'longest' } = {}) {
+export function spineOf(model, positions, subset = null, { strategy = 'sink-coverage' } = {}) {
   const empty = { chain: [], ids: new Set(), anchorTop: null };
   const pos = positions;
   const movable = [...model.nodes.values()].filter((n) => pos.has(n.id) && !n.fixed && (!subset || subset.has(n.id)));
@@ -470,10 +470,11 @@ export function movableComponents(model, positions, ids = null) {
  * - anchorToOriginal：就地锚定（新布局左上角=该分量原左上角），用于「整理选中所在流」。
  * - movableIds：只布局这些节点（默认所有未固定节点）。
  */
-export function layoutComponents(model, positions, { arrangement = 'vertical', anchorToOriginal = false, movableIds = null, ...opts } = {}) {
+export function layoutComponents(model, positions, { arrangement = 'vertical', anchorToOriginal = false, movableIds = null, spineStrategy = null, ...opts } = {}) {
   const pos = new Map(positions);
   const orig = new Map(positions);
   const comps = movableComponents(model, positions, movableIds);
+  const spines = [];
   const allMv = comps.flat();
   const startX = allMv.length ? Math.min(...allMv.map((id) => pos.get(id)[0])) : 0;
   const startY = allMv.length ? Math.min(...allMv.map((id) => pos.get(id)[1])) : 0;
@@ -482,7 +483,8 @@ export function layoutComponents(model, positions, { arrangement = 'vertical', a
   let overlaps = 0;
   for (const comp of comps) {
     const set = new Set(comp);
-    const sp = spineOf(model, pos, set);
+    const sp = spineOf(model, pos, set, spineStrategy ? { strategy: spineStrategy } : undefined);
+    spines.push(sp.chain);
     const laid = layoutSpineTracks(model, pos, { ...opts, spine: sp, only: set });
     let mnx = Infinity, mny = Infinity;
     for (const id of comp) { const p = laid.positions.get(id); if (p) { mnx = Math.min(mnx, p[0]); mny = Math.min(mny, p[1]); } }
@@ -500,7 +502,7 @@ export function layoutComponents(model, positions, { arrangement = 'vertical', a
     }
     overlaps += laid.overlaps ?? 0;
   }
-  return { positions: pos, overlaps, components: comps.length };
+  return { positions: pos, overlaps, components: comps.length, spines };
 }
 
 function countCross(model, pos) {

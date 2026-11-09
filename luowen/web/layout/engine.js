@@ -179,10 +179,10 @@ function recomputeGroupBounds(graph, memberIdsByGroupId, groupIdsInOrder) {
 /**
  * 执行自动布局。
  * @param {object} app ComfyUI app 实例（由 index.js 注入，本模块不直接引用 window 全局）
- * @param {object} opts { scope:'full'|'selected', collapseNotes:boolean }
+ * @param {object} opts { scope:'full'|'selected', collapseNotes:boolean, spineStrategy?:'sink-coverage'|'longest'（A/B/回退） }
  * @returns { report } { moved, noteIdsCollapsed, groups, metrics, ms }
  */
-export async function runAutoLayout(app, { scope = 'full', collapseNotes = false, columnAlign = 'auto', nodeGap = 40, layerGap = 60, inlineGap = 50, componentLayout = 'vertical' } = {}) {
+export async function runAutoLayout(app, { scope = 'full', collapseNotes = false, columnAlign = 'auto', nodeGap = 40, layerGap = 60, inlineGap = 50, componentLayout = 'vertical', spineStrategy = null } = {}) {
   const graph = app.canvas.graph;
   if (!graph) throw new Error('no graph');
   const t0 = performance.now();
@@ -249,7 +249,7 @@ export async function runAutoLayout(app, { scope = 'full', collapseNotes = false
   const st = straightenEdges(model, positions);
   positions = st.positions;
   lap('straighten');
-  const track = layoutComponents(model, positions, { inlineGap, layerGap, sideGap: layerGap, nodeGap, align: columnAlign, arrangement: componentLayout, movableIds: new Set(constraints.movableIds.map(String)) });
+  const track = layoutComponents(model, positions, { inlineGap, layerGap, sideGap: layerGap, nodeGap, align: columnAlign, arrangement: componentLayout, spineStrategy, movableIds: new Set(constraints.movableIds.map(String)) });
   positions = track.positions;
   lap('tracks');
   if (scope === 'selected') {
@@ -292,7 +292,8 @@ export async function runAutoLayout(app, { scope = 'full', collapseNotes = false
     moved,
     skippedRerouteComponents: skipIds.size ? [...skipIds] : [],
     straightened: st.movedCount,
-    spineChain: [],
+    spineChain: track.spines?.[0] ?? [],
+    spineChains: track.spines ?? [],
     swaps: 0,
     columnAlign,
     nodeGap,
