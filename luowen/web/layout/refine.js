@@ -73,12 +73,45 @@ export function straightenEdges(model, positions, { maxTolRatio = 0.5 } = {}) {
 }
 
 /**
+ * sink-coverage 终点（纯拓扑，2026-11-09 提案）：在汇点（出度 0，排除 Note）中选祖先覆盖最大者；
+ * 并列按「路径长度 ↓ → 起点 top ↑ → id」决胜。祖先用位集精确求并集。
+ */
+function pickCoverageSink(model, ids, order, prevs, nexts, best) {
+  const index = new Map();
+  let i = 0;
+  for (const id of ids) index.set(id, i++);
+  const anc = new Map();
+  for (const id of order) {
+    let bits = 1n << BigInt(index.get(id));
+    for (const p of prevs.get(id)) bits |= anc.get(p) ?? 0n;
+    anc.set(id, bits);
+  }
+  const bitCount = (x) => { let c = 0; while (x) { x &= x - 1n; c++; } return c; };
+  let win = null, winCover = -1, winLen = -1, winY = Infinity;
+  for (const id of ids) {
+    if (nexts.get(id).length) continue;
+    const n = model.nodes.get(id);
+    if (n && n.kind === 'note') continue;
+    const b = best.get(id);
+    if (!b) continue;
+    const cover = bitCount(anc.get(id));
+    const idTie = win == null || String(id).localeCompare(String(win), 'en', { numeric: true }) < 0;
+    const better = cover > winCover
+      || (cover === winCover && b.len > winLen)
+      || (cover === winCover && b.len === winLen && (b.startY < winY || (b.startY === winY && idTie)));
+    if (better) { win = id; winCover = cover; winLen = b.len; winY = b.startY; }
+  }
+  return win;
+}
+
+/**
  * 主链识别（用户校准 2026-11-09）：在可动子图内取最长路径（并列时取起点 top 更小者），
  * 返回链节点 ids 与锚顶（链上第二个节点的 top）。定位交给 R2 列重排：列内顶端是主链节点的列
  * 锚定到锚顶——既保证主链顶边成一条线，又不会把扇出列（顶端非主链）的堆叠打断。
+ * strategy='sink-coverage' 时改为「祖先覆盖最大的汇点 + 以它结尾的最长路径」（仍是纯拓扑）。
  * 链 <3 节点或含环时返回空。
  */
-export function spineOf(model, positions, subset = null) {
+export function spineOf(model, positions, subset = null, { strategy = 'longest' } = {}) {
   const empty = { chain: [], ids: new Set(), anchorTop: null };
   const pos = positions;
   const movable = [...model.nodes.values()].filter((n) => pos.has(n.id) && !n.fixed && (!subset || subset.has(n.id)));
@@ -103,7 +136,6 @@ export function spineOf(model, positions, subset = null) {
   if (order.length !== ids.size) return empty; // 有环
   // 最长路径 DP：len=节点数；并列取起点 top 更小者
   const best = new Map();
-  let bestEnd = null, bestLen = 0, bestStartY = Infinity;
   for (const id of order) {
     let cur = { len: 1, startY: pos.get(id)[1], prev: null };
     for (const p of prevs.get(id)) {
@@ -112,9 +144,17 @@ export function spineOf(model, positions, subset = null) {
       if (b.len + 1 > cur.len || (b.len + 1 === cur.len && b.startY < cur.startY)) cur = { len: b.len + 1, startY: b.startY, prev: p };
     }
     best.set(id, cur);
-    if (cur.len > bestLen || (cur.len === bestLen && cur.startY < bestStartY)) { bestLen = cur.len; bestStartY = cur.startY; bestEnd = id; }
   }
-  if (!bestEnd || bestLen < 3) return empty;
+  // 终点选择：longest=全图最长（现状）；sink-coverage=覆盖祖先最多的汇点（纯拓扑，排除 Note）
+  let bestEnd = strategy === 'sink-coverage' ? pickCoverageSink(model, ids, order, prevs, nexts, best) : null;
+  if (!bestEnd || best.get(bestEnd).len < 3) {
+    let bestLen = 0, bestStartY = Infinity;
+    for (const id of order) {
+      const cur = best.get(id);
+      if (cur.len > bestLen || (cur.len === bestLen && cur.startY < bestStartY)) { bestLen = cur.len; bestStartY = cur.startY; bestEnd = id; }
+    }
+  }
+  if (!bestEnd || best.get(bestEnd).len < 3) return empty;
   const chain = [];
   for (let id = bestEnd; id != null; id = best.get(id).prev) chain.unshift(id);
   return { chain, ids: new Set(chain), anchorTop: pos.get(chain[1])[1] };

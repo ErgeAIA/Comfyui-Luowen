@@ -209,3 +209,102 @@ test('layoutRefine.spineOf: 含环返回空链', () => {
   assert.deepEqual(r.chain, []);
   assert.equal(r.anchorTop, null);
 });
+
+// ---------- 主链判据：longest（现状）vs sink-coverage（汇点覆盖优先，2026-11-09 提案） ----------
+// 合成 A：外围 7 节点链 vs 主流程 5 节点（主流程汇点祖先 16）
+const makePeripheralVsMain = () => {
+  const nodes = [];
+  const links = [];
+  let lid = 1;
+  for (let i = 1; i <= 12; i++) nodes.push(N(i, 'Source', [i * 40, 1000], [80, 60], { outputs: [{}] }));
+  nodes.push(N(13, 'Hub', [600, 1000], [80, 60], { inputs: [{}], outputs: [{}] }));
+  nodes.push(N(14, 'Main1', [800, 1000], [80, 60], { inputs: [{}], outputs: [{}] }));
+  nodes.push(N(15, 'Main2', [1000, 1000], [80, 60], { inputs: [{}], outputs: [{}] }));
+  nodes.push(N(16, 'SaveMain', [1200, 1000], [80, 60], { inputs: [{}] }));
+  for (let i = 17; i <= 23; i++) nodes.push(N(i, i === 23 ? 'SavePer' : `Per${i - 16}`, [(i - 17) * 200, 0], [80, 60], i === 23 ? { inputs: [{}] } : { inputs: [{}], outputs: [{}] }));
+  for (let i = 1; i <= 12; i++) links.push(L(`s${lid++}`, i, 0, 13, 0));
+  links.push(L(`m${lid++}`, 13, 0, 14, 0), L(`m${lid++}`, 14, 0, 15, 0), L(`m${lid++}`, 15, 0, 16, 0));
+  for (let i = 17; i < 23; i++) links.push(L(`p${lid++}`, i, 0, i + 1, 0));
+  const m = buildModel({ nodes, links, groups: [] });
+  const pos = new Map(nodes.map((n) => [String(n.id), [n.pos[0], n.pos[1]]]));
+  return { m, pos };
+};
+
+test('layoutRefine.spineOf: strategy=longest 保持现状——外围长链（7）压过主流程（5）', () => {
+  const { m, pos } = makePeripheralVsMain();
+  const r = spineOf(m, pos, null, { strategy: 'longest' });
+  assert.deepEqual(r.chain, ['17', '18', '19', '20', '21', '22', '23']);
+});
+
+test('layoutRefine.spineOf: strategy=sink-coverage 选祖先覆盖最大的汇点——外围长链让位主流程', () => {
+  const { m, pos } = makePeripheralVsMain();
+  const r = spineOf(m, pos, null, { strategy: 'sink-coverage' });
+  assert.deepEqual(r.chain, ['1', '13', '14', '15', '16'], '汇点 16 祖先 16 > 汇点 23 祖先 7；起点并列取 id 最小');
+  assert.equal(r.anchorTop, 1000, '锚顶 = 链上第二个节点 top');
+});
+
+test('layoutRefine.spineOf: sink-coverage 等长时按祖先覆盖决胜（不再按最上）', () => {
+  const nodes = [];
+  const links = [];
+  let lid = 1;
+  for (let i = 1; i <= 8; i++) nodes.push(N(i, 'Source', [i * 40, 1200], [80, 60], { outputs: [{}] }));
+  nodes.push(N(9, 'Hub', [400, 1200], [80, 60], { inputs: [{}], outputs: [{}] }));
+  nodes.push(N(10, 'Main1', [700, 1200], [80, 60], { inputs: [{}], outputs: [{}] }));
+  nodes.push(N(11, 'Main2', [1000, 1200], [80, 60], { inputs: [{}], outputs: [{}] }));
+  nodes.push(N(12, 'SaveMain', [1300, 1200], [80, 60], { inputs: [{}] }));
+  nodes.push(N(13, 'Side1', [100, 0], [80, 60], { inputs: [{}], outputs: [{}] }));
+  nodes.push(N(14, 'Side2', [400, 0], [80, 60], { inputs: [{}], outputs: [{}] }));
+  nodes.push(N(15, 'Side3', [700, 0], [80, 60], { inputs: [{}], outputs: [{}] }));
+  nodes.push(N(16, 'Side4', [1000, 0], [80, 60], { inputs: [{}], outputs: [{}] }));
+  nodes.push(N(17, 'SaveSide', [1300, 0], [80, 60], { inputs: [{}] }));
+  for (let i = 1; i <= 8; i++) links.push(L(`s${lid++}`, i, 0, 9, 0));
+  links.push(L(`m${lid++}`, 9, 0, 10, 0), L(`m${lid++}`, 10, 0, 11, 0), L(`m${lid++}`, 11, 0, 12, 0));
+  for (let i = 13; i < 17; i++) links.push(L(`q${lid++}`, i, 0, i + 1, 0));
+  const m = buildModel({ nodes, links, groups: [] });
+  const pos = new Map(nodes.map((n) => [String(n.id), [n.pos[0], n.pos[1]]]));
+  assert.deepEqual(spineOf(m, pos, null, { strategy: 'longest' }).chain, ['13', '14', '15', '16', '17'], '现状：等长取最上（侧链）');
+  assert.deepEqual(spineOf(m, pos, null, { strategy: 'sink-coverage' }).chain, ['1', '9', '10', '11', '12'], '提案：祖先覆盖 12 > 5');
+});
+
+test('layoutRefine.spineOf: sink-coverage 排除 Note 汇点', () => {
+  const m = buildModel({
+    nodes: [
+      N(1, 'Load', [0, 0], [80, 60], { outputs: [{}] }),
+      N(2, 'Mid', [200, 0], [80, 60], { inputs: [{}], outputs: [{}] }),
+      N(3, 'Proc', [400, 0], [80, 60], { inputs: [{}], outputs: [{}] }),
+      N(4, 'Save', [600, 0], [80, 60], { inputs: [{}] }),
+      N(5, 'Extra', [200, 200], [80, 60], { outputs: [{}] }),
+      N(6, 'Note', [800, 200], [200, 120], { inputs: [{}] }),
+    ],
+    links: [L('e1', 1, 0, 2, 0), L('e2', 2, 0, 3, 0), L('e3', 3, 0, 4, 0), L('e4', 1, 0, 6, 0), L('e5', 5, 0, 6, 0)],
+    groups: [],
+  });
+  const pos = new Map([['1', [0, 0]], ['2', [200, 0]], ['3', [400, 0]], ['4', [600, 0]], ['5', [200, 200]], ['6', [800, 200]]]);
+  const r = spineOf(m, pos, null, { strategy: 'sink-coverage' });
+  assert.deepEqual(r.chain, ['1', '2', '3', '4'], 'Note 汇点不参与主链（即使祖先更多）');
+});
+
+test('layoutRefine.spineOf: 单链上两种判据一致', () => {
+  const m = buildModel({
+    nodes: [
+      N(1, 'A', [0, 0], [80, 60], { outputs: [{}] }),
+      N(2, 'B', [200, 10], [80, 60], { inputs: [{}], outputs: [{}] }),
+      N(3, 'C', [400, 20], [80, 60], { inputs: [{}] }),
+    ],
+    links: [L('e1', 1, 0, 2, 0), L('e2', 2, 0, 3, 0)],
+    groups: [],
+  });
+  const pos = new Map([['1', [0, 0]], ['2', [200, 10]], ['3', [400, 20]]]);
+  assert.deepEqual(spineOf(m, pos, null, { strategy: 'longest' }).chain, ['1', '2', '3']);
+  assert.deepEqual(spineOf(m, pos, null, { strategy: 'sink-coverage' }).chain, ['1', '2', '3']);
+});
+
+test('layoutRefine.spineOf: sink-coverage 含环仍返回空链', () => {
+  const m = buildModel({
+    nodes: [N(1, 'A', [0, 0]), N(2, 'B', [200, 0]), N(3, 'C', [400, 0])],
+    links: [L('e1', 1, 0, 2, 0), L('e2', 2, 0, 3, 0), L('e3', 3, 0, 1, 0)],
+    groups: [],
+  });
+  const pos = new Map([['1', [0, 0]], ['2', [200, 0]], ['3', [400, 0]]]);
+  assert.deepEqual(spineOf(m, pos, null, { strategy: 'sink-coverage' }).chain, []);
+});
