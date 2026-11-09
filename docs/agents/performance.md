@@ -440,3 +440,10 @@ description: >
 - 金标重建为 `tests/fixtures/layout-golden/test1.json`：当前 test1 = **14 节点 / 14 边**（UNETLoader / CLIPLoader / VAELoader / ModelSamplingAuraFlow / KSampler / CFGNorm / CLIPTextEncode / EmptySD3LatentImage / VAEDecode / SaveImage / SaveImageAdvanced / SaveAnimatedPNG / SaveWEBM），`inputSha256_16=9623f322a3df8674`；两次独立运行哈希 `0d2f20898d5e6613` 一致。
 - 当前 test1 宿主实测（两次）：total **32.7 / 33.9ms**；ELK **24.2 / 24.5ms**；capture×2 **3.3 / 3.8ms**；effH 0.2ms；其余 <2ms。
 - Stage 1 的行为不变证据仍以大样本金标 7/7 + Node 金标 7/7 为准；**test1 金标自本提交起作为后续算法升级的唯一行为判据**。
+
+### 2026-11-09 主链判据 sink-coverage 的额外成本
+
+- Node `chain_2000`：`tracks` 87.8 → 93.7ms（+~6ms；旧值来自 Stage 0 暖态，新值为同机暖态，噪声未单独测）。
+- 真实规模：test1（14 节点）`tracks` 0.1–0.2ms，单次冷页 total 22.9ms；56 节点级 `tracks` <1ms。
+- 祖先位集：`O(E·V/64)` 时间、约 `V²/8` 内存；2000 节点约 500KB，未观察到 GC 异常。
+- 行为：宿主 8/8 金标 + Node 7/7 不变；无性能回退结论。
