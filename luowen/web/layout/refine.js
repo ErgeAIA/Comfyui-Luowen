@@ -359,7 +359,13 @@ export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 
     if (k > 0) {
       const prevId = topLine[k - 1], prev = model.nodes.get(prevId);
       const inD = inDeg.get(id) ?? 0;
-      const gap = (inD === 1 && (outDeg.get(id) ?? 0) === 1) ? inlineGap : layerGap + Math.max(0, inD - 1) * 20;
+      let gap = (inD === 1 && (outDeg.get(id) ?? 0) === 1) ? inlineGap : layerGap + Math.max(0, inD - 1) * 20;
+      // 可读性优先：扇入密集 / 扇出 / 需要插深度源的主轴段主动放宽
+      if (inD >= 5) gap += 60;
+      if ((prev.outPorts?.length || 0) > 1 && inD >= 4) gap += 40;
+      let hasD2 = false;
+      for (const e of model.edges) if (e.dst === id) for (const e2 of model.edges) if (e2.dst === e.src) { hasD2 = true; break; }
+      if (hasD2) gap += 120;
       cx = pos.get(prevId)[0] + prev.size[0] + gap;
       // 主轴以端口连线水平为准（减少弯折），不再强制顶边共线
       const es = model.edges.filter((e) => e.src === prevId && e.dst === id);
