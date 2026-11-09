@@ -2,7 +2,7 @@
 title: 性能验收台账
 type: performance-log
 project: 络纹（LuoWen）
-updated: 2026-11-08
+updated: 2026-11-09
 description: >
   性能与视觉效果并列为验收维度。本文件记录性能验收口径、待测场景、测量入口与已测得数据。
   只追加不删历史；每条结论必须附测量方法、样本布局与原始数据。
@@ -253,3 +253,126 @@ description: >
 | 真实宿主 ELK+写入+刷新（端到端） | 95–117（布局）+ 刷新一帧 | E3 实测；209 节点 |
 
 **结论（研究期）**：布局端到端成本 ≤300ms@230 节点，远低于交互式一次性操作可接受阈（秒级）；分桶热点在 ELK 计算本身（我方转换/指标 ≤20ms）。实施轮须补测：批量 pos 写入→画布刷新的完整帧耗时（Phase D 只测到 setDirty 调用）、500 节点级梯度。基线对照：用户手工布局交叉 116–187（largest/mostGroups），ELK 31–74（−60~93%）。
+### 2026-11-09 自动布局 Stage 0：行为金标 + 阶段计时（只插桩，不改布局；DEC-051）
+
+**目的与纪律**：先建立「行为金标 + 分阶段计时」，任何优化落地前都必须有对照。本节**不宣称任何优化**，只登记基线与热点位置。
+
+**测量方法**
+
+- Node 全管线：`scripts/layout-perf/bench-node.mjs`（mock LGraph，无 DOM → 无 effH）；每用例预热 1 次、取 3–5 次 p50；用例 = chain / fan-in10 / fan-out8 / dense / 多副本。
+- 宿主真实 DOM：`scripts/layout-perf/golden-host.mjs`（Playwright，CDP 禁缓存，1600×1000）；协议 `loadGraphData → fit(scale≤0.9) → 等 .lg-node DOM 就绪 → autoLayout('full') → 读 node.pos`；同图重复 3 次取中位数（post4/5/6）。
+- 阶段耗时：`runAutoLayout().stages`（`performance.now()` 分段；一次性操作，非渲染热路径），另有 `scale` 规模诊断。
+- CPU 采样：`node --cpu-prof`，chain 1000 节点 ×2 次运行。
+- 行为金标：节点左上角坐标四舍五入 1e-3 → SHA1-16；插桩前后逐样本、逐坐标比较；基线入库 `tests/fixtures/layout-golden/host-path.json`。
+- 默认设置：`columnAlign=auto`、`nodeGap=40`、`layerGap=60`、`inlineGap=50`、`componentLayout=vertical`、折叠关。
+
+**样本**
+
+6 份真实工作流（largest 230 节点/248 线、mostGroups 176/209、mostReroute 193/226、mostComponents 186/181、midGroups 23/22、largeCollection 209/171）+ `midGroups ×1/×3/×5`；合成 chain 100/250/500/1000/2000、fan-in10、fan-out8、dense 10×10 / 25×10 / 50×10 / 100×10。
+
+**行为不变（插桩前 vs 插桩后）**
+
+| 样本 | 节点 | 哈希 | 坐标逐点一致 | 插桩前 ms | 插桩后 ms（中位） |
+|---|---|---|---|---|---|
+| largest | 230 | 864a5c784815c4d6 | 是 | 125.8 | 130.1 |
+| mostGroups | 176 | 704797dcfd0b3f68 | 是 | 149.2 | 123.0 |
+| mostReroute | 193 | ae49b7e66fc9af49 | 是 | 48.0 | 39.4 |
+| mostComponents | 186 | a7f38039cdd86cea | 是 | 140.1 | 115.5 |
+| midGroups | 23 | 471b918da2c56d6a | 是 | 23.6 | 21.2 |
+| largeCollection | 209 | 18a4a4423402a788 | 是 | 94.3 | 86.1 |
+| midGroups_x3 | 69 | 172ee2f738b90777 | 是 | 31.5 | 29.7 |
+
+**宿主阶段耗时（中位数，ms；post4/5/6）**
+
+| 样本 | 节点 | snapGraph | effH | model | plan | elk | straighten | tracks | capture1 | write | capture2 | metrics | total |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| largest | 230 | 1.1 | 7.0 | 3.1 | 1.3 | 82.3 | 0.5 | 0.8 | 15.0 | 3.8 | 12.7 | 2.8 | 130.1 |
+| mostGroups | 176 | 1.1 | 6.5 | 2.4 | 0.6 | 87.6 | 0.5 | 1.7 | 9.8 | 3.7 | 8.5 | 0.9 | 123.0 |
+| mostReroute | 193 | 0.9 | 5.9 | 1.3 | 0.9 | 7.4 | 0.1 | 0.1 | 11.5 | 1.8 | 9.1 | 0.5 | 39.4 |
+| mostComponents | 186 | 0.8 | 4.9 | 1.6 | 0.7 | 73.4 | 0.4 | 2.3 | 13.6 | 4.1 | 10.2 | 0.7 | 115.5 |
+| midGroups | 23 | 0.2 | 0.2 | 0.3 | 0.0 | 16.2 | 0.0 | 0.1 | 2.0 | 0.7 | 1.4 | 0.0 | 21.2 |
+| largeCollection | 209 | 1.0 | 8.4 | 2.0 | 0.8 | 43.0 | 0.3 | 1.6 | 13.1 | 4.4 | 10.5 | 0.8 | 86.1 |
+| midGroups_x3 | 69 | 0.5 | 1.2 | 0.7 | 0.3 | 16.1 | 0.0 | 0.3 | 5.4 | 1.9 | 3.4 | 0.0 | 29.7 |
+
+**宿主阶段占比（中位数）**
+
+| 样本 | ELK | capture1+capture2 | effH | model | write | 其余 |
+|---|---|---|---|---|---|---|
+| largest | 63.3% | 21.3% | 5.4% | 2.4% | 2.9% | 4.8% |
+| mostGroups | 71.2% | 14.9% | 5.3% | 2.0% | 3.0% | 3.7% |
+| mostReroute | 18.8% | 52.3% | 15.0% | 3.3% | 4.6% | 6.1% |
+| mostComponents | 63.5% | 20.6% | 4.2% | 1.4% | 3.5% | 6.7% |
+| midGroups | 76.4% | 16.0% | 0.9% | 1.4% | 3.3% | 1.9% |
+| largeCollection | 49.9% | 27.4% | 9.8% | 2.3% | 5.1% | 5.5% |
+| midGroups_x3 | 54.2% | 29.6% | 4.0% | 2.4% | 6.4% | 3.4% |
+
+**运行间噪声（同一引擎、同一图，total ms）**
+
+| 样本 | 最小 | 中位 | 最大 | 极差/中位 |
+|---|---|---|---|---|
+| largest | 121.3 | 124.0 | 249.1 | 103% |
+| mostGroups | 117.2 | 122.1 | 139.8 | 19% |
+| mostReroute | 37.4 | 38.8 | 46.1 | 22% |
+| mostComponents | 105.4 | 111.9 | 133.1 | 25% |
+| midGroups | 17.7 | 19.8 | 22.4 | 24% |
+| largeCollection | 77.2 | 86.1 | 95.9 | 22% |
+| midGroups_x3 | 24.0 | 29.8 | 48.5 | 82% |
+
+**Node 规模矩阵（p50，ms）**
+
+| 用例 | 节点 | 连线 | total | elk | tracks | model | metrics |
+|---|---|---|---|---|---|---|---|
+| chain_100 | 100 | 99 | 31.89 | 29.82 | 0.89 | 0.42 | 0.29 |
+| chain_250 | 250 | 249 | 44.80 | 40.68 | 2.01 | 1.28 | 0.73 |
+| chain_500 | 500 | 499 | 86.48 | 72.01 | 7.30 | 3.08 | 1.41 |
+| chain_1000 | 1000 | 999 | 180.94 | 140.12 | 20.40 | 11.98 | 5.78 |
+| chain_2000 | 2000 | 1999 | 536.87 | 386.59 | 87.84 | 38.60 | 21.06 |
+| fanin10_500 | 500 | 499 | 79.02 | 65.78 | 7.48 | 3.83 | 1.60 |
+| fanout8_500 | 497 | 496 | 80.56 | 68.20 | 7.75 | 2.82 | 1.45 |
+| dense_50x10 | 500 | 980 | 287.11 | 264.40 | 8.99 | 5.10 | 6.83 |
+| dense_100x10 | 1000 | 1980 | 1005.15 | 908.68 | 44.74 | 19.59 | 29.61 |
+| midGroups_x1 | 23 | 22 | 19.72 | 19.03 | 0.17 | 0.13 | 0.08 |
+| midGroups_x3 | 69 | 66 | 32.28 | 30.92 | 0.43 | 0.26 | 0.13 |
+| midGroups_x5 | 115 | 110 | 44.32 | 42.08 | 0.59 | 0.53 | 0.20 |
+
+**T(N) 幂指数（chain 拟合）**
+
+- 100→2000 全段：total 0.76、elk 0.67、tracks 1.39、model 1.43、metrics 1.26（ELK 含约 13–17ms 固定初始化开销，压低小 N 端指数）。
+- 1000→2000 段：elk 1.46、tracks 2.1、model 1.7、metrics 1.9——**tracks / model / metrics 已进入超线性区**。
+
+**CPU 采样（chain 1000，`--cpu-prof`，598 samples）**
+
+| 桶 | 占比 |
+|---|---|
+| `elk.bundled.js` 内部 | 70.4% |
+| 我方 `refine.js` | 6.7% |
+| Node 内部（ESM 装载 / GC） | 6.7% |
+| 我方 `graph-model.js` | 3.2% |
+| 我方 `metrics.js` | 2.0% |
+| 我方 `engine.js` | 0.8% |
+
+我方函数自耗时 Top：`rect`（refine.js:375）3.2%、`find`（graph-model.js:158）1.3%、`countCrossings` 0.8%、`layoutComponents` 0.8%、`effH` 0.8%、`buildModel` 0.7%、`topoOrderOf` 0.7%。采样开销使总耗时 574ms（无采样同一用例 328ms），只用相对占比。
+
+**结论（作为 Stage 1/2 输入，不是优化结论）**
+
+1. **ELK 是唯一数量级项**：真实样本 50–76%（跳过 Reroute 的 mostReroute 除外）；合成 dense 1000 节点 909/1005ms。当前 ELK 的净作用主要是「排序种子」——`layoutSpineTracks` 会整体重放主链与侧组，`straightenEdges` 的产出也大部分被覆盖。
+2. **`captureCanvasState` ×2 是宿主第二大项**：15–30%（mostReroute 达 52%），200 节点级每次约 9–15ms。
+3. **effH 逐节点 `document.querySelector`**：4–10%，0.2–10.6ms，随节点数近似线性；Node 路径同环节仅 0.1ms。
+4. **`model` 超线性来自 `topoOrderOf`**：O(V·E)，但生产布局没有任何消费方——Node 1000 节点 11.98ms、2000 节点 38.6ms，属纯浪费。
+5. **`tracks` 超线性**：最终重叠统计 O(N²) + 碰撞消解反复 `rect()`；1000 节点 20.4ms、2000 节点 87.8ms，CPU 采样中 `rect` 是我方最大自耗函数。
+6. **`metrics` O(E²)**：dense 1000 节点 29.6ms；只用于返回报告，不在布局决策中使用。
+7. **规模悬崖**：dense 1000 节点/1980 边已达 1005ms（单次主线程长任务）；chain 2000 节点 537ms。当前无重入保护：连点两次「⌁整理」会起两条异步管线交错写位置。
+8. **噪声必须用中位数**：同引擎同图 total 极差 9%–103%（含离群），单次 A/B 结论不可采信。
+
+**Stage 1 候选与收益上限（未实施，按实测上限排序）**
+
+| 候选 | 依据 | 上限 |
+|---|---|---|
+| `topoOrder` 改为按需计算 | 生产未消费，O(V·E) | 38.6ms@2000 |
+| `tracks` 重叠统计扫描线/网格 + `rect` 缓存 | O(N²) + 重复取值 | 87.8ms@2000 中大部分 |
+| `metrics` 按需计算 / 交叉统计降复杂度 | 仅报告用，O(E²) | 29.6ms@dense1000 |
+| effH 单次 `querySelectorAll` 建 Map | 逐节点全文档查询 | 5–10.6ms@200 节点宿主 |
+| 无位移时跳过 capture / 核查双 capture 语义 | 空转也付两次快照 | 20–27ms/次宿主 |
+| ELK 去留（阶段 2，需拍板） | 仅提供排序种子 | 数量级（dense 1000 达 909ms） |
+
+**已知限制**：宿主阶段之和与 total 一致（差异 <1%，为取整）；Node 路径无 DOM 故 effH≈0；ELK 固定开销使小图指数偏低；CPU 采样只用于相对占比。
