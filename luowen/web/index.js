@@ -31,6 +31,7 @@ const AUTOLAYOUT_ALIGN_ID = 'LuoWen.AutoLayout.ColumnAlign';
 const AUTOLAYOUT_GAP_ID = 'LuoWen.AutoLayout.NodeGap';
 const AUTOLAYOUT_LAYER_GAP_ID = 'LuoWen.AutoLayout.LayerGap';
 const AUTOLAYOUT_INLINE_GAP_ID = 'LuoWen.AutoLayout.InlineGap';
+const AUTOLAYOUT_COMPONENT_ID = 'LuoWen.AutoLayout.ComponentLayout';
 const ENABLED_ID = 'LuoWen.Enabled';
 const STYLE_ID = 'LuoWen.WireStyle';
 const AVOID_ID = 'LuoWen.NodeAvoidance';
@@ -360,6 +361,26 @@ app.registerExtension({
       attrs: { min: 20, max: 160, step: 5 },
       defaultValue: 50,
       onChange: (v) => setSettings({ autoLayoutInlineGap: Math.max(20, Math.min(160, Number(v) || 50)) }),
+    },
+    {
+      id: AUTOLAYOUT_COMPONENT_ID,
+      get name() {
+        return t('AutoLayoutComponent.name');
+      },
+      category: ['LuoWen', '自动布局', 'ComponentLayout'],
+      sortOrder: 102,
+      get tooltip() {
+        return { value: t('AutoLayoutComponent.tooltip'), class: TIP_CLASS };
+      },
+      type: 'combo',
+      get options() {
+        return [
+          { text: t('AutoLayoutComponent.opt.vertical'), value: 'vertical' },
+          { text: t('AutoLayoutComponent.opt.horizontal'), value: 'horizontal' },
+        ];
+      },
+      defaultValue: 'vertical',
+      onChange: (v) => setSettings({ autoLayoutComponent: v === 'horizontal' ? 'horizontal' : 'vertical' }),
     },
     {
       id: ENABLED_ID,
@@ -736,6 +757,7 @@ get tooltip() {
         nodeGap: opts.nodeGap ?? Math.max(20, Math.min(120, Number(readSetting(AUTOLAYOUT_GAP_ID, 40)) || 40)),
         layerGap: opts.layerGap ?? Math.max(20, Math.min(160, Number(readSetting(AUTOLAYOUT_LAYER_GAP_ID, 60)) || 60)),
         inlineGap: opts.inlineGap ?? Math.max(20, Math.min(160, Number(readSetting(AUTOLAYOUT_INLINE_GAP_ID, 50)) || 50)),
+        componentLayout: opts.componentLayout ?? readSetting(AUTOLAYOUT_COMPONENT_ID, 'vertical'),
       })),
       routes: () => getDebugRoutes(),
       trace: () => getTrace(),

@@ -156,7 +156,7 @@ function recomputeGroupBounds(graph, memberIdsByGroupId, groupIdsInOrder) {
  * @param {object} opts { scope:'full'|'selected', collapseNotes:boolean }
  * @returns { report } { moved, noteIdsCollapsed, groups, metrics, ms }
  */
-export async function runAutoLayout(app, { scope = 'full', collapseNotes = false, columnAlign = 'auto', nodeGap = 40, layerGap = 60, inlineGap = 50 } = {}) {
+export async function runAutoLayout(app, { scope = 'full', collapseNotes = false, columnAlign = 'auto', nodeGap = 40, layerGap = 60, inlineGap = 50, componentLayout = 'vertical' } = {}) {
   const graph = app.canvas.graph;
   if (!graph) throw new Error('no graph');
   const t0 = performance.now();
@@ -200,7 +200,7 @@ export async function runAutoLayout(app, { scope = 'full', collapseNotes = false
   const { straightenEdges, layoutComponents } = await import('./refine.js');
   const st = straightenEdges(model, positions);
   positions = st.positions;
-  const track = layoutComponents(model, positions, { inlineGap, layerGap, sideGap: layerGap, nodeGap, align: columnAlign });
+  const track = layoutComponents(model, positions, { inlineGap, layerGap, sideGap: layerGap, nodeGap, align: columnAlign, arrangement: componentLayout });
   positions = track.positions;
   // 障碍规避：有 fixed/未选（局部）时，把新布局整体平移到 fixed 包围盒右侧空白带（硬约束：不重叠）
   shiftToFreeBand(positions, constraints.obstacles, { margin: 60 });
@@ -228,6 +228,7 @@ export async function runAutoLayout(app, { scope = 'full', collapseNotes = false
     layerGap,
     inlineGap,
     compressed: 0,
+    componentLayout,
     overlaps: track.overlaps,
     noteIdsCollapsed: collapseNotes ? [...noteIds] : [],
     groups: memberIdsByGroupId.size,

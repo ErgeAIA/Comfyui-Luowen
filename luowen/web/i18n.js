@@ -77,6 +77,10 @@ const LOCALES = {
     'AutoLayoutLayerGap.tooltip': '自动布局时，主链相邻层（列）之间的水平净距。\n默认 60。\n入口多的节点所在层会自动加宽。\n调小可让主链更紧凑、调大更舒展。\n仅在「整理」时生效。',
     'AutoLayoutInlineGap.name': '整理时单进单出节点间距',
     'AutoLayoutInlineGap.tooltip': '自动布局时，主链上「1 进 1 出」过路节点（如采样算法、CFG 归一化）与上一段的水平间距。\n默认 50。\n比「主链水平间距」更小，让这类小节点并排压实、不占多余宽度。\n仅在「整理」时生效。',
+    'AutoLayoutComponent.name': '多工作流排布',
+    'AutoLayoutComponent.tooltip': '一个文件里有多个互不相连的工作流时，整理后各工作流之间如何排布。\n竖排（默认）：自上而下逐个排列。\n横排：自左向右逐个排列。\n仅在「整理」时生效。',
+    'AutoLayoutComponent.opt.vertical': '竖排',
+    'AutoLayoutComponent.opt.horizontal': '横排',
   },
 
   en: {
@@ -152,6 +156,10 @@ const LOCALES = {
     'AutoLayoutLayerGap.tooltip': 'Horizontal gap between adjacent layers (columns) on the main chain during auto-layout.\nDefault 60.\nLayers feeding many-input nodes widen automatically.\nLower = tighter main chain; higher = airier.\nApplies on Arrange only.',
     'AutoLayoutInlineGap.name': 'Inline Node Gap on Layout',
     'AutoLayoutInlineGap.tooltip': 'Horizontal gap before pass-through "1-in-1-out" nodes on the main chain (e.g. ModelSampling, CFG-normalize) during auto-layout.\nDefault 50.\nSmaller than the main horizontal gap, packing these small nodes inline instead of wasting width.\nApplies on Arrange only.',
+    'AutoLayoutComponent.name': 'Multi-workflow Arrangement',
+    'AutoLayoutComponent.tooltip': 'How disconnected workflows in one file are arranged after arranging.\nVertical (default): stacked top to bottom.\nHorizontal: placed left to right.\nApplies on Arrange only.',
+    'AutoLayoutComponent.opt.vertical': 'Vertical',
+    'AutoLayoutComponent.opt.horizontal': 'Horizontal',
   },
 };
 

@@ -409,7 +409,7 @@ export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 
  * 多连通分量布局：每个分量各算主链、独立走主链轨道排布，再竖排错开（分量间零重叠）。
  * 修「一个文件多份工作流时只有第一份对」（2026-11-09 用户反馈）。
  */
-export function layoutComponents(model, positions, opts = {}) {
+export function layoutComponents(model, positions, { arrangement = 'vertical', ...opts } = {}) {
   const pos = new Map(positions);
   const mvIds = [...pos.keys()].filter((id) => { const n = model.nodes.get(id); return n && !n.fixed; });
   const mv = new Set(mvIds);
@@ -423,7 +423,10 @@ export function layoutComponents(model, positions, opts = {}) {
     while (q.length) { const c = q.shift(); comp.push(c); for (const nx of adj.get(c) ?? []) if (!seen.has(nx)) { seen.add(nx); q.push(nx); } }
     comps.push(comp);
   }
-  let yCursor = mvIds.length ? Math.min(...mvIds.map((id) => pos.get(id)[1])) : 0;
+  const startX = mvIds.length ? Math.min(...mvIds.map((id) => pos.get(id)[0])) : 0;
+  const startY = mvIds.length ? Math.min(...mvIds.map((id) => pos.get(id)[1])) : 0;
+  const horiz = arrangement === 'horizontal';
+  let cursor = horiz ? startX : startY;
   let overlaps = 0;
   for (const comp of comps) {
     const set = new Set(comp);
@@ -432,13 +435,14 @@ export function layoutComponents(model, positions, opts = {}) {
     let mnx = Infinity, mny = Infinity;
     for (const id of comp) { const p = laid.positions.get(id); if (p) { mnx = Math.min(mnx, p[0]); mny = Math.min(mny, p[1]); } }
     if (!Number.isFinite(mnx)) continue;
-    let maxY = -Infinity;
+    let maxW = 0, maxH = 0;
+    for (const id of comp) { const p = laid.positions.get(id), n = model.nodes.get(id); if (p && n) { maxW = Math.max(maxW, p[0] - mnx + n.size[0]); maxH = Math.max(maxH, p[1] - mny + (n.effH ?? n.size[1])); } }
     for (const id of comp) {
-      const p = laid.positions.get(id), n = model.nodes.get(id);
-      if (p && n) { const np = [p[0] - mnx, p[1] - mny + yCursor]; pos.set(id, np); maxY = Math.max(maxY, np[1] + (n.effH ?? n.size[1])); }
+      const p = laid.positions.get(id);
+      if (p) pos.set(id, [(horiz ? cursor : startX) + (p[0] - mnx), (horiz ? startY : cursor) + (p[1] - mny)]);
     }
     overlaps += laid.overlaps ?? 0;
-    yCursor = maxY + 120;
+    cursor += (horiz ? maxW : maxH) + 120;
   }
   return { positions: pos, overlaps, components: comps.length };
 }

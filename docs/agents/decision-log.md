@@ -22,7 +22,7 @@ description: >
 - **背景**：用户把 test2 复制 3 份到同一文件，布局只认一条主链（全局最长路径），另外两份的节点被当成侧分支乱塞 → 大量重叠，只有第一份对。
 - **决策**：新增 `layoutComponents`——按**连通分量**拆分；每个分量各自 `spineOf(子集)` 求主链、`layoutSpineTracks(only=子集)` 独立布局，再把各分量竖排错开（间隔 120）。`spineOf`/`layoutSpineTracks` 增加 subset/only 参数。
 - **验证**：3 份副本（126 节点）——布局前视觉重叠 **180 → 布局后 0**；verify ok；单测 157/157。
-- **结果**：已实现并部署（SHA 一致）；**待用户验收**。
+- **结果**：已实现并部署（SHA 一致）；**待用户验收**。新增设置 `LuoWen.AutoLayout.ComponentLayout`（竖排默认 / 横排）：实测 3 份副本竖排 spanY 12543、横排 spanX 20100，均 0 重叠、verify ok。
 
 ## DEC-048: 主链独立轨道（阶段 A 首版）——主链水平紧凑 + 侧分支按锚点挂靠 + 全对碰撞消解
 
