@@ -12,8 +12,8 @@ test('linkColors: 主题关闭（默认）→ resolve 返回 null，适配器回
   assert.equal(mod.flowParams, undefined, 'flowParams 死代码已删除');
 });
 
-test('linkColors: 两套主题内置，62 类映射齐全，hex 格式合法', () => {
-  assert.deepEqual(listThemes().sort(), ['luowen-cyberpunk', 'luowen-dark']);
+test('linkColors: 三套主题内置，62 类映射齐全，hex 格式合法', () => {
+  assert.deepEqual(listThemes().sort(), ['luowen-cyberpunk', 'luowen-dark', 'luowen-nightlight']);
   for (const id of listThemes()) {
     setTheme(id);
     const info = themeInfo();
@@ -56,6 +56,9 @@ test('linkColors: 显式映射命中（CLIP/LATENT/MODEL）与 token 层产物�
   assert.equal(resolveLinkColor({}), mat.tokens['link.unknown']);
   setTheme('luowen-cyberpunk');
   assert.equal(resolveLinkColor({ type: 'CLIP' }), requireMaterialized('luowen-cyberpunk').types.CLIP, 'cyberpunk 同口径');
+  setTheme('luowen-nightlight');
+  assert.equal(resolveLinkColor({ type: 'CLIP' }), requireMaterialized('luowen-nightlight').types.CLIP, 'nightlight 同口径');
+  assert.deepEqual(themeInfo().context, { canvas: '#16120E', card: '#241F1B' }, '夜灯底色取 erge #001');
 });
 
 test('linkColors.shouldAnimate: 三模式 × 生成时禁用 × 外部闸门', async () => {

@@ -176,7 +176,7 @@ const strict = args.includes('--strict');
 // materialize：把语义 token + 62 类实测映射展开成 {TYPE: hex}，供主题装载/截图注入直接消费
 const emitHex = args.includes('--emit-hex');
 
-const themes = ['luowen-dark', 'luowen-cyberpunk'].map((id) => loadTheme(id));
+const themes = ['luowen-dark', 'luowen-cyberpunk', 'luowen-nightlight'].map((id) => loadTheme(id));
 const report = { generatedAt: new Date().toISOString(), gate: GATE, themes: {} };
 const failures = [];
 const md = [];

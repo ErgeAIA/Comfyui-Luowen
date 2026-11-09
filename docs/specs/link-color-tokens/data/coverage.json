@@ -870,5 +870,441 @@
       "links": 1,
       "workflows": 1
     }
+  ],
+  "luowen-nightlight": [
+    {
+      "type": "IMAGE",
+      "token": "link.image",
+      "how": "exact",
+      "links": 1564,
+      "workflows": 490
+    },
+    {
+      "type": "VIDEO",
+      "token": "link.video",
+      "how": "exact",
+      "links": 399,
+      "workflows": 233
+    },
+    {
+      "type": "CONDITIONING",
+      "token": "link.conditioning",
+      "how": "exact",
+      "links": 365,
+      "workflows": 77
+    },
+    {
+      "type": "STRING",
+      "token": "link.scalar",
+      "how": "exact",
+      "links": 310,
+      "workflows": 98
+    },
+    {
+      "type": "MODEL",
+      "token": "link.model",
+      "how": "exact",
+      "links": 260,
+      "workflows": 78
+    },
+    {
+      "type": "INT",
+      "token": "link.scalar",
+      "how": "exact",
+      "links": 260,
+      "workflows": 86
+    },
+    {
+      "type": "LATENT",
+      "token": "link.latent",
+      "how": "exact",
+      "links": 240,
+      "workflows": 77
+    },
+    {
+      "type": "VAE",
+      "token": "link.vae",
+      "how": "exact",
+      "links": 169,
+      "workflows": 76
+    },
+    {
+      "type": "CLIP",
+      "token": "link.clip",
+      "how": "exact",
+      "links": 149,
+      "workflows": 75
+    },
+    {
+      "type": "MASK",
+      "token": "link.mask",
+      "how": "exact",
+      "links": 88,
+      "workflows": 27
+    },
+    {
+      "type": "AUDIO",
+      "token": "link.audio",
+      "how": "exact",
+      "links": 86,
+      "workflows": 56
+    },
+    {
+      "type": "FLOAT",
+      "token": "link.scalar",
+      "how": "exact",
+      "links": 49,
+      "workflows": 24
+    },
+    {
+      "type": "MESH",
+      "token": "link.mesh3d",
+      "how": "exact",
+      "links": 43,
+      "workflows": 9
+    },
+    {
+      "type": "BOOLEAN",
+      "token": "link.scalar",
+      "how": "exact",
+      "links": 38,
+      "workflows": 16
+    },
+    {
+      "type": "FILE_3D_GLB",
+      "token": "link.mesh3d",
+      "how": "exact",
+      "links": 31,
+      "workflows": 27
+    },
+    {
+      "type": "CLIP_VISION",
+      "token": "link.clip",
+      "how": "exact",
+      "links": 27,
+      "workflows": 17
+    },
+    {
+      "type": "CLIP_VISION_OUTPUT",
+      "token": "link.clip",
+      "how": "exact",
+      "links": 24,
+      "workflows": 14
+    },
+    {
+      "type": "SIGMAS",
+      "token": "link.model",
+      "how": "exact",
+      "links": 23,
+      "workflows": 17
+    },
+    {
+      "type": "SAMPLER",
+      "token": "link.model",
+      "how": "exact",
+      "links": 21,
+      "workflows": 17
+    },
+    {
+      "type": "RECRAFT_COLOR",
+      "token": "link.conditioning",
+      "how": "exact",
+      "links": 20,
+      "workflows": 7
+    },
+    {
+      "type": "GUIDER",
+      "token": "link.model",
+      "how": "exact",
+      "links": 16,
+      "workflows": 12
+    },
+    {
+      "type": "NOISE",
+      "token": "link.latent",
+      "how": "exact",
+      "links": 16,
+      "workflows": 12
+    },
+    {
+      "type": "ARRAY",
+      "token": "link.struct",
+      "how": "exact",
+      "links": 13,
+      "workflows": 11
+    },
+    {
+      "type": "VOXEL",
+      "token": "link.mesh3d",
+      "how": "exact",
+      "links": 12,
+      "workflows": 6
+    },
+    {
+      "type": "*",
+      "token": "link.unknown",
+      "how": "exact",
+      "links": 12,
+      "workflows": 8
+    },
+    {
+      "type": "ELEVENLABS_VOICE",
+      "token": "link.audio",
+      "how": "exact",
+      "links": 10,
+      "workflows": 6
+    },
+    {
+      "type": "FILE_3D_FBX",
+      "token": "link.mesh3d",
+      "how": "exact",
+      "links": 10,
+      "workflows": 10
+    },
+    {
+      "type": "COMBO",
+      "token": "link.scalar",
+      "how": "exact",
+      "links": 10,
+      "workflows": 3
+    },
+    {
+      "type": "SVG",
+      "token": "link.image",
+      "how": "exact",
+      "links": 9,
+      "workflows": 9
+    },
+    {
+      "type": "AUDIO_ENCODER_OUTPUT",
+      "token": "link.audio",
+      "how": "exact",
+      "links": 9,
+      "workflows": 2
+    },
+    {
+      "type": "FILE_3D",
+      "token": "link.mesh3d",
+      "how": "exact",
+      "links": 8,
+      "workflows": 8
+    },
+    {
+      "type": "FISHAUDIO_VOICE",
+      "token": "link.audio",
+      "how": "exact",
+      "links": 7,
+      "workflows": 4
+    },
+    {
+      "type": "FILE_3D_OBJ",
+      "token": "link.mesh3d",
+      "how": "exact",
+      "links": 7,
+      "workflows": 5
+    },
+    {
+      "type": "TRACKS",
+      "token": "link.video",
+      "how": "exact",
+      "links": 6,
+      "workflows": 1
+    },
+    {
+      "type": "BACKGROUND_REMOVAL",
+      "token": "link.image",
+      "how": "exact",
+      "links": 5,
+      "workflows": 2
+    },
+    {
+      "type": "DICT",
+      "token": "link.struct",
+      "how": "exact",
+      "links": 5,
+      "workflows": 4
+    },
+    {
+      "type": "RECRAFT_CONTROLS",
+      "token": "link.conditioning",
+      "how": "exact",
+      "links": 5,
+      "workflows": 5
+    },
+    {
+      "type": "CONTROL_NET",
+      "token": "link.conditioning",
+      "how": "exact",
+      "links": 5,
+      "workflows": 4
+    },
+    {
+      "type": "LUMA_REF",
+      "token": "link.conditioning",
+      "how": "exact",
+      "links": 4,
+      "workflows": 1
+    },
+    {
+      "type": "RECRAFT_V3_STYLE",
+      "token": "link.conditioning",
+      "how": "exact",
+      "links": 4,
+      "workflows": 4
+    },
+    {
+      "type": "BOUNDING_BOX",
+      "token": "link.mask",
+      "how": "exact",
+      "links": 4,
+      "workflows": 4
+    },
+    {
+      "type": "MHR_POSE_DATA",
+      "token": "link.struct",
+      "how": "exact",
+      "links": 4,
+      "workflows": 1
+    },
+    {
+      "type": "WAN_CAMERA_EMBEDDING",
+      "token": "link.conditioning",
+      "how": "exact",
+      "links": 4,
+      "workflows": 3
+    },
+    {
+      "type": "SPLAT",
+      "token": "link.mesh3d",
+      "how": "exact",
+      "links": 3,
+      "workflows": 1
+    },
+    {
+      "type": "PIXVERSE_TEMPLATE",
+      "token": "link.struct",
+      "how": "exact",
+      "links": 3,
+      "workflows": 3
+    },
+    {
+      "type": "LATENT_OPERATION",
+      "token": "link.latent",
+      "how": "exact",
+      "links": 3,
+      "workflows": 3
+    },
+    {
+      "type": "SAM3D_BODY_MODEL",
+      "token": "link.mesh3d",
+      "how": "exact",
+      "links": 3,
+      "workflows": 1
+    },
+    {
+      "type": "AUDIO_ENCODER",
+      "token": "link.audio",
+      "how": "exact",
+      "links": 3,
+      "workflows": 2
+    },
+    {
+      "type": "SHAPE_SUBDIVIDES",
+      "token": "link.struct",
+      "how": "exact",
+      "links": 2,
+      "workflows": 2
+    },
+    {
+      "type": "MOGE_MODEL",
+      "token": "link.model",
+      "how": "exact",
+      "links": 2,
+      "workflows": 2
+    },
+    {
+      "type": "MOGE_GEOMETRY",
+      "token": "link.mesh3d",
+      "how": "exact",
+      "links": 2,
+      "workflows": 2
+    },
+    {
+      "type": "GEMINI_INPUT_FILES",
+      "token": "link.conditioning",
+      "how": "exact",
+      "links": 2,
+      "workflows": 1
+    },
+    {
+      "type": "KREA_STYLE_REF",
+      "token": "link.conditioning",
+      "how": "exact",
+      "links": 2,
+      "workflows": 1
+    },
+    {
+      "type": "STYLE_MODEL",
+      "token": "link.model",
+      "how": "exact",
+      "links": 2,
+      "workflows": 1
+    },
+    {
+      "type": "MODEL_PATCH",
+      "token": "link.model",
+      "how": "exact",
+      "links": 2,
+      "workflows": 2
+    },
+    {
+      "type": "LATENT_UPSCALE_MODEL",
+      "token": "link.model",
+      "how": "exact",
+      "links": 2,
+      "workflows": 2
+    },
+    {
+      "type": "LOAD3D_CAMERA",
+      "token": "link.struct",
+      "how": "exact",
+      "links": 1,
+      "workflows": 1
+    },
+    {
+      "type": "LAYERS",
+      "token": "link.image",
+      "how": "exact",
+      "links": 1,
+      "workflows": 1
+    },
+    {
+      "type": "COLOR",
+      "token": "link.scalar",
+      "how": "exact",
+      "links": 1,
+      "workflows": 1
+    },
+    {
+      "type": "OPENAI_CHAT_CONFIG",
+      "token": "link.struct",
+      "how": "exact",
+      "links": 1,
+      "workflows": 1
+    },
+    {
+      "type": "UPSCALE_MODEL",
+      "token": "link.model",
+      "how": "exact",
+      "links": 1,
+      "workflows": 1
+    },
+    {
+      "type": "SAM3_TRACK_DATA",
+      "token": "link.struct",
+      "how": "exact",
+      "links": 1,
+      "workflows": 1
+    }
   ]
 }

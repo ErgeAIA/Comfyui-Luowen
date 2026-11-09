@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "luowen-nightlight",
+  "name": "LuoWen Night Light 连线 token",
+  "extends": "luowen-dark",
+  "$description": "夜灯：erge #001 暖深底（canvas #16120E / card #241F1B），色相向品牌橙红 #F2570F 对齐；低蓝低眩光。仅覆盖 primitive/context 与 mask/clip 的明度档，语义与 typeMap 继承 dark。",
+  "context": {
+    "canvas": "#16120E",
+    "card": "#241F1B"
+  },
+  "primitive": {
+    "hue": {
+      "vae": 20,
+      "conditioning": 40,
+      "clip": 110,
+      "mask": 155,
+      "audio": 190,
+      "mesh3d": 220,
+      "image": 65,
+      "model": 290,
+      "latent": 330,
+      "video": 52
+    },
+    "luminance": {
+      "hi": 0.78,
+      "mid": 0.58,
+      "lo": 0.66,
+      "low": 0.54,
+      "video": 0.72
+    },
+    "chroma": 0.1,
+    "neutralChroma": 0.015,
+    "neutralLuminance": {
+      "scalar": 0.64,
+      "struct": 0.58,
+      "unknown": 0.7
+    }
+  },
+  "semantic": {
+    "link.mask": {
+      "hue": "primitive.hue.mask",
+      "luminance": "primitive.luminance.low"
+    },
+    "link.clip": {
+      "hue": "primitive.hue.clip",
+      "luminance": "primitive.luminance.lo"
+    }
+  }
+}

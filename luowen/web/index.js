@@ -517,10 +517,11 @@ get options() {
           { text: t('ColorTheme.opt.off'), value: 'off' },
           { text: t('ColorTheme.opt.luowen-dark'), value: 'luowen-dark' },
           { text: t('ColorTheme.opt.luowen-cyberpunk'), value: 'luowen-cyberpunk' },
+          { text: t('ColorTheme.opt.luowen-nightlight'), value: 'luowen-nightlight' },
         ];
       },
       defaultValue: 'off',
-      onChange: (v) => setSettings({ colorTheme: v === 'luowen-dark' || v === 'luowen-cyberpunk' ? v : 'off' }),
+      onChange: (v) => setSettings({ colorTheme: ['luowen-dark', 'luowen-cyberpunk', 'luowen-nightlight'].includes(v) ? v : 'off' }),
     },
     {
       id: FLOW_ID,

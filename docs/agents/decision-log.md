@@ -16,6 +16,15 @@ description: >
 > 格式：`## DEC-NNN: 标题`，新条目置顶，NNN 三位递增。
 > 字段：`- **日期**：` / `- **背景**：` / `- **决策**：` / `- **验证**：`
 
+## DEC-059: 夜灯连线主题（ThemeVault erge #001）
+
+- **日期**：2026-11-10
+- **背景**：用户要求新增夜灯主题，并明确取色源是 ThemeVault **#001 erge/dark**（canvas `#16120E` / card `#241F1B`、品牌橙红 `#F2570F`），不是 ember #006。
+- **决策**：新增连线 token 主题 `luowen-nightlight`（`extends: luowen-dark`，只覆盖色相/明度/底色与 mask/clip 明度档）。色相向品牌橙红对齐（conditioning 40 / video 52 / image 65 / vae 20 / clip 110 / mask 155 / audio 190 / mesh3d 220 / model 290 / latent 330），明度 0.78/0.72/0.66/0.58/0.54 分级保证色盲余量。
+- **门禁**：contrast 全部 ≥4.35:1（canvas/card）；CVD 最差 0.0206；相邻色相最差 0.0215；62 类显式覆盖 4388 条，全过。
+- **接线**：`materialized.js` 三主题、`LuoWen.ColorTheme` 增加「夜灯」选项、i18n 双语、单测断言底色与映射。
+- **边界**：只改**连线颜色**；画布/节点背景仍由宿主主题决定。**待用户宿主验收**。
+
 ## DEC-058: 主轴段可读性加宽 + 深度源左侧插空档
 
 - **日期**：2026-11-09
