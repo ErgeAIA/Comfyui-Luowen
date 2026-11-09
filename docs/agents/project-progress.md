@@ -51,6 +51,7 @@ description: >
   - 新增 `LuoWen.AutoLayout.LayerGap`（主链水平间距 20–160，默认 60）；侧列（顶端非主链）以连接口中线上下对称分布（2 上 2 下）。
   - 实测 test2（14 节点）：视觉重叠 before 2 处 → after **0**；save 列 2 上 2 下；主链顶边全 212；undo 14/14；verify ok；66ms；单测 156/156。
   - **遗留**：①loader/CLIP 视觉间距仅 9.3（源节点归列未做，试过一版会误吸 VAELoader 已回退）②1 进 1 出小节点并排紧凑未做。
+  - **补记**：①已修——侧源（入度 0 且目标不在主链）顶边对齐到目标 y 均值；CLIPLoader 下移到 511、与 UNETLoader 视觉间距 9.3→134。仍遗留②（1 进 1 出并排紧凑）。
 - **本轮接手核对（2026-11-09，新会话只读盘点 + 本条记录，未改功能代码）**：分支 auto-layout = origin = `a7d1ec9`，工作区干净；单测实跑 **151/151**；宿主 `custom_nodes/luowen/web/index.js` 与仓库 SHA256 一致（`4c3abbbd…`，含 actionbar 按钮版）。F-015 交付项已闭合（DEC-043 补记 G），待用户事项：①盲测 A/B（`.verify/p7/blind-A/B.json`）②actionbar「⌁整理」按钮宿主验收（`a7d1ec9` 未见于决策日志，验收状态待用户确认）③auto-layout 合入 main 的时机。文档卫生观察（只报告不删历史）：本文件「实施轮」条目与 decision-log DEC-043 补记 F 各有三份重复；四份 handoff 均为 2026-11-07 早于本工作线，最新事实以本文件与 DEC-043 补记 G 为准。
 - **本轮动效 v3 实施（2026-11-08，用户指示「实施吧」；DEC-042；改 trace.js/renderLinkAdapter.js/index.js + 新增 beamTrace.test.mjs；已部署宿主自测，等用户验收）**：
         - **样本部署宿主（用户指示）**：六份选样工作流复制进 portable 工作流目录（前缀 `LW样本-`，不覆盖同名），宿主 loadGraphData 冒烟通过（最大样本 230 节点 248 链装载 ok、路由接管、verify ok、零报错；routed 计数随视口/缩放符合既有裁剪口径）。脚本 `.verify/p7/deploy-samples.mjs`。

@@ -205,6 +205,25 @@ export async function runAutoLayout(app, { scope = 'full', collapseNotes = false
   // R2 列内重排 + 逐列对齐（auto=按扇入/扇出，默认）
   const sw = swapReduceCrossings(model, positions, { colGap: 150, align: columnAlign, nodeGap, spine });
   positions = sw.positions;
+  // 侧源对齐（用户校准 2026-11-09）：入度 0 且目标全不在主链上的源（如 CLIP 加载器→CLIP 文本编码），
+  // 把源顶边对齐到其目标顶边均值——自动下移、拉开与主链加载器的距离，CLIP 线也更顺。
+  {
+    const spineIds = spine.ids;
+    const inDeg = new Map();
+    for (const e of model.edges) inDeg.set(e.dst, (inDeg.get(e.dst) ?? 0) + 1);
+    const mv = new Set(constraints.movableIds.map(String));
+    const tgts = new Map();
+    for (const e of model.edges) if (mv.has(e.src) && mv.has(e.dst)) { if (!tgts.has(e.src)) tgts.set(e.src, []); tgts.get(e.src).push(e.dst); }
+    for (const id of mv) {
+      if ((inDeg.get(id) ?? 0) !== 0) continue;
+      const tg = tgts.get(id);
+      if (!tg || !tg.length || tg.some((t) => spineIds.has(t))) continue;
+      let sum = 0, n = 0;
+      for (const t of tg) { const p = positions.get(t) ?? model.nodes.get(t)?.pos; if (p) { sum += p[1]; n++; } }
+      const p = positions.get(id);
+      if (p && n) positions.set(id, [p[0], sum / n]);
+    }
+  }
   // 障碍规避：有 fixed/未选（局部）时，把新布局整体平移到 fixed 包围盒右侧空白带（硬约束：不重叠）
   shiftToFreeBand(positions, constraints.obstacles, { margin: 60 });
 
