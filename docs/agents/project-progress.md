@@ -2,7 +2,7 @@
 title: Project Progress
 type: project-progress
 project: 络纹（LuoWen）
-updated: 2026-11-09
+updated: 2026-11-10
 description: >
   项目开发进度实时记录：阶段、分支、代码状态、最近进展。每次会话更新。
   AI 在本文件新增进展或修改当前状态后，必须同步更新 frontmatter 的 updated 字段为当日日期（YYYY-MM-DD）。
@@ -25,6 +25,7 @@ description: >
 - **本轮提交收尾（2026-11-07）**：文档与代码分三笔提交后，又追加 6 笔功能/修复提交并已 push；提交链 `529648e`（文档）→ `ad01899`（阶段 2 代码）→ `9f93d3c`（trunkCache 上限）→ `8d55a0b`（chamfer 预筛）→ `29fc015`（等距带方向感知）→ `01d8df7`（Reroute 手动意图保护）→ `d546e39`（BUG-006）→ `5146c82`（共存文档）→ `ebbc038`（verify 快照）；工作区干净，本地无未推送提交
 - **代码**：`luowen/`（含 `routing/trunkPlan.js` 单主干共享几何、三档避障、预览、缓存、`geometry/chamfer.js` 绕障外角大斜切、`geometry/trace.js` 圆角半径 0–24（默认 10）、`routing/laneAssign.js` 输入侧按接近方向嵌套分道 + 走廊净空顺延 + 同目标等距带（`planBands`、`bandDegraded`/`orderDegraded`）、`snap/alignSnap.js` + `snap/dragSnap.js` 对齐吸附、`routing/crossings.js` + `routing/crossCleanup.js` 交叉枚举与离线清理、主干组高亮 + 组删除菜单），已装本机 custom_nodes 实测
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2、Node 24.22.1；Playwright 浏览器实测流程已打通
+- **合并入 main（2026-11-10）**：自动布局工作线（DEC-052~DEC-058、性能 Stage 0/1、基准脚本与金标、触发 UI 收尾）整体 fast-forward 合并到 main；合并前 review 通过（工作区干净、单测 164/164、宿主 `custom_nodes/luowen` 五个改动文件 SHA 与仓库一致）。merge 后 main 与 auto-layout 指向同一提交。
 - **主轴加宽 + #219 左侧插空档（2026-11-09，分支 auto-layout；DEC-058；提交 `3276d0f`）**：
   - 主轴段按可读性加宽（inD≥5 +60；前驱扇出且 inD≥4 +40；存在深度源 +120）。
   - 宿主：#219 落到 #231 左侧（x2131/右缘2514 vs #231 x2604）、y888 在其上方；右缘 2874 对齐；间距 227→220=320、220→225=280。
