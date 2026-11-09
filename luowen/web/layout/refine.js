@@ -354,6 +354,7 @@ export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 
   const anchorTop = spine.anchorTop != null ? spine.anchorTop : Math.min(...topLine.map((id) => pos.get(id)[1]));
   let cx = Math.min(...topLine.map((id) => pos.get(id)[0]));
   let cy = anchorTop, cyPrev = anchorTop;
+  const topSet = new Set(topLine);
   topLine.forEach((id, k) => {
     const n = model.nodes.get(id);
     if (k > 0) {
@@ -363,8 +364,12 @@ export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 
       // 可读性优先：扇入密集 / 扇出 / 需要插深度源的主轴段主动放宽
       if (inD >= 5) gap += 60;
       if ((prev.outPorts?.length || 0) > 1 && inD >= 4) gap += 40;
+      // 真正的深度源：hub ← 侧节点 ← 源（中间层必须不是主干，否则每个汇合点都会被误判加宽）
       let hasD2 = false;
-      for (const e of model.edges) if (e.dst === id) for (const e2 of model.edges) if (e2.dst === e.src) { hasD2 = true; break; }
+      for (const e of model.edges) {
+        if (e.dst !== id || topSet.has(e.src)) continue;
+        if (model.edges.some((e2) => e2.dst === e.src)) { hasD2 = true; break; }
+      }
       if (hasD2) gap += 120;
       cx = pos.get(prevId)[0] + prev.size[0] + gap;
       // 主轴以端口连线水平为准（减少弯折），不再强制顶边共线
