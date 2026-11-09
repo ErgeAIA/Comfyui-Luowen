@@ -224,7 +224,7 @@ export async function runAutoLayout(app, { scope = 'full', collapseNotes = false
       if (p && n && selfN) positions.set(id, [p[0], sum / n - selfN.size[1] / 2]); // 源中心线 = 目标中心线均值
     }
   }
-  // 主链段水平压实：1 进 1 出节点并排收紧（用户校准 2026-11-09）
+  // 主链段水平压实：1 进 1 出节点并排收紧（安全阀：仅压不与侧边共用列边界的列，见 compressSpineInline）
   const cp = compressSpineInline(model, positions, { inlineGap, spine });
   positions = cp.positions;
   // 障碍规避：有 fixed/未选（局部）时，把新布局整体平移到 fixed 包围盒右侧空白带（硬约束：不重叠）

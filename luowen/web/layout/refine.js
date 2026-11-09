@@ -257,6 +257,16 @@ export function compressSpineInline(model, positions, { inlineGap = 50, colGap =
       const pred = si > 0 ? spine.chain[si - 1] : null;
       const pc = pred != null ? colOf.get(pred) : null;
       if (pc != null && pc < i) {
+        // 安全阀：本列若有来自更早列的侧边（非主链 pred→sp 边），压缩会挤压该侧线（如 加载CLIP→CLIP文本编码）
+        // → 跳过本列压缩（本列随上一列同幅平移，侧线间距保持不变）
+        const colIds = new Set(cols[i].map((n) => n.id));
+        let hasSideIn = false;
+        for (const e of model.edges) {
+          if (!colIds.has(e.dst)) continue;
+          const sc = colOf.get(e.src);
+          if (sc != null && sc < i && !(e.src === pred && e.dst === sp.id)) { hasSideIn = true; break; }
+        }
+        if (hasSideIn) continue;
         const predN = model.nodes.get(pred);
         const predRight = pos.get(pred)[0] + shift[pc] + predN.size[0];
         const wantShift = predRight + inlineGap - pos.get(sp.id)[0]; // 使 sp 左缘 = pred 右缘 + inlineGap
