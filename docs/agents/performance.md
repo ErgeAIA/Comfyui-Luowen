@@ -399,3 +399,37 @@ description: >
 **Set/Get 边界事实（当前代码行为）**：仅含 **Reroute** 的连通分量会整体跳过重排（`rerouteComponentIds`）；Set/Get 节点没有特殊处理，按普通节点参与布局——test2 里的 1 个 SetNode + 1 个 GetNode 被移动，且该结果已获用户验收。含大量 Set/Get + 注释的人工图不在算法能力内，本轮不改动其行为。
 
 **Stage 1 排序修正（未实施）**：先解决 ELK 固定成本（实例复用/去留评估）与 capture 双快照；effH 单次 DOM 扫描次之；topoOrder 等"免费清理"顺带做；N² 统计类降级为大文件护栏。
+### 2026-11-09 自动布局 Stage 1：函数级效率优化（行为不变）
+
+**范围**：按用户口径只做函数执行效率，不改算法与几何；Set/Get 节点本版本不做特殊处理；宿主 `captureCanvasState`×2 不动（拆掉会改变撤销链目标状态）。
+
+**改动**
+
+1. **空闲预热 ELK**（`warmupAutoLayout` + `requestIdleCallback`）：只拉起 bundle 并跑一次脱离图的 2 节点布局，把首次「整理」的装载与冷 JIT 移到浏览器空闲期。
+2. **effH 单次 DOM 扫描**：`querySelectorAll('.lg-node[data-node-id]')` 建 id→元素表，替代逐节点 `document.querySelector`。
+3. **ELK 种子缓存**：缓存键 = 可动节点（id/宽/高/入端口数/出端口数）+ 边（id/两端/端口）+ 间距；命中直接复用。ELK 只消费尺寸/端口/边、不读原位置，输出确定；任何结构、尺寸、端口、边或间距变化都会换键。
+4. **消除重复工作**：全图布局不再为「整理选中」准备原位置拷贝与连通分量 BFS；返回前的两张位置表合并为一轮遍历。
+
+**行为不变（机检）**
+
+- 大样本宿主金标 **7/7** 哈希与 Stage 0 完全一致（`tests/fixtures/layout-golden/host-path.json`）。
+- Node 金标 **7/7** 一致；单测 **157/157**。
+- test1/2/3 因用户正在编辑、`inputSha` 全部漂移，本轮不作为行为判据（fixture 已标记 `stale`）。
+
+**实测（宿主；Stage 0 为中位数，Stage 1 为单次运行；同图噪声 ±19–26%，方向性差异远超噪声）**
+
+| 指标 | Stage 0 | Stage 1 | 机制 |
+|---|---|---|---|
+| largest 首次整理 total | 130.1ms | 66.6ms | 空闲预热吸收冷装载/JIT |
+| largest ELK | 80.6ms | 32.2ms | 同上 |
+| effH（176–230 节点） | 4.9–8.4ms | 0.6–1.1ms | 单次扫描 |
+| 重复点击 total（23 节点样本） | 40.5ms | 5.6ms | 缓存命中 |
+| 重复点击 ELK | 32.3ms | 0ms | 缓存命中 |
+
+**未做（明确留下的）**
+
+- `captureCanvasState`×2（真实负载 10–12ms）：宿主实现内部是整图 `serialize()`；只保留后一次会改变撤销目标状态，需用户拍板。
+- ELK 替换 / Worker：结构性变更，不在本阶段。
+- N² 统计类（tracks/metrics）：真实规模 <1ms，只保留为大文件护栏。
+
+**已知边界**：连续多次点击「整理」时，位置会继续小幅变化（Stage 0 已存在，与缓存无关；首次点击后 DOM 真实高度稳定过程所致），本轮未改。
