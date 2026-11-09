@@ -156,12 +156,23 @@ function recomputeGroupBounds(graph, memberIdsByGroupId, groupIdsInOrder) {
  * @param {object} opts { scope:'full'|'selected', collapseNotes:boolean }
  * @returns { report } { moved, noteIdsCollapsed, groups, metrics, ms }
  */
-export async function runAutoLayout(app, { scope = 'full', collapseNotes = false, columnAlign = 'auto', nodeGap = 40 } = {}) {
+export async function runAutoLayout(app, { scope = 'full', collapseNotes = false, columnAlign = 'auto', nodeGap = 40, layerGap = 60 } = {}) {
   const graph = app.canvas.graph;
   if (!graph) throw new Error('no graph');
   const t0 = performance.now();
 
   const snapshot = snapshotFromGraph(graph);
+  // 用渲染真实高度参与排布：Vue 节点 DOM 高度 = 存档 size + 标题/底栏，个别节点还会按内容撑高；
+  // 按 size 打包会导致视觉间距过小甚至重叠（2026-11-09 用户反馈）。
+  try {
+    const scale = app?.canvas?.ds?.scale || 1;
+    if (typeof document !== 'undefined') {
+      for (const s of snapshot.nodes) {
+        const el = document.querySelector(`.lg-node[data-node-id="${s.id}"]`);
+        if (el) { const h = el.getBoundingClientRect().height / scale; if (Number.isFinite(h) && h > s.size[1]) s.effH = h; }
+      }
+    }
+  } catch { /* DOM 不可用时退回存档尺寸 */ }
   const model = buildModel(snapshot);
   const selectedIds = scope === 'selected'
     ? [...(app.canvas.selectedItems ?? [])].map((n) => String(n?.id ?? n)).filter((id) => model.nodes.has(id))
@@ -184,7 +195,7 @@ export async function runAutoLayout(app, { scope = 'full', collapseNotes = false
   }
   if (!constraints.movableIds.length) return { moved: 0, skipped: 'nothing-movable' };
 
-  let positions = await elkLayout(model, constraints.movableIds);
+  let positions = await elkLayout(model, constraints.movableIds, { layerSpacing: layerGap });
   // R1/R2/R4 精修后处理（用户反馈：③拉直 ①对齐 ②同列减交叉；重叠守卫内建）
   const { straightenEdges, spineOf, swapReduceCrossings } = await import('./refine.js');
   const st = straightenEdges(model, positions);
@@ -217,6 +228,7 @@ export async function runAutoLayout(app, { scope = 'full', collapseNotes = false
     swaps: sw.swaps,
     columnAlign,
     nodeGap,
+    layerGap,
     noteIdsCollapsed: collapseNotes ? [...noteIds] : [],
     groups: memberIdsByGroupId.size,
     metrics: evaluateLayout(model, positionsFinal, new Map([...model.nodes.values()].map((n) => [n.id, n.pos]))),

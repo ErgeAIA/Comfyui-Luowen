@@ -29,6 +29,7 @@ const BROTHER_SPACING_ID = 'LuoWen.BrotherSpacing';
 const AUTOLAYOUT_COLLAPSE_ID = 'LuoWen.AutoLayout.CollapseNotes';
 const AUTOLAYOUT_ALIGN_ID = 'LuoWen.AutoLayout.ColumnAlign';
 const AUTOLAYOUT_GAP_ID = 'LuoWen.AutoLayout.NodeGap';
+const AUTOLAYOUT_LAYER_GAP_ID = 'LuoWen.AutoLayout.LayerGap';
 const ENABLED_ID = 'LuoWen.Enabled';
 const STYLE_ID = 'LuoWen.WireStyle';
 const AVOID_ID = 'LuoWen.NodeAvoidance';
@@ -328,6 +329,21 @@ app.registerExtension({
       attrs: { min: 20, max: 120, step: 5 },
       defaultValue: 40,
       onChange: (v) => setSettings({ autoLayoutGap: Math.max(20, Math.min(120, Number(v) || 40)) }),
+    },
+    {
+      id: AUTOLAYOUT_LAYER_GAP_ID,
+      get name() {
+        return t('AutoLayoutLayerGap.name');
+      },
+      category: ['LuoWen', '自动布局', 'LayerGap'],
+      sortOrder: 104,
+      get tooltip() {
+        return { value: t('AutoLayoutLayerGap.tooltip'), class: TIP_CLASS };
+      },
+      type: 'slider',
+      attrs: { min: 20, max: 160, step: 5 },
+      defaultValue: 60,
+      onChange: (v) => setSettings({ autoLayoutLayerGap: Math.max(20, Math.min(160, Number(v) || 60)) }),
     },
     {
       id: ENABLED_ID,
@@ -702,6 +718,7 @@ get tooltip() {
         collapseNotes: opts.collapseNotes ?? !!readSetting(AUTOLAYOUT_COLLAPSE_ID, false),
         columnAlign: opts.columnAlign ?? readSetting(AUTOLAYOUT_ALIGN_ID, 'auto'),
         nodeGap: opts.nodeGap ?? Math.max(20, Math.min(120, Number(readSetting(AUTOLAYOUT_GAP_ID, 40)) || 40)),
+        layerGap: opts.layerGap ?? Math.max(20, Math.min(160, Number(readSetting(AUTOLAYOUT_LAYER_GAP_ID, 60)) || 60)),
       })),
       routes: () => getDebugRoutes(),
       trace: () => getTrace(),

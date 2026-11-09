@@ -173,6 +173,7 @@ export function swapReduceCrossings(model, positions, { colGap = 150, nodeGap = 
   };
   const spineIds = spine?.ids ?? null;
   const anchorTop = spine && spine.anchorTop != null ? spine.anchorTop : null;
+  const effHOf = (n) => (n.effH ?? n.size[1]);
 
   let columns = 0, swaps = 0;
   const aligns = [];
@@ -187,15 +188,29 @@ export function swapReduceCrossings(model, positions, { colGap = 150, nodeGap = 
     const isReordered = col.map((n) => n.id).join(',') !== sorted.map((n) => n.id).join(',');
     const colLeft = Math.min(...col.map((n) => ori.get(n.id)[0]));
     const colRight = Math.max(...col.map((n) => ori.get(n.id)[0] + n.size[0]));
-    // 主链锚定：列内顶端节点是主链节点时，起始 y = 主链锚顶（否则用列内最小 y）
-    const anchored = !!(spineIds?.has(sorted[0].id) && anchorTop != null);
-    let y = anchored ? anchorTop : Math.min(...col.map((n) => ori.get(n.id)[1]));
+    const totalH = sorted.reduce((s, n) => s + effHOf(n), 0) + (sorted.length - 1) * nodeGap;
+    // 起始 y：列内顶端是主链节点 → 锚定主链锚顶；否则（纯扇入/扇出侧列）以连接口 y 为中线上下分布（2 上 2 下）
+    let startY;
+    let anchored = false;
+    if (spineIds?.has(sorted[0].id) && anchorTop != null) { anchored = true; startY = anchorTop; }
+    else {
+      const ids = new Set(col.map((n) => n.id));
+      let hubSum = 0, hubN = 0;
+      for (const e of model.edges) {
+        const sIn = ids.has(e.src), dIn = ids.has(e.dst);
+        if (sIn === dIn) continue;
+        const t = sIn ? portPos(model, ori, e.dst, 'in', e.dstPort) : portPos(model, ori, e.src, 'out', e.srcPort);
+        if (t) { hubSum += t[1]; hubN++; }
+      }
+      startY = hubN ? hubSum / hubN - totalH / 2 : Math.min(...col.map((n) => ori.get(n.id)[1]));
+    }
+    let y = startY;
     for (const n of sorted) {
       let x = colLeft;
       if (al === 'right') x = colRight - n.size[0];
       else if (al === 'center') x = colLeft + (colRight - colLeft - n.size[0]) / 2;
       pos.set(n.id, [x, y]);
-      y += n.size[1] + nodeGap;
+      y += effHOf(n) + nodeGap;
     }
     if (isReordered) swaps++;
     columns++;
