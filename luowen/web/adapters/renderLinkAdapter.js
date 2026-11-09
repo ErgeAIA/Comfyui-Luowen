@@ -45,7 +45,7 @@ const CLEANUP_MAX_GROWTH = 0.15;
 const CLEANUP_MAX_ROUNDS = 2;
 
 // 阶段 2B：同目标等距带（DEC-028）
-// 默认兄弟线间距；上限由「同组接入点之间的最小 y 间距」钳制（面板项待设置会话合并）。
+// 默认兄弟线间距；上限由「同组接入点之间的最小 y 间距」钳制（面板项 LuoWen.BrotherSpacing）。
 const DEFAULT_BROTHER_SPACING = 12;
 // 整带外移上限（× 间距），撞到即停住并打降级标记。
 const BAND_MAX_SHIFT_STEPS = 4;
@@ -1646,8 +1646,8 @@ export function install(canvas) {
     };
   }
 
-  // 调试入口：内存态兄弟线间距（面板项由设置会话合并后再注册，避免改 index.js）。
-  // 等距带默认 8px；上限在 planBands 内按同组接入点最小 y 间距钳制。
+  // 调试入口：内存态兄弟线间距（面板项 LuoWen.BrotherSpacing）。
+  // 等距带默认 12px；上限在 planBands 内按同组接入点最小 y 间距钳制。
   try {
     const expose = () => {
       const api = window.LuoWen;

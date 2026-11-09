@@ -432,3 +432,11 @@ Icon = ""                      # ≤400x400 正方形；Banner 21:9 可选
 - **原生 flow 动效**：bundle 静态检索无 `renderLink` 定义（全资产仅 1 处字符串且为 `linkConnector.renderLinks` 读取器）；运行时 `canvas.renderLink/drawConnections` 方法存在（探针实证、络纹包装生效中）但 flow 分支无静态证据——**按「1.55.18 无可用原生流动效」处理**，络纹 dash 行进是唯一动效实现。
 - **实测注意**：合成选中用 `canvas.selectItems.add(node)` 在 1.55.18 不生效（无选中框，截图验证），选中态必须真实指针点击；ComfyUI 设置持久化在服务端 `user/default/comfy.settings.json`（非 localStorage），探针 `setSettingValue` 会写用户设置，测后必须还原。
 
+### 2.12 画布右键菜单路由与浮层 z 层契约（1.55.18 取证+实测，2026-11-09）
+
+- **菜单路由分叉**：Vue 节点模式下**空白处右键仍走 litegraph DOM 菜单**（`.litecontextmenu`）；只有节点/分组右键走 Vue/PrimeVue 菜单（`useGroupContextMenu.ts:8-10,21-33`，GraphView-C7jM5DM_.js.map sourcesContent；背景 contextmenu 链 `LGraphCanvas.ts:2405→8755→8794`）。扩展给背景菜单加项仍然有效，但应走官方钩子而非 monkey-patch。
+- **官方钩子**：`getCanvasMenuItems()` → `app.collectCanvasMenuItems(canvas)` = `invokeExtensions('getCanvasMenuItems', canvas).flat()`（`app.ts:2666-2670`，core-B0vGWEoL.js.map sourcesContent）。核心双消费者交叉验证：`core/groupOptions.ts:31-45`（分组操作菜单）、`nodeTemplates.ts:361-375`（模板菜单，nodeTemplates-nqFWGBWs.js.map）；外部节点先例见 §2.2 KJNodes `setgetnodes.js:1310`。项形状 `{ content, has_submenu, submenu: { options } }` 与 litegraph 渲染兼容；**子菜单点击打开，非 hover**（探针实测）。
+- **迁移后必须删旧 monkey-patch**：Vue 菜单翻译层 `useContextMenuTranslation.ts:70-83` 还会跑 `legacyMenuCompat.extractLegacyItems`（`contextMenuCompat.ts:109-202`），对旧 `getCanvasMenuOptions` patch 的产物做差分提取——官方钩子与旧 patch 并存会把同一项显示两遍。络纹已删 `proto.getCanvasMenuOptions` patch，迁到 `getCanvasMenuItems`（luowen/web/index.js）。
+- **浮层 z 层实测**（elementFromPoint + getComputedStyle 探针）：顶栏覆盖层 `absolute top-0 left-0 z-999`（子元素 pointer-events-auto）→ 浮层控件要在顶栏区域可点必须 z > 999；设置对话框 z-1700；`.litecontextmenu` z-9999；节点卡片 z 19–34；吸附参考线覆盖层 500。络纹浮动「⌁ 整理」按钮取 z-1000（高于顶栏、低于对话框）。
+- **探针记录**：`.verify/p7/ui-round-verify.mjs` 全绿（滑块注册/联动/还原、按钮停靠对齐、拖动+localStorage 持久化、重载恢复、点击触发布局+撤销、背景右键→络纹子菜单→整理全图+撤销）；截图 `ui-round-settings.png` / `ui-round-btn-dragged.png` / `ui-round-menu.png`。
+

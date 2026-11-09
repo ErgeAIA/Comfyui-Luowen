@@ -2,7 +2,7 @@
 title: Decision Log
 type: decision-log
 project: 络纹（LuoWen）
-updated: 2026-11-08
+updated: 2026-11-09
 priority: higher-than-prd
 description: >
   开发过程决策日志，优先级高于 PRD；冲突时以本文件最新条目为准并回写 PRD/ADR。
@@ -15,6 +15,20 @@ description: >
 > **优先级高于 PRD**：冲突时以本文件最新决策为准，并回写 PRD/ADR。
 > 格式：`## DEC-NNN: 标题`，新条目置顶，NNN 三位递增。
 > 字段：`- **日期**：` / `- **背景**：` / `- **决策**：` / `- **验证**：`
+
+## DEC-044: 自动布局触发 UI 收尾——兄弟线间距注册补全、整理按钮可拖动、菜单迁官方钩子；合并推迟待验收；盲测改三工作流校准
+
+- **日期**：2026-11-09
+- **背景**：用户接手验收 auto-layout 工作线，反馈四点：①设置面板「线路外观」里看不到兄弟线间距滑块（`3be484c` 声称已加但实际漏注册）；②「⌁整理」按钮位置固定，希望能拖动；③优化完按钮和菜单再合入 main；④盲测 A/B 打开是「AI 生成的巨长工作流」（500 节点合成梯度），不适合人肉盲测，提出改用「示例工作流1→点整理存2→手动调到期望存3」三份对比校准。另指示顺手解决文档卫生（重复条目、过期 handoff）。
+- **决策**：
+  1. **兄弟线间距注册补全**：`index.js` 补 `LuoWen.BrotherSpacing` slider（4–24 步进 2、默认 12、线路外观组、i18n 双语、onChange→setSettings），并更正 `renderLinkAdapter.js` 两处过期注释（面板项已存在，调试入口仅为内存态）。确认「节点避障」是另一独立设置项，非兄弟线间距。
+  2. **整理按钮可拖动**：改浮动按钮为 position:fixed + 指针捕获拖动（4px 阈值区分点击/拖动）+ localStorage 持久化（key `luowen.autolayout.btnPos`）+ 视口钳制/resize 重钳；默认停靠 actionbar「运行」左侧。**z 层定案 1000**（实测顶栏覆盖层 z-999 会盖掉低 z 浮层致点击/拖动失效，设置对话框 z-1700、菜单 z-9999 在其上）。
+  3. **菜单迁官方钩子**：背景右键菜单项从 monkey-patch `proto.getCanvasMenuOptions` 迁到公开扩展钩子 `getCanvasMenuItems()`，**并删除旧 patch**——1.55.18 Vue 菜单翻译层 `legacyMenuCompat.extractLegacyItems` 会差分提取旧 patch 产物，两者并存会同项显示两遍。取证与先例写入 `docs/comfyui-dev-conventions.md` §2.12。
+  4. **合并时机**：auto-layout→main **推迟**，待用户宿主验收按钮/菜单/滑块通过后执行（用户「优化完按钮和菜单再合」）。
+  5. **盲测口径改三工作流校准**：废弃 500 节点合成 A/B 的人肉盲测用途；改由用户提供 示例工作流1 / 整理后2 / 手动期望3 三份文件，重点分析 2↔3 差异以改进自动布局（待用户给文件名）。
+  6. **文档卫生（用户批准）**：去除 project-progress「实施轮」×3 与「工具链」×2、decision-log DEC-043 补记 F×3 的**字节级相同重复**（各保留首份，实施轮保留含 R1/R2/R3 的超集）；仅删重复副本、不删任何历史信息。补最新 handoff。
+- **验证**：`.verify/p7/ui-round-verify.mjs` 全绿（滑块注册/联动/还原、按钮停靠对齐、拖动+持久化、重载恢复、点击布局+撤销、背景右键→络纹子菜单→整理全图+撤销）；截图 ui-round-settings/btn-dragged/menu.png；宿主部署 SHA256 一致；单测 151/151。**修复结果待用户宿主验证**（禁止自行宣称已修复）。
+- **结果**：代码+文档已就绪并本地提交；待用户验收按钮/菜单/滑块 + 提供三工作流文件名；合并 main 暂缓。
 
 ## DEC-043: 自动布局（F-015）研究与实施计划立项——任务书核实评估通过并落盘可执行计划
 
@@ -64,30 +78,6 @@ description: >
 - **交付状态**：研究任务 A–E 全部完成；PRD 为草案 v1.0，**待用户批准后启动实施轮**（批准时同步修订 PRD §4.2 F-015 边界——若 D1 折叠开关获批）。
 - **需用户拍板（prd.md §15）**：D1 折叠写入边界修订（建议批准，默认关）/ D2 MVP 范围（建议 MVP-1+MVP-2）/ D3 Group 重组（建议不做）/ D4 盲测时机（建议实施验收时）。
 - **结果**：DEC-043 全部补记 A–E 结案；实施轮（5 步，每步对照表验收）待用户批准。
-
-### DEC-043 补记 F（2026-11-08，分支 auto-layout，实施轮完成——D1–D4 用户批准后实施）
-
-- **执行**：按 prd.md §17 五步实施（本笔为 1–4 步 + 验收）：
-  1. **布局快照适配器**：`luowen/web/layout/engine.js` snapshotFromGraph（LGraph duck-typed 现场快照，单测 3 项）。
-  2. **ELK 编排**：runAutoLayout(app, {scope, collapseNotes})——vendor 懒加载（浏览器 UMD 解析修正：self.ELK）+ movable 子图 + 端口 FIXED_SIDE + **captureCanvasState 前后双采**（单条 undo，Pinia workflow store 路径）。
-  3. **障碍规避**：shiftToFreeBand（局部场景 movable 布局整体平移到 fixed 包围盒右侧空白带，确定性单次平移，单测 1 项）。
-  4. **Group bounds 重算**：按快照同序索引对齐现场 groups（LGraphGroup 无 id 可靠匹配）+ **正规写入口 setBounds/commitBounds**（_bounding 为 Rectangle 实例，直接 splice 无效——运行时取证修正）+ recomputeInsideNodes 不调用（保留原成员语义）。
-  5. **触发 UI**：`LuoWen.AutoLayout.CollapseNotes` 设置（D1，默认关，i18n 双语）+ `window.LuoWen.autoLayout(scope)` API；菜单/快捷键挂接待宿主命令 API 取证（如实标注）。
-- **D1 落地**：折叠写入 = Note/Markdown 类 collapse(true)+size[1]=30（collapsed 为 getter 只读、collapse() 为正规入口——运行时取证修正）；仅开关开启时写入。PRD §4.2 F-015 已按批准修订（pos 与可选折叠状态）。
-- **验收（六真实样本，`.verify/p7/accept-probe.mjs` + impl-accept.json）**：full 布局全绿——moved 全量、交叉 30/74/66/72/1/0、**重叠全 0**、幂等 N/N、**undo N/N 恢复**、verify ok；折叠开关 on→collapsed+30px、off→不折叠；局部布局 2 动 21 不动（未选零位移）。探针过程缺陷如实：S2 崩溃泄漏 CollapseNotes=true 致 S1 undo 假失败（探针缺 try/finally——BUG-008 纪律重申）+ ELK UMD 浏览器解析（self.ELK）+ evaluateLayout 漏 import + forEach continue 非法 + Group 匹配需索引对齐，均探针/检查抓出后修正。
-- **结果**：实施轮 1–4 步完成并部署（SHA256 一致）；第 5 步性能台账与盲测按 prd.md §12/§13 口径随验收执行（盲测待用户组织）。PRD §4.2 已回写。
-
-### DEC-043 补记 F（2026-11-08，分支 auto-layout，实施轮完成——D1–D4 用户批准后实施）
-
-- **执行**：按 prd.md §17 五步实施（本笔为 1–4 步 + 验收）：
-  1. **布局快照适配器**：`luowen/web/layout/engine.js` snapshotFromGraph（LGraph duck-typed 现场快照，单测 3 项）。
-  2. **ELK 编排**：runAutoLayout(app, {scope, collapseNotes})——vendor 懒加载（浏览器 UMD 解析修正：self.ELK）+ movable 子图 + 端口 FIXED_SIDE + **captureCanvasState 前后双采**（单条 undo，Pinia workflow store 路径）。
-  3. **障碍规避**：shiftToFreeBand（局部场景 movable 布局整体平移到 fixed 包围盒右侧空白带，确定性单次平移，单测 1 项）。
-  4. **Group bounds 重算**：按快照同序索引对齐现场 groups（LGraphGroup 无 id 可靠匹配）+ **正规写入口 setBounds/commitBounds**（_bounding 为 Rectangle 实例，直接 splice 无效——运行时取证修正）+ recomputeInsideNodes 不调用（保留原成员语义）。
-  5. **触发 UI**：`LuoWen.AutoLayout.CollapseNotes` 设置（D1，默认关，i18n 双语）+ `window.LuoWen.autoLayout(scope)` API；菜单/快捷键挂接待宿主命令 API 取证（如实标注）。
-- **D1 落地**：折叠写入 = Note/Markdown 类 collapse(true)+size[1]=30（collapsed 为 getter 只读、collapse() 为正规入口——运行时取证修正）；仅开关开启时写入。PRD §4.2 F-015 已按批准修订（pos 与可选折叠状态）。
-- **验收（六真实样本，`.verify/p7/accept-probe.mjs` + impl-accept.json）**：full 布局全绿——moved 全量、交叉 30/74/66/72/1/0、**重叠全 0**、幂等 N/N、**undo N/N 恢复**、verify ok；折叠开关 on→collapsed+30px、off→不折叠；局部布局 2 动 21 不动（未选零位移）。探针过程缺陷如实：S2 崩溃泄漏 CollapseNotes=true 致 S1 undo 假失败（探针缺 try/finally——BUG-008 纪律重申）+ ELK UMD 浏览器解析（self.ELK）+ evaluateLayout 漏 import + forEach continue 非法 + Group 匹配需索引对齐，均探针/检查抓出后修正。
-- **结果**：实施轮 1–4 步完成并部署（SHA256 一致）；第 5 步性能台账与盲测按 prd.md §12/§13 口径随验收执行（盲测待用户组织）。PRD §4.2 已回写。
 
 ### DEC-043 补记 F（2026-11-08，分支 auto-layout，实施轮完成——D1–D4 用户批准后实施）
 

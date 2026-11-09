@@ -2,7 +2,7 @@
 title: Project Progress
 type: project-progress
 project: 络纹（LuoWen）
-updated: 2026-11-08
+updated: 2026-11-09
 description: >
   项目开发进度实时记录：阶段、分支、代码状态、最近进展。每次会话更新。
   AI 在本文件新增进展或修改当前状态后，必须同步更新 frontmatter 的 updated 字段为当日日期（YYYY-MM-DD）。
@@ -17,15 +17,23 @@ description: >
 
 ## 当前状态
 
-- **当前分支**：main
+- **当前分支**：auto-layout（F-015 自动布局工作线；main 停在阶段 3 收尾后的动效/配色工作）
 - **阶段**：阶段 0–2 已完成并由用户验收（阶段 2 提交 `8614a8a`）；阶段 3 **首轮兼容性与生命周期测试已完成，BUG-006 已修复并完成宿主实测（待用户验收）；verify() 快照口径 BUG-007 已补并完成宿主实测（待用户验收）**（结论见 `docs/agents/compatibility-matrix.md`），其余阶段 3 交付项（复制粘贴、节点折叠、第三方冲突扩展、发布材料与包）仍未开始；3A（拖动对齐吸附）、3B（交叉枚举与离线清理，默认关闭）属 PRD §4.2 P1 增强，不计入阶段 3 交付；3C 顺序抽头已实现后按用户决定撤除（DEC-019）；P0 主干组交互已按 DEC-021 新口径（组高亮 + 组删除）实现，**2026-11-07 用户验收通过**；BUG-002 连线抖动修复与 BUG-003 等距带方案 A 同日验收通过（已随 `ad01899` 提交）；阶段 3 的 BUG-006 修复与 `verify()` 快照补强（BUG-007）已随 `d546e39`、`ebbc038` 提交并 push，**2026-11-07 按 DEC-037 委托口径验收通过（结案）**；**待办 2（阶段 3 剩余验收：节点折叠、复制粘贴、真实鼠标拖拽与菜单、crossCleanup=true 四类）已完成真实鼠标宿主实测并经用户确认验收（2026-11-07，DEC-037 委托口径）**；下一步为待办 1 第三方运行时共存验证（用户已批准安装，2026-11-07）
-- **最近提交**：`ebbc038`（fix(verify)：快照纳入 graph.extra / node.properties，坐标仅报 moved）、`5146c82`（第三方共存文档与规范）、`d546e39`（BUG-006 幽灵条目修复）、`01d8df7`（Reroute 手动意图保护）、`29fc015`（等距带阶梯方向感知 + 候选兄弟交叉预检）、`8d55a0b`（chamfer 预筛）、`9f93d3c`（trunkCache 上限 64→4096）、`ad01899`（阶段 2 代码：等距带/组交互/圆角）、`529648e`（文档与契约对齐）、`70daba3`（README/CHANGELOG/LICENSE 对齐）
-- **工作区**：干净（2026-11-07 提交收尾后核验）；`origin/main` = `ebbc038`，本地无未推送提交。`.verify/p3`、`.verify/p4` 实测脚本与截图按忽略规则不入库
-- **测试**：`node --test tests/unit/*.test.mjs` **99/99** 通过（2026-11-07 实跑复核，fail 0）
+- **最近提交**：`a7d1ec9`（⌁整理按钮移入顶部工具栏 actionbar）、`44990c2`（浮动整理按钮）、`6e3922a`（快捷键 + 500 节点梯度 421ms + 盲测 A/B 文件，DEC-043 补记 G）、`3be484c`（兄弟线间距用户参数）、`7be9b56`（间距收紧）；main 侧历史见下方旧条目
+- **工作区**：干净（2026-11-09 接手核对）；`origin/auto-layout` = `a7d1ec9`，本地无未推送提交。`.verify/` 实测脚本与截图按忽略规则不入库
+- **测试**：`node --test tests/unit/*.test.mjs` **151/151** 通过（2026-11-09 接手实跑复核，fail 0）
 - **本轮提交收尾（2026-11-07）**：文档与代码分三笔提交后，又追加 6 笔功能/修复提交并已 push；提交链 `529648e`（文档）→ `ad01899`（阶段 2 代码）→ `9f93d3c`（trunkCache 上限）→ `8d55a0b`（chamfer 预筛）→ `29fc015`（等距带方向感知）→ `01d8df7`（Reroute 手动意图保护）→ `d546e39`（BUG-006）→ `5146c82`（共存文档）→ `ebbc038`（verify 快照）；工作区干净，本地无未推送提交
 - **代码**：`luowen/`（含 `routing/trunkPlan.js` 单主干共享几何、三档避障、预览、缓存、`geometry/chamfer.js` 绕障外角大斜切、`geometry/trace.js` 圆角半径 0–24（默认 10）、`routing/laneAssign.js` 输入侧按接近方向嵌套分道 + 走廊净空顺延 + 同目标等距带（`planBands`、`bandDegraded`/`orderDegraded`）、`snap/alignSnap.js` + `snap/dragSnap.js` 对齐吸附、`routing/crossings.js` + `routing/crossCleanup.js` 交叉枚举与离线清理、主干组高亮 + 组删除菜单），已装本机 custom_nodes 实测
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2、Node 24.22.1；Playwright 浏览器实测流程已打通
-- **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2、Node 24.22.1；Playwright 浏览器实测流程已打通
+- **本轮自动布局触发 UI 收尾（2026-11-09，分支 auto-layout；DEC-044；改 index.js/i18n.js/renderLinkAdapter.js + 文档；已部署宿主、探针全绿，待用户验收）**：
+  - ①**兄弟线间距注册补全**：`index.js` 补 `LuoWen.BrotherSpacing` slider（线路外观组，4–24 步进 2、默认 12、i18n 双语、onChange→setSettings）——`3be484c` 声称已加但实际漏注册，本轮补齐；更正 renderLinkAdapter.js 两处过期注释。确认「节点避障」为另一独立设置项。
+  - ②**整理按钮可拖动**：浮动按钮 position:fixed + 指针捕获（4px 阈值区分点击/拖动）+ localStorage 持久化（`luowen.autolayout.btnPos`）+ 视口钳制/resize 重钳，默认停靠 actionbar「运行」左侧；**z=1000**（顶栏覆盖层 z-999 会盖掉低 z 浮层致点击/拖动失效，实测修复）。
+  - ③**菜单迁官方钩子**：背景右键「络纹」子菜单从 monkey-patch `proto.getCanvasMenuOptions` 迁到 `getCanvasMenuItems()` 并**删旧 patch**（1.55.18 `legacyMenuCompat.extractLegacyItems` 会差分提取旧 patch 产物，两者并存同项显示两遍）；取证入 conventions §2.12。
+  - 验收：`.verify/p7/ui-round-verify.mjs` 全绿（滑块注册/联动/还原、按钮停靠、拖动+持久化、重载恢复、点击布局+撤销、背景右键→子菜单→整理全图+撤销）；宿主部署 SHA256 一致；单测 **151/151**。**修复结果待用户宿主验证**。
+  - **合并推迟**：auto-layout→main 待用户验收按钮/菜单/滑块通过后执行（用户「优化完按钮和菜单再合」）。
+  - **盲测口径改三工作流校准**：500 节点合成 A/B 不适合人肉盲测（用户反馈「AI 生成的巨长工作流」）；改由用户提供 示例工作流1/整理后2/手动期望3，重点分析 2↔3 差异改进布局（**待用户给文件名**）。
+  - **文档卫生（用户批准）**：去除本文件「实施轮」×3 与「工具链」×2、decision-log 补记 F×3 的字节级相同重复（各留首份，不删历史）；补最新 handoff（2026-11-09）。
+- **本轮接手核对（2026-11-09，新会话只读盘点 + 本条记录，未改功能代码）**：分支 auto-layout = origin = `a7d1ec9`，工作区干净；单测实跑 **151/151**；宿主 `custom_nodes/luowen/web/index.js` 与仓库 SHA256 一致（`4c3abbbd…`，含 actionbar 按钮版）。F-015 交付项已闭合（DEC-043 补记 G），待用户事项：①盲测 A/B（`.verify/p7/blind-A/B.json`）②actionbar「⌁整理」按钮宿主验收（`a7d1ec9` 未见于决策日志，验收状态待用户确认）③auto-layout 合入 main 的时机。文档卫生观察（只报告不删历史）：本文件「实施轮」条目与 decision-log DEC-043 补记 F 各有三份重复；四份 handoff 均为 2026-11-07 早于本工作线，最新事实以本文件与 DEC-043 补记 G 为准。
 - **本轮动效 v3 实施（2026-11-08，用户指示「实施吧」；DEC-042；改 trace.js/renderLinkAdapter.js/index.js + 新增 beamTrace.test.mjs；已部署宿主自测，等用户验收）**：
         - **样本部署宿主（用户指示）**：六份选样工作流复制进 portable 工作流目录（前缀 `LW样本-`，不覆盖同名），宿主 loadGraphData 冒烟通过（最大样本 230 节点 248 链装载 ok、路由接管、verify ok、零报错；routed 计数随视口/缩放符合既有裁剪口径）。脚本 `.verify/p7/deploy-samples.mjs`。
 - **本轮自动布局后续三项（2026-11-09，分支 auto-layout；DEC-043 补记 G）**：
@@ -38,16 +46,6 @@ description: >
   - 验收（accept-probe.mjs）：六样本 full 全绿——moved 全量、交叉 30/74/66/72/1/0、**重叠全 0**、幂等 N/N、undo N/N 恢复、verify ok；折叠开关双向生效（heights=[30]）；局部布局 2 动 21 不动。单测 147/147。
   - 过程缺陷如实记录：探针 S2 崩溃泄漏设置（BUG-008 纪律重申：try/finally）、collapsed 为 getter 只读（collapse() 为正规入口）、_bounding 为 Rectangle 非 array（setBounds/commitBounds 正规入口）、forEach continue 非法、Group 索引对齐。
   - **R1/R2/R3 精修后处理（用户三细节反馈，2026-11-09）**：refine.js 纯函数（straightenEdges 端口对齐拉直 + swapReduceCrossings 同列交换减交叉 + rerouteComponentIds Reroute 分量跳过）+ engine 接线（ELK 后、shiftToFreeBand 前）+ 单测 4 项（全量 **151/151**）。效果：mostReroute 175/193 节点不动（Reroute 保护）、midGroups straightened=7/overlaps 0、mostComponents straightened=47/overlaps 0。已知代价：Reroute 分量与重排分量可能空间冲突（PRD 已标注）。
-  - PRD §4.2 F-015 已按 D1 批准回写（pos 与可选折叠状态）。剩余：菜单/快捷键挂接（宿主命令 API 取证）、盲测（D4，待组织）、500 节点梯度补测。
-- **本轮自动布局实施轮（2026-11-08，分支 auto-layout；D1–D4 用户批准后实施；DEC-043 补记 F）**：
-  - 新增 `luowen/web/layout/engine.js`（runAutoLayout 编排：现场快照→buildModel→constraints→ELK 懒加载（浏览器 UMD self.ELK 解析修正）→movable 子图→**captureCanvasState 前后双采单条 undo**→apply（pos+D1 折叠 collapse(true)+size[1]=30）→Group bounds setBounds/commitBounds 重算（索引对齐，Rectangle 非 array 的取证修正））；constraints.js 增 shiftToFreeBand（局部障碍规避）；i18n 增 CollapseNotes 双语；index.js 增 `LuoWen.AutoLayout.CollapseNotes` 设置 + `window.LuoWen.autoLayout(scope)` API。
-  - 验收（accept-probe.mjs）：六样本 full 全绿——moved 全量、交叉 30/74/66/72/1/0、**重叠全 0**、幂等 N/N、undo N/N 恢复、verify ok；折叠开关双向生效（heights=[30]）；局部布局 2 动 21 不动。单测 147/147。
-  - 过程缺陷如实记录：探针 S2 崩溃泄漏设置（BUG-008 纪律重申：try/finally）、collapsed 为 getter 只读（collapse() 为正规入口）、_bounding 为 Rectangle 非 array（setBounds/commitBounds 正规入口）、forEach continue 非法、Group 索引对齐。
-  - PRD §4.2 F-015 已按 D1 批准回写（pos 与可选折叠状态）。剩余：菜单/快捷键挂接（宿主命令 API 取证）、盲测（D4，待组织）、500 节点梯度补测。
-- **本轮自动布局实施轮（2026-11-08，分支 auto-layout；D1–D4 用户批准后实施；DEC-043 补记 F）**：
-  - 新增 `luowen/web/layout/engine.js`（runAutoLayout 编排：现场快照→buildModel→constraints→ELK 懒加载（浏览器 UMD self.ELK 解析修正）→movable 子图→**captureCanvasState 前后双采单条 undo**→apply（pos+D1 折叠 collapse(true)+size[1]=30）→Group bounds setBounds/commitBounds 重算（索引对齐，Rectangle 非 array 的取证修正））；constraints.js 增 shiftToFreeBand（局部障碍规避）；i18n 增 CollapseNotes 双语；index.js 增 `LuoWen.AutoLayout.CollapseNotes` 设置 + `window.LuoWen.autoLayout(scope)` API。
-  - 验收（accept-probe.mjs）：六样本 full 全绿——moved 全量、交叉 30/74/66/72/1/0、**重叠全 0**、幂等 N/N、undo N/N 恢复、verify ok；折叠开关双向生效（heights=[30]）；局部布局 2 动 21 不动。单测 147/147。
-  - 过程缺陷如实记录：探针 S2 崩溃泄漏设置（BUG-008 纪律重申：try/finally）、collapsed 为 getter 只读（collapse() 为正规入口）、_bounding 为 Rectangle 非 array（setBounds/commitBounds 正规入口）、forEach continue 非法、Group 索引对齐。
   - PRD §4.2 F-015 已按 D1 批准回写（pos 与可选折叠状态）。剩余：菜单/快捷键挂接（宿主命令 API 取证）、盲测（D4，待组织）、500 节点梯度补测。
 - **本轮自动布局 Phase E：性能台账 + 最终 PRD（2026-11-08，分支 auto-layout；研究任务 A–E 收官）**：
   - performance.md 补记自动布局条目（端到端 ≤300ms@230 节点：build 15 + eval 5 + ELK 95–261；实施轮补 500 节点梯度与完整帧耗时）。

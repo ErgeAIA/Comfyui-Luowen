@@ -235,6 +235,22 @@ function readSetting(id, fallback) {
 app.registerExtension({
   name: 'LuoWen',
 
+  // 1.55.18 公开扩展钩子（app.ts collectCanvasMenuItems）；Vue 模式空白处右键仍走 litegraph 菜单
+  getCanvasMenuItems() {
+    return [
+      {
+        content: '络纹',
+        has_submenu: true,
+        submenu: {
+          options: [
+            { content: t('AutoLayout.full'), callback: () => { window.LuoWen?.autoLayout?.('full'); } },
+            { content: t('AutoLayout.selected'), callback: () => { window.LuoWen?.autoLayout?.('selected'); } },
+          ],
+        },
+      },
+    ];
+  },
+
   settings: [
     {
       id: LANGUAGE_ID,
@@ -363,6 +379,21 @@ get options() {
       },
       defaultValue: 'standard',
       onChange: (v) => setSettings({ avoidance: v === 'low' ? 'low' : v === 'high' ? 'high' : 'standard' }),
+    },
+    {
+      id: BROTHER_SPACING_ID,
+      get name() {
+        return t('BrotherSpacing.name');
+      },
+      category: ['LuoWen', '线路外观', 'BrotherSpacing'],
+      sortOrder: 65,
+      get tooltip() {
+        return { value: t('BrotherSpacing.tooltip'), class: TIP_CLASS };
+      },
+      type: 'slider',
+      attrs: { min: 4, max: 24, step: 2 },
+      defaultValue: 12,
+      onChange: (v) => setSettings({ brotherSpacing: Number(v) }),
     },
     {
       id: CHAMFER_ID,
@@ -735,42 +766,70 @@ get tooltip() {
       const scope = e.altKey ? 'selected' : 'full';
       window.LuoWen?.autoLayout?.(scope).catch(() => {});
     }, { passive: false });
-    // 画布右键菜单「络纹」子菜单（DEC-043 实施轮：F-015 触发入口）
-    {
-      const proto = Object.getPrototypeOf(app.canvas);
-      if (proto && typeof proto.getCanvasMenuOptions === 'function') {
-        const origMenu = proto.getCanvasMenuOptions;
-        proto.getCanvasMenuOptions = function () {
-          const options = origMenu.call(this);
-          options.push({
-            content: '络纹',
-            has_submenu: true,
-            submenu: {
-              options: [
-                { content: '整理（流向）', callback: () => { window.LuoWen?.autoLayout?.('full'); } },
-              ],
-            },
-          });
-          return options;
-        };
-      }
-    }
-    // 自动布局浮动按钮（Vue 模式菜单系统不走 LiteGraph，浮动按钮保证生效）
+    // 自动布局浮动按钮：可拖动、位置持久化；默认锚在 actionbar 运行按钮左侧
     {
       const btn = document.createElement('button');
-      btn.textContent = '⌁ 整理';
-      btn.title = '自动布局（流向）';
+      btn.textContent = t('AutoLayout.button');
       btn.className = 'p-button p-component p-button-outlined';
-      btn.style.cssText = 'padding:0.3rem 0.75rem;font-size:0.75rem;cursor:pointer;white-space:nowrap';
-      btn.addEventListener('click', () => { window.LuoWen?.autoLayout?.('full'); });
-      const injectIntoBar = () => {
-        const bar = document.querySelector('.actionbar');
-        if (!bar) return false;
-        const ref = [...bar.children].find((el) => (el.innerText || '').includes('运行'));
-        bar.insertBefore(btn, ref || bar.firstChild);
-        return true;
+      // z=1000：高于顶栏覆盖层 z-999，低于设置对话框 z-1700
+      btn.style.cssText = 'position:fixed;z-index:1000;padding:0.3rem 0.75rem;font-size:0.75rem;cursor:grab;white-space:nowrap;touch-action:none';
+      document.body.appendChild(btn);
+      const POS_KEY = 'luowen.autolayout.btnPos';
+      const place = (x, y) => {
+        const r = btn.getBoundingClientRect();
+        btn.style.left = Math.max(4, Math.min(window.innerWidth - r.width - 4, x)) + 'px';
+        btn.style.top = Math.max(4, Math.min(window.innerHeight - r.height - 4, y)) + 'px';
       };
-      if (!injectIntoBar()) setTimeout(() => injectIntoBar(), 2000);
+      const dockDefault = () => {
+        const bar = document.querySelector('.actionbar');
+        const ref = bar && [...bar.children].find((el) => (el.innerText || '').includes('运行'));
+        if (ref) {
+          const r = ref.getBoundingClientRect();
+          const b = btn.getBoundingClientRect();
+          place(r.left - b.width - 8, r.top + (r.height - b.height) / 2);
+          return true;
+        }
+        return false;
+      };
+      let saved = null;
+      try { saved = JSON.parse(localStorage.getItem(POS_KEY)); } catch { /* 首次无保存位置 */ }
+      if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) place(saved.x, saved.y);
+      else if (!dockDefault()) setTimeout(() => { if (!dockDefault()) place(window.innerWidth - 120, 8); }, 2000);
+      window.addEventListener('resize', () => {
+        const r = btn.getBoundingClientRect();
+        place(r.left, r.top);
+      });
+      let drag = null;
+      let moved = false;
+      btn.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        e.stopPropagation();
+        e.preventDefault();
+        const r = btn.getBoundingClientRect();
+        drag = { dx: e.clientX - r.left, dy: e.clientY - r.top, sx: e.clientX, sy: e.clientY };
+        moved = false;
+        btn.setPointerCapture(e.pointerId);
+        btn.style.cursor = 'grabbing';
+      });
+      btn.addEventListener('pointermove', (e) => {
+        if (!drag) return;
+        e.stopPropagation();
+        if (!moved && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 4) return;
+        moved = true;
+        place(e.clientX - drag.dx, e.clientY - drag.dy);
+      });
+      btn.addEventListener('pointerup', (e) => {
+        if (!drag) return;
+        e.stopPropagation();
+        drag = null;
+        btn.style.cursor = 'grab';
+        if (moved) {
+          const r = btn.getBoundingClientRect();
+          try { localStorage.setItem(POS_KEY, JSON.stringify({ x: r.left, y: r.top })); } catch { /* 隐私模式等写入失败不阻塞 */ }
+        } else {
+          window.LuoWen?.autoLayout?.('full');
+        }
+      });
     }
     console.log('[LuoWen] 就绪 — window.LuoWen 可用（status/setEnabled/setStyle/rebase/verify）');
   },
