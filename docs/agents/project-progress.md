@@ -19,12 +19,16 @@ description: >
 
 - **当前分支**：auto-layout（F-015 自动布局工作线；main 停在阶段 3 收尾后的动效/配色工作）
 - **阶段**：阶段 0–2 已完成并由用户验收（阶段 2 提交 `8614a8a`）；阶段 3 **首轮兼容性与生命周期测试已完成，BUG-006 已修复并完成宿主实测（待用户验收）；verify() 快照口径 BUG-007 已补并完成宿主实测（待用户验收）**（结论见 `docs/agents/compatibility-matrix.md`），其余阶段 3 交付项（复制粘贴、节点折叠、第三方冲突扩展、发布材料与包）仍未开始；3A（拖动对齐吸附）、3B（交叉枚举与离线清理，默认关闭）属 PRD §4.2 P1 增强，不计入阶段 3 交付；3C 顺序抽头已实现后按用户决定撤除（DEC-019）；P0 主干组交互已按 DEC-021 新口径（组高亮 + 组删除）实现，**2026-11-07 用户验收通过**；BUG-002 连线抖动修复与 BUG-003 等距带方案 A 同日验收通过（已随 `ad01899` 提交）；阶段 3 的 BUG-006 修复与 `verify()` 快照补强（BUG-007）已随 `d546e39`、`ebbc038` 提交并 push，**2026-11-07 按 DEC-037 委托口径验收通过（结案）**；**待办 2（阶段 3 剩余验收：节点折叠、复制粘贴、真实鼠标拖拽与菜单、crossCleanup=true 四类）已完成真实鼠标宿主实测并经用户确认验收（2026-11-07，DEC-037 委托口径）**；下一步为待办 1 第三方运行时共存验证（用户已批准安装，2026-11-07）
-- **最近提交**：`66ed78b`（金标改为 test1，DEC-051 补记 3）、`6089de0`（性能 Stage 1：预热/effH 扫描/ELK 种子缓存，DEC-051 补记 2）、`c511e1e`（性能 Stage 0：阶段计时 + 金标夹具 + 基准脚本，DEC-051）、`2b850e0`（整理选中=整理所在连通流就地，DEC-050）；main 侧历史见下方旧条目
+- **最近提交**：`6eeacb4`（主链判据 sink-coverage Step 1，单测先行）、`66ed78b`（金标改为 test1，DEC-051 补记 3）、`6089de0`（性能 Stage 1：预热/effH 扫描/ELK 种子缓存，DEC-051 补记 2）、`c511e1e`（性能 Stage 0：阶段计时 + 金标夹具 + 基准脚本，DEC-051）；main 侧历史见下方旧条目
 - **工作区**：干净（2026-11-09 本轮提交已推送）；本地无未推送提交。`.verify/` 实测脚本与截图按忽略规则不入库
 - **测试**：`node --test tests/unit/*.test.mjs` **157/157** 通过（2026-11-09 性能 Stage 0 复跑，fail 0）
 - **本轮提交收尾（2026-11-07）**：文档与代码分三笔提交后，又追加 6 笔功能/修复提交并已 push；提交链 `529648e`（文档）→ `ad01899`（阶段 2 代码）→ `9f93d3c`（trunkCache 上限）→ `8d55a0b`（chamfer 预筛）→ `29fc015`（等距带方向感知）→ `01d8df7`（Reroute 手动意图保护）→ `d546e39`（BUG-006）→ `5146c82`（共存文档）→ `ebbc038`（verify 快照）；工作区干净，本地无未推送提交
 - **代码**：`luowen/`（含 `routing/trunkPlan.js` 单主干共享几何、三档避障、预览、缓存、`geometry/chamfer.js` 绕障外角大斜切、`geometry/trace.js` 圆角半径 0–24（默认 10）、`routing/laneAssign.js` 输入侧按接近方向嵌套分道 + 走廊净空顺延 + 同目标等距带（`planBands`、`bandDegraded`/`orderDegraded`）、`snap/alignSnap.js` + `snap/dragSnap.js` 对齐吸附、`routing/crossings.js` + `routing/crossCleanup.js` 交叉枚举与离线清理、主干组高亮 + 组删除菜单），已装本机 custom_nodes 实测
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2、Node 24.22.1；Playwright 浏览器实测流程已打通
+- **主链判据升级 Step 1（2026-11-09，分支 auto-layout；单测先行；提交 `6eeacb4`）**：
+  - `spineOf` 增加 `strategy: 'longest' | 'sink-coverage'`（**默认仍 longest，引擎未切换**）；sink-coverage = 汇点中选祖先覆盖最大者，并列按路径长度 → 起点 y → id，排除 Note。
+  - 新增 6 条单测：外围长链让位、等长按覆盖决胜、Note 汇点排除、单链一致、环、longest 回归；判别性两条先红后绿。
+  - 全量单测 **163/163**；Node 金标 **7/7** 不变（默认策略未改）。**Step 2（引擎切换 + test1 金标对照）待执行。**
 - **金标口径更正（2026-11-09，用户指令；DEC-051 补记 3；提交 `66ed78b`）**：test2/test3 已修改不可参考；**金标只取 test1**（当前 14 节点/14 边，`inputSha=9623f322…`），`tests/fixtures/layout-golden/test1.json` 两次运行哈希 `0d2f20898d5e6613` 一致；删除 `user-tests.json`；宿主探针支持 `LUOWEN_ONLY_USER=1` 只跑金标。当前 test1 宿主：total 32.7/33.9ms、ELK 24.2/24.5、capture×2 3.3/3.8、effH 0.2。
 - **本轮自动布局性能 Stage 1（2026-11-09，分支 auto-layout；只做函数级效率；DEC-051 补记 2；提交 `6089de0`）**：
   - 四项：空闲预热 ELK（requestIdleCallback，只跑脱离图的 2 节点布局）、effH 单次 `querySelectorAll`、ELK 种子缓存（结构/尺寸/端口/边/间距键）、全图布局跳过仅为「整理选中」准备的位置拷贝与分量 BFS。
