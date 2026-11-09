@@ -282,6 +282,116 @@ export function compressSpineInline(model, positions, { inlineGap = 50, colGap =
   return { positions: pos, compressed };
 }
 
+/**
+ * 主链独立轨道（用户校准 2026-11-09 阶段 A）：
+ * - 主链按水平线紧凑排布（1进1出→inlineGap，多入口→layerGap+自适应），顶边统一；
+ * - 末端若是「被前驱扇出、且前驱还扇出别的兄弟」的汇点（如 SaveImage），并入该扇列、不占顶线；
+ * - 侧分支按最近主链锚点放置（R=下游、L=上游），逐层外扩、竖直居中；
+ * - 列内对齐按流向（L/扇入→右缘、R/扇出→左缘），auto 默认可强制；
+ * - 最后一道全对碰撞消解：重叠即把非主链节点下移，保证零重叠。
+ */
+export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 50, layerGap = 60, sideGap = 60, nodeGap = 40, align = 'auto' } = {}) {
+  const pos = new Map(positions);
+  if (!spine || !spine.chain || spine.chain.length < 2) return { positions: pos, overlaps: 0 };
+  const inDeg = new Map(), outDeg = new Map();
+  for (const e of model.edges) { inDeg.set(e.dst, (inDeg.get(e.dst) ?? 0) + 1); outDeg.set(e.src, (outDeg.get(e.src) ?? 0) + 1); }
+  const effH = (id) => { const n = model.nodes.get(id); return n ? (n.effH ?? n.size[1]) : 0; };
+  const movable = (id) => { const n = model.nodes.get(id); return n && !n.fixed; };
+  let topLine = spine.chain.filter((id) => pos.has(id));
+  if (topLine.length < 2) return { positions: pos, overlaps: 0 };
+  // 主链末端汇点：末端 sink 且前驱还扇出别的兄弟 → 不占顶线（并入扇列）
+  {
+    const last = topLine[topLine.length - 1], pred = topLine[topLine.length - 2];
+    if ((outDeg.get(last) ?? 0) === 0 && (outDeg.get(pred) ?? 0) > 1) topLine = topLine.slice(0, -1);
+  }
+  // 1. 顶线
+  const anchorTop = spine.anchorTop != null ? spine.anchorTop : Math.min(...topLine.map((id) => pos.get(id)[1]));
+  let cx = Math.min(...topLine.map((id) => pos.get(id)[0]));
+  topLine.forEach((id, k) => {
+    const n = model.nodes.get(id);
+    if (k > 0) {
+      const prev = model.nodes.get(topLine[k - 1]);
+      const inD = inDeg.get(id) ?? 0;
+      const gap = (inD === 1 && (outDeg.get(id) ?? 0) === 1) ? inlineGap : layerGap + Math.max(0, inD - 1) * 20;
+      cx = pos.get(topLine[k - 1])[0] + prev.size[0] + gap;
+    }
+    pos.set(id, [cx, anchorTop]);
+  });
+  // 2. BFS 侧节点 → 最近主链锚点 + 侧别(L/R) + 深度
+  const adj = new Map();
+  for (const n of model.nodes.values()) if (pos.has(n.id)) adj.set(n.id, []);
+  for (const e of model.edges) { if (adj.has(e.src) && adj.has(e.dst)) { adj.get(e.src).push({ to: e.dst, down: true }); adj.get(e.dst).push({ to: e.src, down: false }); } }
+  const info = new Map(), seen = new Set(topLine), q = topLine.map((id) => ({ id, hub: id, depth: 0 }));
+  while (q.length) {
+    const cur = q.shift();
+    for (const { to, down } of adj.get(cur.id) ?? []) {
+      if (seen.has(to)) continue;
+      seen.add(to);
+      const side = cur.depth === 0 ? (down ? 'R' : 'L') : info.get(cur.id).side;
+      info.set(to, { hub: cur.hub, side, depth: cur.depth + 1 });
+      q.push({ id: to, hub: cur.hub, depth: cur.depth + 1 });
+    }
+  }
+  // 3. 分组（hub|side|depth），深度升序放置
+  const groups = new Map();
+  for (const [id, inf] of info) { const key = `${inf.hub}|${inf.side}|${inf.depth}`; if (!groups.has(key)) groups.set(key, { hub: inf.hub, side: inf.side, depth: inf.depth, nodes: [] }); groups.get(key).nodes.push(id); }
+  const groupList = [...groups.values()].sort((a, b) => a.depth - b.depth);
+  for (const g of groupList) {
+    const hubN = model.nodes.get(g.hub), hubPos = pos.get(g.hub);
+    if (!hubN || !hubPos) continue;
+    const ids = g.nodes.filter(movable).sort((a, b) => (pos.get(a)[1] - pos.get(b)[1]) || a.localeCompare(b));
+    if (!ids.length) continue;
+    const totalH = ids.reduce((s, id) => s + effH(id), 0) + (ids.length - 1) * nodeGap;
+    const centerY = hubPos[1] + hubN.size[1] / 2;
+    let y = centerY - totalH / 2;
+    const al = align === 'auto' ? (g.side === 'L' ? 'right' : 'left') : align;
+    const maxW = Math.max(...ids.map((id) => model.nodes.get(id).size[0]));
+    let colLeft, colRight;
+    if (g.side === 'R') {
+      const parent = groupList.find((p) => p.hub === g.hub && p.side === 'R' && p.depth === g.depth - 1);
+      const base = parent ? Math.max(...parent.nodes.filter(movable).map((id) => pos.get(id)[0] + model.nodes.get(id).size[0])) + sideGap : hubPos[0] + hubN.size[0] + sideGap;
+      colLeft = base; colRight = base + maxW;
+    } else {
+      const parent = groupList.find((p) => p.hub === g.hub && p.side === 'L' && p.depth === g.depth - 1);
+      const base = parent ? Math.min(...parent.nodes.filter(movable).map((id) => pos.get(id)[0])) - sideGap : hubPos[0] - sideGap;
+      colRight = base; colLeft = base - maxW;
+    }
+    for (const id of ids) {
+      const n = model.nodes.get(id);
+      let x = colLeft;
+      if (al === 'right') x = colRight - n.size[0];
+      else if (al === 'center') x = colLeft + (maxW - n.size[0]) / 2;
+      pos.set(id, [x, y]);
+      y += effH(id) + nodeGap;
+    }
+  }
+  // 4. 全对碰撞消解：重叠则把非顶线节点下移，直到零重叠
+  const spineFixed = new Set(topLine);
+  const ids = [...pos.keys()].filter(movable);
+  const rect = (id) => { const n = model.nodes.get(id), p = pos.get(id); return { x: p[0], y: p[1], w: n.size[0], h: effH(id) }; };
+  let overlaps = 0;
+  for (let iter = 0; iter < 300; iter++) {
+    let moved = false;
+    for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) {
+      const a = rect(ids[i]), b = rect(ids[j]);
+      if (a.x < b.x + b.w - 1 && b.x < a.x + a.w - 1 && a.y < b.y + b.h - 1 && b.y < a.y + a.h - 1) {
+        const iaF = spineFixed.has(ids[i]), ibF = spineFixed.has(ids[j]);
+        const moveId = iaF && !ibF ? ids[j] : ids[i]; // 优先移动非顶线/靠前者
+        const other = moveId === ids[i] ? b : a;
+        const p = pos.get(moveId);
+        pos.set(moveId, [p[0], other.y + other.h + nodeGap]);
+        moved = true;
+      }
+    }
+    if (!moved) break;
+    overlaps++;
+  }
+  // 最终统计
+  let finalOv = 0;
+  for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) { const a = rect(ids[i]), b = rect(ids[j]); if (a.x < b.x + b.w - 1 && b.x < a.x + a.w - 1 && a.y < b.y + b.h - 1 && b.y < a.y + a.h - 1) finalOv++; }
+  return { positions: pos, overlaps: finalOv };
+}
+
 function countCross(model, pos) {
   const segs = [];
   for (const e of model.edges) {

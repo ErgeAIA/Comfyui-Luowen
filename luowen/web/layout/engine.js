@@ -196,37 +196,13 @@ export async function runAutoLayout(app, { scope = 'full', collapseNotes = false
   if (!constraints.movableIds.length) return { moved: 0, skipped: 'nothing-movable' };
 
   let positions = await elkLayout(model, constraints.movableIds, { layerSpacing: layerGap });
-  // R1/R2/R4 精修后处理（用户反馈：③拉直 ①对齐 ②同列减交叉；重叠守卫内建）
-  const { straightenEdges, spineOf, swapReduceCrossings, compressSpineInline } = await import('./refine.js');
+  // R1 拉直 + 主链独立轨道（阶段 A）：主链水平紧凑、侧分支按最近主链锚点挂靠、全对碰撞消解
+  const { straightenEdges, spineOf, layoutSpineTracks } = await import('./refine.js');
   const st = straightenEdges(model, positions);
   positions = st.positions;
-  // 主链识别 → 交给列重排锚定顶边（2026-11-09 校准）
   const spine = spineOf(model, positions);
-  // R2 列内重排 + 逐列对齐（auto=按扇入/扇出，默认）
-  const sw = swapReduceCrossings(model, positions, { colGap: 150, align: columnAlign, nodeGap, spine });
-  positions = sw.positions;
-  // 侧源对齐（用户校准 2026-11-09）：入度 0 且目标全不在主链上的源（如 CLIP 加载器→CLIP 文本编码），
-  // 把源顶边对齐到其目标顶边均值——自动下移、拉开与主链加载器的距离，CLIP 线也更顺。
-  {
-    const spineIds = spine.ids;
-    const inDeg = new Map();
-    for (const e of model.edges) inDeg.set(e.dst, (inDeg.get(e.dst) ?? 0) + 1);
-    const mv = new Set(constraints.movableIds.map(String));
-    const tgts = new Map();
-    for (const e of model.edges) if (mv.has(e.src) && mv.has(e.dst)) { if (!tgts.has(e.src)) tgts.set(e.src, []); tgts.get(e.src).push(e.dst); }
-    for (const id of mv) {
-      if ((inDeg.get(id) ?? 0) !== 0) continue;
-      const tg = tgts.get(id);
-      if (!tg || !tg.length || tg.some((t) => spineIds.has(t))) continue;
-      let sum = 0, n = 0;
-      for (const t of tg) { const tn = model.nodes.get(t); const p = positions.get(t) ?? tn?.pos; if (p && tn) { sum += p[1] + tn.size[1] / 2; n++; } }
-      const p = positions.get(id); const selfN = model.nodes.get(id);
-      if (p && n && selfN) positions.set(id, [p[0], sum / n - selfN.size[1] / 2]); // 源中心线 = 目标中心线均值
-    }
-  }
-  // 主链段水平压实：1 进 1 出节点并排收紧（安全阀：仅压不与侧边共用列边界的列，见 compressSpineInline）
-  const cp = compressSpineInline(model, positions, { inlineGap, spine });
-  positions = cp.positions;
+  const track = layoutSpineTracks(model, positions, { spine, inlineGap, layerGap, sideGap: layerGap, nodeGap, align: columnAlign });
+  positions = track.positions;
   // 障碍规避：有 fixed/未选（局部）时，把新布局整体平移到 fixed 包围盒右侧空白带（硬约束：不重叠）
   shiftToFreeBand(positions, constraints.obstacles, { margin: 60 });
 
@@ -247,12 +223,13 @@ export async function runAutoLayout(app, { scope = 'full', collapseNotes = false
     skippedRerouteComponents: skipIds.size ? [...skipIds] : [],
     straightened: st.movedCount,
     spineChain: spine.chain,
-    swaps: sw.swaps,
+    swaps: 0,
     columnAlign,
     nodeGap,
     layerGap,
     inlineGap,
-    compressed: cp.compressed,
+    compressed: 0,
+    overlaps: track.overlaps,
     noteIdsCollapsed: collapseNotes ? [...noteIds] : [],
     groups: memberIdsByGroupId.size,
     metrics: evaluateLayout(model, positionsFinal, new Map([...model.nodes.values()].map((n) => [n.id, n.pos]))),
