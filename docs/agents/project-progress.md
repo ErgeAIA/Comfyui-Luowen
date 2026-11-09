@@ -33,6 +33,10 @@ description: >
   - **合并推迟**：auto-layout→main 待用户验收按钮/菜单/滑块通过后执行（用户「优化完按钮和菜单再合」）。
   - **盲测口径改三工作流校准**：500 节点合成 A/B 不适合人肉盲测（用户反馈「AI 生成的巨长工作流」）；改由用户提供 示例工作流1/整理后2/手动期望3，重点分析 2↔3 差异改进布局（**待用户给文件名**）。
   - **文档卫生（用户批准）**：去除本文件「实施轮」×3 与「工具链」×2、decision-log 补记 F×3 的字节级相同重复（各留首份，不删历史）；补最新 handoff（2026-11-09）。
+- **本轮验收+合并+校准分析（2026-11-09，分支 auto-layout；DEC-044 补记）**：
+  - 用户宿主验收通过（按钮/菜单/滑块）；按「优化完按钮和菜单再合」fast-forward 合并 main `e6c2629`→`2892fff` 并 push（origin/main=2892fff）。
+  - **test2↔test3 校准**（10 节点 Z-Image-Turbo，拓扑/连线/参数逐字节一致，仅 6 位置+2 尺寸改动）：①水平间距过宽根因=自适应层间距把 widget 输入计入端口（KSampler 10 而非 4 入边）→220px，用户压到 70–136px，改进=只数入边；②主链（ModelSampling→KSampler→VAEDecode→SaveImage+UNETLoader）顶边应对齐 y≈54，现 ELK 居中+straightenEdges 只对端口不对顶边；③左列右移是①连带、两处改尺寸属美化非算法范畴。
+  - 对比图 `.verify/p7/calibration-compare.html`（已渲染验证）。改进①低风险快赢、②待设计，**交用户裁决后实施**。
 - **本轮接手核对（2026-11-09，新会话只读盘点 + 本条记录，未改功能代码）**：分支 auto-layout = origin = `a7d1ec9`，工作区干净；单测实跑 **151/151**；宿主 `custom_nodes/luowen/web/index.js` 与仓库 SHA256 一致（`4c3abbbd…`，含 actionbar 按钮版）。F-015 交付项已闭合（DEC-043 补记 G），待用户事项：①盲测 A/B（`.verify/p7/blind-A/B.json`）②actionbar「⌁整理」按钮宿主验收（`a7d1ec9` 未见于决策日志，验收状态待用户确认）③auto-layout 合入 main 的时机。文档卫生观察（只报告不删历史）：本文件「实施轮」条目与 decision-log DEC-043 补记 F 各有三份重复；四份 handoff 均为 2026-11-07 早于本工作线，最新事实以本文件与 DEC-043 补记 G 为准。
 - **本轮动效 v3 实施（2026-11-08，用户指示「实施吧」；DEC-042；改 trace.js/renderLinkAdapter.js/index.js + 新增 beamTrace.test.mjs；已部署宿主自测，等用户验收）**：
         - **样本部署宿主（用户指示）**：六份选样工作流复制进 portable 工作流目录（前缀 `LW样本-`，不覆盖同名），宿主 loadGraphData 冒烟通过（最大样本 230 节点 248 链装载 ok、路由接管、verify ok、零报错；routed 计数随视口/缩放符合既有裁剪口径）。脚本 `.verify/p7/deploy-samples.mjs`。
