@@ -425,6 +425,11 @@ export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 
       const parent = groupList.find((p) => p.hub === g.hub && p.side === 'L' && p.depth === g.depth - 1);
       const base = parent ? Math.min(...parent.nodes.filter(movable).map((id) => pos.get(id)[0])) - sideGap : hubPos[0] - sideGap;
       colRight = base; colLeft = base - maxW;
+      // 深度1 的扇入列右缘对齐主轴前驱右缘（#231/#223 对齐 #220）
+      if (g.depth === 1) {
+        const hi = topLine.indexOf(g.hub);
+        if (hi > 0) { const prevId = topLine[hi - 1]; colRight = Math.min(colRight, pos.get(prevId)[0] + effW(prevId)); colLeft = colRight - maxW; }
+      }
     }
     const hOf = (list) => list.reduce((s, id) => s + effH(id), 0) + Math.max(0, list.length - 1) * nodeGap;
     const place = (id, y, k, layout) => {
@@ -449,7 +454,7 @@ export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 
       const layout = { widths: [maxW], offsets: [0] };
       let y = startY;
       for (const id of list) y = place(id, y, 0, layout);
-      placedGroups.push({ nodes: list, order: startY });
+      placedGroups.push({ nodes: list, order: startY, hub: g.hub, side: g.side, depth: g.depth });
     };
     let placed = false;
     if (g.side === 'L' && g.depth === 1 && portOf.size) {
@@ -499,7 +504,7 @@ export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 
           if (g.side === 'L') lock = { side: 'above', parents: [...parents] };
         }
       }
-      placedGroups.push({ nodes: ids, order: startY, lock });
+      placedGroups.push({ nodes: ids, order: startY, hub: g.hub, side: g.side, depth: g.depth, lock });
     }
   }
   // 4. 碰撞消解（整列就近上下、保持列内顺序）：顶线固定；侧列与顶线/已放置对象重叠 → 取最近的合法位置
@@ -537,25 +542,78 @@ export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 
     }
     placed.push(bboxOf(gids));
   }
-  // 深度≥2 锁定复核：按父节点最终位置，确保不越过父节点（必要时越过挡路列）
+  // 深度≥2 上游源：端口对齐父节点；冲突时插空档（x 右移到障碍右侧）
   for (const g of placedGroups) {
-    if (!g.lock) continue;
-    const box = bboxOf(g.nodes);
-    const pTop = Math.min(...g.lock.parents.map((id) => pos.get(id)[1]));
-    const pBot = Math.max(...g.lock.parents.map((id) => pos.get(id)[1] + effH(id)));
-    const own = new Set(g.nodes);
-    const obs = [];
-    for (const n of model.nodes.values()) if (pos.has(n.id) && !own.has(n.id)) obs.push(rect(n.id));
-    const ox = obs.filter((o) => xOv(box, o));
-    let top = box.y;
-    if (g.lock.side === 'above') {
-      top = Math.min(top, pTop - nodeGap - box.h);
-      for (const o of ox) top = Math.min(top, o.y - nodeGap - box.h);
-    } else {
-      top = Math.max(top, pBot + nodeGap);
-      for (const o of ox) top = Math.max(top, o.y + o.h + nodeGap);
+    if (!(g.depth > 1 && g.side === 'L' && g.hub)) continue;
+    const parents = new Set();
+    for (const id of g.nodes) for (const e of model.edges) if (e.src === id) { const inf = info.get(e.dst); if (inf && inf.hub === g.hub && inf.depth === g.depth - 1) parents.add(e.dst); }
+    if (!parents.size) continue;
+    const deltas = [];
+    for (const id of g.nodes) {
+      const e = model.edges.find((x) => x.src === id && parents.has(x.dst));
+      if (!e) continue;
+      const pn = model.nodes.get(e.dst), sn = model.nodes.get(id);
+      if (!pn || !sn) continue;
+      const py = pos.get(e.dst)[1] + pn.size[1] * ((e.dstPort + 0.5) / Math.max(1, pn.inPorts.length));
+      const oy = pos.get(id)[1] + sn.size[1] * ((e.srcPort + 0.5) / Math.max(1, sn.outPorts.length));
+      deltas.push(py - oy);
     }
-    if (Math.abs(top - box.y) > 1e-6) for (const id of g.nodes) { const p = pos.get(id); pos.set(id, [p[0], p[1] + (top - box.y)]); }
+    if (!deltas.length) continue;
+    const dy = deltas.reduce((a, b) => a + b, 0) / deltas.length;
+    const own = new Set(g.nodes);
+    const shiftY = (d) => { for (const id of g.nodes) { const p = pos.get(id); pos.set(id, [p[0], p[1] + d]); } };
+    const collides = () => {
+      const b = bboxOf(g.nodes);
+      for (const n of model.nodes.values()) { if (!pos.has(n.id) || own.has(n.id)) continue; const r = rect(n.id); if (xOv(b, r) && yOv(b, r)) return true; }
+      return false;
+    };
+    const baseX = bboxOf(g.nodes).x;
+    const shiftX = (d) => { for (const id of g.nodes) { const p = pos.get(id); pos.set(id, [p[0] + d, p[1]]); } };
+    shiftY(dy);
+    if (collides()) {
+      shiftY(-dy);
+      const b = bboxOf(g.nodes);
+      const yLo = b.y + dy, yHi = b.y + b.h + dy;
+      const cands = [baseX];
+      for (const n of model.nodes.values()) {
+        if (!pos.has(n.id) || own.has(n.id)) continue;
+        const r = rect(n.id);
+        if (r.y < yHi + nodeGap && yLo < r.y + r.h + nodeGap) cands.push(r.x + r.w + nodeGap);
+      }
+      cands.sort((a, b2) => a - b2);
+      let ok = false;
+      for (const cx of cands) {
+        if (cx < baseX) continue;
+        shiftX(cx - baseX);
+        shiftY(dy);
+        if (!collides()) { ok = true; break; }
+        shiftY(-dy);
+        shiftX(baseX - cx);
+      }
+      if (!ok) { shiftX(baseX - bboxOf(g.nodes).x); }
+    }
+  }
+  // 兄弟单边吸附：输出口与目标入口 |dy| ≤ 40 且不产生重叠 → 采纳
+  {
+    const spineSet = new Set(spine.chain);
+    const cand = [];
+    for (const n of model.nodes.values()) {
+      if (!pos.has(n.id) || spineSet.has(n.id) || n.fixed || n.kind === 'note') continue;
+      const es = model.edges.filter((e) => e.src === n.id);
+      if (es.length !== 1) continue;
+      const e = es[0]; if (!pos.has(e.dst)) continue;
+      const tn = model.nodes.get(e.dst); if (!tn) continue;
+      const py = pos.get(e.dst)[1] + tn.size[1] * ((e.dstPort + 0.5) / Math.max(1, tn.inPorts.length));
+      const oy = pos.get(n.id)[1] + n.size[1] * ((e.srcPort + 0.5) / Math.max(1, n.outPorts.length));
+      const dy = py - oy;
+      if (Math.abs(dy) > 1e-6 && Math.abs(dy) <= 40) cand.push({ id: n.id, dy });
+    }
+    cand.sort((a, b) => Math.abs(a.dy) - Math.abs(b.dy));
+    for (const c of cand) {
+      const shift = (d) => { const p = pos.get(c.id); pos.set(c.id, [p[0], p[1] + d]); };
+      const coll = () => { const r = rect(c.id); for (const n of model.nodes.values()) { if (!pos.has(n.id) || n.id === c.id) continue; const o = rect(n.id); if (xOv(r, o) && yOv(r, o)) return true; } return false; };
+      shift(c.dy); if (coll()) shift(-c.dy);
+    }
   }
   // 最终重叠统计
   const allIds = [...pos.keys()].filter(movable);
