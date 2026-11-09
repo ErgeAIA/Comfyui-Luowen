@@ -924,7 +924,9 @@ get tooltip() {
           const r = btn.getBoundingClientRect();
           try { localStorage.setItem(POS_KEY, JSON.stringify({ x: r.left, y: r.top })); } catch { /* 隐私模式等写入失败不阻塞 */ }
         } else {
-          window.LuoWen?.autoLayout?.('full');
+          // 选择感知：有选中节点 → 整理其所在连通流；无选中 → 整理全图
+          const hasSel = (app?.canvas?.selectedItems?.size ?? 0) > 0;
+          window.LuoWen?.autoLayout?.(hasSel ? 'selected' : 'full');
         }
       });
     }

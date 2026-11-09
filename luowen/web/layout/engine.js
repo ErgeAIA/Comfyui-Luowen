@@ -174,15 +174,23 @@ export async function runAutoLayout(app, { scope = 'full', collapseNotes = false
     }
   } catch { /* DOM 不可用时退回存档尺寸 */ }
   const model = buildModel(snapshot);
-  const selectedIds = scope === 'selected'
+  let selectedIds = scope === 'selected'
     ? [...(app.canvas.selectedItems ?? [])].map((n) => String(n?.id ?? n)).filter((id) => model.nodes.has(id))
     : null;
   if (scope === 'selected' && (!selectedIds || !selectedIds.length)) {
     return { moved: 0, skipped: 'no-selection' };
   }
+  const { movableComponents, rerouteComponentIds, straightenEdges, layoutComponents } = await import('./refine.js');
+  const origPos = new Map([...model.nodes.values()].map((n) => [n.id, n.pos.slice()]));
+  const mvComps = movableComponents(model, origPos, null);
+  // 整理选中 = 整理选中节点所在的整条连通流（就地），不是只动选中的几个节点
+  if (scope === 'selected') {
+    const sel = new Set(selectedIds), keep = new Set();
+    for (const comp of mvComps) if (comp.some((id) => sel.has(id))) comp.forEach((id) => keep.add(id));
+    selectedIds = [...keep];
+  }
   const constraints = buildConstraints(model, { selectedIds });
   // R3（用户反馈 2026-11-09）：含 Reroute 的分量整体跳过重排——手动意图保护（清除转接点超出整理范畴）
-  const { rerouteComponentIds } = await import('./refine.js');
   const skipIds = rerouteComponentIds(model);
   if (skipIds.size) {
     constraints.movableIds = constraints.movableIds.filter((id) => !skipIds.has(id));
@@ -196,14 +204,24 @@ export async function runAutoLayout(app, { scope = 'full', collapseNotes = false
   if (!constraints.movableIds.length) return { moved: 0, skipped: 'nothing-movable' };
 
   let positions = await elkLayout(model, constraints.movableIds, { layerSpacing: layerGap });
-  // R1 拉直 + 主链独立轨道（阶段 A，多连通分量）：每个分量独立排主链、竖排错开
-  const { straightenEdges, layoutComponents } = await import('./refine.js');
   const st = straightenEdges(model, positions);
   positions = st.positions;
-  const track = layoutComponents(model, positions, { inlineGap, layerGap, sideGap: layerGap, nodeGap, align: columnAlign, arrangement: componentLayout });
+  const track = layoutComponents(model, positions, { inlineGap, layerGap, sideGap: layerGap, nodeGap, align: columnAlign, arrangement: componentLayout, movableIds: new Set(constraints.movableIds.map(String)) });
   positions = track.positions;
-  // 障碍规避：有 fixed/未选（局部）时，把新布局整体平移到 fixed 包围盒右侧空白带（硬约束：不重叠）
-  shiftToFreeBand(positions, constraints.obstacles, { margin: 60 });
+  if (scope === 'selected') {
+    // 就地锚定：每个被整理的连通流平移到其原始左上角（不往空白处飞）
+    const movedSet = new Set(constraints.movableIds.map(String));
+    for (const comp of mvComps) {
+      if (!comp.some((id) => movedSet.has(id))) continue;
+      let mnx = Infinity, mny = Infinity, ox = Infinity, oy = Infinity;
+      for (const id of comp) { const p = positions.get(id), o = origPos.get(id); if (p) { mnx = Math.min(mnx, p[0]); mny = Math.min(mny, p[1]); } if (o) { ox = Math.min(ox, o[0]); oy = Math.min(oy, o[1]); } }
+      if (!Number.isFinite(mnx) || !Number.isFinite(ox)) continue;
+      for (const id of comp) { const p = positions.get(id); if (p) positions.set(id, [ox + (p[0] - mnx), oy + (p[1] - mny)]); }
+    }
+  } else {
+    // 全图：障碍规避（未选/Reroute 固定）整体平移到空白带
+    shiftToFreeBand(positions, constraints.obstacles, { margin: 60 });
+  }
 
   // Group 成员表（快照时按几何包含推导，随模型保留）
   const memberIdsByGroupId = new Map(model.groups.filter((g) => g.memberIds.length).map((g) => [g.id, g.memberIds]));

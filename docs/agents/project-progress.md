@@ -63,6 +63,9 @@ description: >
   - 用户把 test2 复制 3 份到一个文件，旧逻辑只认一条主链 → 另两份乱塞重叠。改：按连通分量拆分，每分量独立主链轨道布局，再竖排错开（间隔 120）。
   - 实测 3 份副本（126 节点）：布局前视觉重叠 180 → **布局后 0**；verify ok；单测 157/157。
   - 新增设置 `LuoWen.AutoLayout.ComponentLayout`（竖排默认 / 横排）；实测竖排/横排均 0 重叠。
+- **本轮「整理选中=整理选中所在流（就地）」+ 按钮选择感知（2026-11-09，DEC-050；改 engine/refine/index；已部署，待验收）**：
+  - scope=selected 改为整理选中节点所在连通分量、就地锚定（不 shiftToFreeBand）；layoutComponents 增 movableIds/anchorToOriginal，新增 movableComponents；浮动「⌁整理」按有无选中决定 full/selected。
+  - 实测 3 份副本选第 2 份一个节点：仅第 2 份 14 节点移动、originShift(0,0)、第 1/3 份 0 移动；verify ok；单测 157/157。
   - **补记3（扇对称）**：扇根以对端节点中心线为轴居中——CLIP加载器中心=两 CLIP文本编码中心均值（diff 0）；save 4 节点视觉中心=VAE解码中心（260）。优先级：主链顶边 > 扇对称。
 - **本轮接手核对（2026-11-09，新会话只读盘点 + 本条记录，未改功能代码）**：分支 auto-layout = origin = `a7d1ec9`，工作区干净；单测实跑 **151/151**；宿主 `custom_nodes/luowen/web/index.js` 与仓库 SHA256 一致（`4c3abbbd…`，含 actionbar 按钮版）。F-015 交付项已闭合（DEC-043 补记 G），待用户事项：①盲测 A/B（`.verify/p7/blind-A/B.json`）②actionbar「⌁整理」按钮宿主验收（`a7d1ec9` 未见于决策日志，验收状态待用户确认）③auto-layout 合入 main 的时机。文档卫生观察（只报告不删历史）：本文件「实施轮」条目与 decision-log DEC-043 补记 F 各有三份重复；四份 handoff 均为 2026-11-07 早于本工作线，最新事实以本文件与 DEC-043 补记 G 为准。
 - **本轮动效 v3 实施（2026-11-08，用户指示「实施吧」；DEC-042；改 trace.js/renderLinkAdapter.js/index.js + 新增 beamTrace.test.mjs；已部署宿主自测，等用户验收）**：

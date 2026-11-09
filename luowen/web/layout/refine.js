@@ -406,12 +406,10 @@ export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 
 }
 
 /**
- * 多连通分量布局：每个分量各算主链、独立走主链轨道排布，再竖排错开（分量间零重叠）。
- * 修「一个文件多份工作流时只有第一份对」（2026-11-09 用户反馈）。
+ * 可动节点的连通分量（连通流）。ids 可选：只在这些 id 内找分量。
  */
-export function layoutComponents(model, positions, { arrangement = 'vertical', ...opts } = {}) {
-  const pos = new Map(positions);
-  const mvIds = [...pos.keys()].filter((id) => { const n = model.nodes.get(id); return n && !n.fixed; });
+export function movableComponents(model, positions, ids = null) {
+  const mvIds = (ids ? [...ids] : [...positions.keys()]).filter((id) => { const n = model.nodes.get(id); return n && positions.has(id) && !n.fixed; });
   const mv = new Set(mvIds);
   const adj = new Map();
   for (const id of mvIds) adj.set(id, []);
@@ -423,8 +421,22 @@ export function layoutComponents(model, positions, { arrangement = 'vertical', .
     while (q.length) { const c = q.shift(); comp.push(c); for (const nx of adj.get(c) ?? []) if (!seen.has(nx)) { seen.add(nx); q.push(nx); } }
     comps.push(comp);
   }
-  const startX = mvIds.length ? Math.min(...mvIds.map((id) => pos.get(id)[0])) : 0;
-  const startY = mvIds.length ? Math.min(...mvIds.map((id) => pos.get(id)[1])) : 0;
+  return comps;
+}
+
+/**
+ * 分量布局：每个分量各算主链、独立走主链轨道。
+ * - 默认：分量竖排/横排错开（多工作流全图）。
+ * - anchorToOriginal：就地锚定（新布局左上角=该分量原左上角），用于「整理选中所在流」。
+ * - movableIds：只布局这些节点（默认所有未固定节点）。
+ */
+export function layoutComponents(model, positions, { arrangement = 'vertical', anchorToOriginal = false, movableIds = null, ...opts } = {}) {
+  const pos = new Map(positions);
+  const orig = new Map(positions);
+  const comps = movableComponents(model, positions, movableIds);
+  const allMv = comps.flat();
+  const startX = allMv.length ? Math.min(...allMv.map((id) => pos.get(id)[0])) : 0;
+  const startY = allMv.length ? Math.min(...allMv.map((id) => pos.get(id)[1])) : 0;
   const horiz = arrangement === 'horizontal';
   let cursor = horiz ? startX : startY;
   let overlaps = 0;
@@ -435,14 +447,18 @@ export function layoutComponents(model, positions, { arrangement = 'vertical', .
     let mnx = Infinity, mny = Infinity;
     for (const id of comp) { const p = laid.positions.get(id); if (p) { mnx = Math.min(mnx, p[0]); mny = Math.min(mny, p[1]); } }
     if (!Number.isFinite(mnx)) continue;
-    let maxW = 0, maxH = 0;
-    for (const id of comp) { const p = laid.positions.get(id), n = model.nodes.get(id); if (p && n) { maxW = Math.max(maxW, p[0] - mnx + n.size[0]); maxH = Math.max(maxH, p[1] - mny + (n.effH ?? n.size[1])); } }
-    for (const id of comp) {
-      const p = laid.positions.get(id);
-      if (p) pos.set(id, [(horiz ? cursor : startX) + (p[0] - mnx), (horiz ? startY : cursor) + (p[1] - mny)]);
+    if (anchorToOriginal) {
+      let ox = Infinity, oy = Infinity;
+      for (const id of comp) { const p = orig.get(id); if (p) { ox = Math.min(ox, p[0]); oy = Math.min(oy, p[1]); } }
+      if (!Number.isFinite(ox)) { ox = mnx; oy = mny; }
+      for (const id of comp) { const p = laid.positions.get(id); if (p) pos.set(id, [ox + (p[0] - mnx), oy + (p[1] - mny)]); }
+    } else {
+      let maxW = 0, maxH = 0;
+      for (const id of comp) { const p = laid.positions.get(id), n = model.nodes.get(id); if (p && n) { maxW = Math.max(maxW, p[0] - mnx + n.size[0]); maxH = Math.max(maxH, p[1] - mny + (n.effH ?? n.size[1])); } }
+      for (const id of comp) { const p = laid.positions.get(id); if (p) pos.set(id, [(horiz ? cursor : startX) + (p[0] - mnx), (horiz ? startY : cursor) + (p[1] - mny)]); }
+      cursor += (horiz ? maxW : maxH) + 120;
     }
     overlaps += laid.overlaps ?? 0;
-    cursor += (horiz ? maxW : maxH) + 120;
   }
   return { positions: pos, overlaps, components: comps.length };
 }
