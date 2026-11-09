@@ -314,25 +314,36 @@ test('layoutRefine.spineOf: sink-coverage 含环仍返回空链', () => {
   assert.deepEqual(spineOf(m, pos, null, { strategy: 'sink-coverage' }).chain, []);
 });
 
-test('layoutRefine.layoutSpineTracks: L 侧源组超高换列，R 侧输出保持单列', () => {
-  const nodes = [];
-  const links = [];
-  let lid = 1;
-  nodes.push(N(1, 'A', [0, 0], [100, 100], { outputs: [{}] }));
-  nodes.push(N(2, 'Hub', [300, 0], [200, 100], { inputs: [{}, {}, {}, {}, {}], outputs: [{}] }));
-  nodes.push(N(3, 'C', [700, 0], [100, 100], { inputs: [{}] }));
-  for (let i = 0; i < 5; i++) nodes.push(N(10 + i, `Src${i}`, [0, 0], [100, 100], { outputs: [{}] }));
-  for (let i = 0; i < 4; i++) nodes.push(N(20 + i, `Out${i}`, [0, 0], [100, 100], { inputs: [{}] }));
-  links.push(L('e1', 1, 0, 2, 0), L('e2', 2, 0, 3, 0));
-  for (let i = 0; i < 5; i++) links.push(L(`s${lid++}`, 10 + i, 0, 2, i));
-  for (let i = 0; i < 4; i++) links.push(L(`o${lid++}`, 2, 0, 20 + i, 0));
-  const m = buildModel({ nodes, links, groups: [] });
-  const pos = new Map(nodes.map((n) => [String(n.id), [0, 0]]));
-  const spine = { chain: ['1', '2', '3'], ids: new Set(['1', '2', '3']), anchorTop: 0 };
-  const r = layoutSpineTracks(m, pos, { spine, inlineGap: 50, layerGap: 60, sideGap: 60, nodeGap: 40, align: 'auto' });
-  const srcX = new Set([0, 1, 2, 3, 4].map((i) => Math.round(r.positions.get(String(10 + i))[0])));
-  const outX = new Set([0, 1, 2, 3].map((i) => Math.round(r.positions.get(String(20 + i))[0])));
-  assert.ok(srcX.size >= 2, `L 侧超高组应换列（实际 ${srcX.size} 列）`);
-  assert.equal(outX.size, 1, 'R 侧输出不换列');
-  assert.equal(r.overlaps, 0, '换列后无重叠');
+test('layoutRefine.layoutSpineTracks: 直接扇入源按目标口顺序锚定主链源（下口在下）', () => {
+  // 主链 A(1)→Hub(2)→C(3)；Hub 5 个输入，主链源 A 接最下口 slot4，侧源 10..13 接 slot0..3
+  const build = (spineSlot) => {
+    const nodes = [
+      N(1, 'A', [0, 0], [100, 100], { outputs: [{}] }),
+      N(2, 'Hub', [300, 0], [200, 300], { inputs: [{}, {}, {}, {}, {}], outputs: [{}] }),
+      N(3, 'C', [700, 0], [100, 100], { inputs: [{}] }),
+    ];
+    const links = [L('e1', 1, 0, 2, spineSlot), L('e2', 2, 0, 3, 0)];
+    let lid = 1;
+    if (spineSlot === 4) {
+      for (let i = 0; i < 4; i++) { nodes.push(N(10 + i, `Src${i}`, [0, 0], [100, 100], { outputs: [{}] })); links.push(L(`s${lid++}`, 10 + i, 0, 2, i)); }
+    } else {
+      for (let i = 0; i < 3; i++) { nodes.push(N(10 + i, `Src${i}`, [0, 0], [100, 100], { outputs: [{}] })); links.push(L(`s${lid++}`, 10 + i, 0, 2, i + 1)); }
+    }
+    const m = buildModel({ nodes, links, groups: [] });
+    const pos = new Map(nodes.map((n) => [String(n.id), [0, 0]]));
+    const r = layoutSpineTracks(m, pos, { spine: { chain: ['1', '2', '3'], ids: new Set(['1', '2', '3']), anchorTop: 0 }, inlineGap: 50, layerGap: 60, sideGap: 60, nodeGap: 40, align: 'auto' });
+    return r.positions;
+  };
+  // 主链源接最下口 → 侧源全部在它上方，且按口序从上到下
+  const pUp = build(4);
+  const ay = pUp.get('1')[1];
+  const ys = [0, 1, 2, 3].map((i) => pUp.get(String(10 + i))[1]);
+  assert.ok(ys.every((y) => y < ay), `侧源应全部在主链源上方（spine y=${ay}, side=${ys}）`);
+  assert.ok(ys[0] < ys[1] && ys[1] < ys[2] && ys[2] < ys[3], '上方侧源按目标口序从上到下');
+  // 主链源接最上口 → 侧源全部在它下方，且按口序从上到下
+  const pDown = build(0);
+  const ay2 = pDown.get('1')[1];
+  const ys2 = [0, 1, 2].map((i) => pDown.get(String(10 + i))[1]);
+  assert.ok(ys2.every((y) => y > ay2), `侧源应全部在主链源下方（spine y=${ay2}, side=${ys2}）`);
+  assert.ok(ys2[0] < ys2[1] && ys2[1] < ys2[2], '下方侧源按目标口序从上到下');
 });

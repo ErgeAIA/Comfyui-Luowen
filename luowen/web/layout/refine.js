@@ -402,42 +402,68 @@ export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 
       const base = parent ? Math.min(...parent.nodes.filter(movable).map((id) => pos.get(id)[0])) - sideGap : hubPos[0] - sideGap;
       colRight = base; colLeft = base - maxW;
     }
-    // 第 k 列：沿背离主轴的方向外扩（L 向左、R 向右），保持组内端口顺序
-    const place = (id, y, k) => {
+    const hOf = (list) => list.reduce((s, id) => s + effH(id), 0) + Math.max(0, list.length - 1) * nodeGap;
+    const place = (id, y, k, layout) => {
       const n = model.nodes.get(id);
+      const w = layout.widths[k] ?? maxW;
+      const off = layout.offsets[k] ?? k * (sideGap + maxW);
       let left, right;
-      if (g.side === 'R') { left = colLeft + k * (sideGap + maxW); right = left + maxW; }
-      else { right = colRight - k * (sideGap + maxW); left = right - maxW; }
+      if (g.side === 'R') { left = colLeft + off; right = left + w; }
+      else { right = colRight - off; left = right - w; }
       let x = left;
       if (al === 'right') x = right - n.size[0];
-      else if (al === 'center') x = left + (maxW - n.size[0]) / 2;
+      else if (al === 'center') x = left + (w - n.size[0]) / 2;
       pos.set(id, [x, y]);
       return y + effH(id) + nodeGap;
     };
-    // 规则 3：上游源组单列过高（> 2×hub 高且 > 480）→ 折成最多 3 列，列内仍按端口顺序
-    // 只作用于 L 侧：R 侧是输出分支，换列会把保存分支横向拉开（test1 实测宽度 +33%）
-    const maxColH = Math.max(hubN.size[1] * 2, 480);
-    let chunks = [ids];
-    if (g.side === 'L' && totalH > maxColH && ids.length > 1) {
-      const cols = Math.max(2, Math.min(3, Math.ceil(totalH / maxColH)));
-      const target = totalH / cols;
-      chunks = [];
-      let cur = [], h = 0;
-      for (const id of ids) {
-        const add = effH(id) + (cur.length ? nodeGap : 0);
-        if (cur.length && h + add > target + nodeGap / 2 && chunks.length < cols - 1) { chunks.push(cur); cur = [id]; h = effH(id); }
-        else { cur.push(id); h += add; }
+    // 直接扇入源：严格按目标输入口排序，以主链源为锚（下口在下）；
+    // 单列过高时折列，但每列都贴同一锚线，顺序与高度同时满足。
+    // 行式网格：按目标口顺序逐行填（每行 ≤3 列），行内用 6px 递增偏移保持严格 Y 序；
+    // 整块贴主链锚线（上方组底边贴锚顶上方、下方组顶边贴锚底下方），既紧凑又不打乱顺序。
+    const gridOf = (list) => {
+      if (!list.length) return null;
+      const C = Math.min(3, list.length);
+      const rows = [];
+      for (let i = 0; i < list.length; i += C) rows.push(list.slice(i, i + C));
+      const cols = Array.from({ length: C }, () => []);
+      let h = 0;
+      for (const row of rows) {
+        const rh = Math.max(...row.map((id) => effH(id)));
+        row.forEach((id, ci) => cols[ci].push({ id, dy: h + ci * 6 }));
+        h += rh + nodeGap;
       }
-      if (cur.length) chunks.push(cur);
-      if (chunks.length < 2) chunks = [ids];
+      const widths = cols.map((col) => Math.max(...col.map((it) => model.nodes.get(it.id).size[0])));
+      const offsets = [];
+      widths.forEach((w, i) => offsets.push(i === 0 ? 0 : offsets[i - 1] + sideGap + widths[i - 1]));
+      return { cols, h: Math.max(0, h - nodeGap), nodes: list, widths, offsets };
+    };
+    const placeGrid = (g, startY) => {
+      if (!g) return;
+      for (let ci = 0; ci < g.cols.length; ci++) for (const it of g.cols[ci]) place(it.id, startY + it.dy, ci, g);
+      placedGroups.push({ nodes: g.nodes, order: startY });
+    };
+    let placed = false;
+    if (g.side === 'L' && g.depth === 1 && portOf.size) {
+      const topSet = new Set(topLine);
+      const spineSrc = [];
+      for (const e of model.edges) if (e.dst === g.hub && topSet.has(e.src)) spineSrc.push({ id: e.src, port: e.dstPort });
+      if (spineSrc.length) {
+        const minPort = Math.min(...spineSrc.map((s) => s.port));
+        const maxPort = Math.max(...spineSrc.map((s) => s.port));
+        const above = ids.filter((id) => (portOf.get(id) ?? 1e9) < minPort).sort((a, b) => portOf.get(a) - portOf.get(b));
+        const below = ids.filter((id) => (portOf.get(id) ?? 1e9) > maxPort).sort((a, b) => portOf.get(a) - portOf.get(b));
+        const topY = Math.min(...spineSrc.map((s) => pos.get(s.id)[1]));
+        const botY = Math.max(...spineSrc.map((s) => pos.get(s.id)[1] + effH(s.id)));
+        const gA = gridOf(above), gB = gridOf(below);
+        if (gA) { placeGrid(gA, topY - nodeGap - gA.h); placed = true; }
+        if (gB) { placeGrid(gB, botY + nodeGap); placed = true; }
+      }
     }
-    for (let k = 0; k < chunks.length; k++) {
-      const chunk = chunks[k];
-      const hC = chunk.reduce((s, id) => s + effH(id), 0) + (chunk.length - 1) * nodeGap;
-      const startY = centerY - hC / 2;
-      let y = startY;
-      for (const id of chunk) y = place(id, y, k);
-      placedGroups.push({ nodes: chunk, order: startY });
+    if (!placed) {
+      const layout = { widths: [maxW], offsets: [0] };
+      let y = centerY - totalH / 2;
+      for (const id of ids) y = place(id, y, 0, layout);
+      placedGroups.push({ nodes: ids, order: centerY - totalH / 2 });
     }
   }
   // 4. 碰撞消解（整列就近上下、保持列内顺序）：顶线固定；侧列与顶线/已放置对象重叠 → 取最近的合法位置
