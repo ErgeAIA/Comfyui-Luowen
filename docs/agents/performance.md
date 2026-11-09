@@ -433,3 +433,10 @@ description: >
 - N² 统计类（tracks/metrics）：真实规模 <1ms，只保留为大文件护栏。
 
 **已知边界**：连续多次点击「整理」时，位置会继续小幅变化（Stage 0 已存在，与缓存无关；首次点击后 DOM 真实高度稳定过程所致），本轮未改。
+
+### 2026-11-09 金标口径更正：以 test1 为准（用户指令）
+
+- test2/test3 已被用户修改，**不能作为参考**；此前 Stage 0/1 中 test2/test3 的数字仅作历史记录，不再参与比较。
+- 金标重建为 `tests/fixtures/layout-golden/test1.json`：当前 test1 = **14 节点 / 14 边**（UNETLoader / CLIPLoader / VAELoader / ModelSamplingAuraFlow / KSampler / CFGNorm / CLIPTextEncode / EmptySD3LatentImage / VAEDecode / SaveImage / SaveImageAdvanced / SaveAnimatedPNG / SaveWEBM），`inputSha256_16=9623f322a3df8674`；两次独立运行哈希 `0d2f20898d5e6613` 一致。
+- 当前 test1 宿主实测（两次）：total **32.7 / 33.9ms**；ELK **24.2 / 24.5ms**；capture×2 **3.3 / 3.8ms**；effH 0.2ms；其余 <2ms。
+- Stage 1 的行为不变证据仍以大样本金标 7/7 + Node 金标 7/7 为准；**test1 金标自本提交起作为后续算法升级的唯一行为判据**。
