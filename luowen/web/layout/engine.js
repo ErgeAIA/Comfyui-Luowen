@@ -160,8 +160,12 @@ export async function runAutoLayout(app, { scope = 'full', collapseNotes = false
   const graph = app.canvas.graph;
   if (!graph) throw new Error('no graph');
   const t0 = performance.now();
+  let tPrev = t0;
+  const stages = {};
+  const lap = (name) => { const now = performance.now(); stages[name] = Math.round((now - tPrev) * 100) / 100; tPrev = now; };
 
   const snapshot = snapshotFromGraph(graph);
+  lap('snapGraph');
   // 用渲染真实高度参与排布：Vue 节点 DOM 高度 = 存档 size + 标题/底栏，个别节点还会按内容撑高；
   // 按 size 打包会导致视觉间距过小甚至重叠（2026-11-09 用户反馈）。
   try {
@@ -173,7 +177,9 @@ export async function runAutoLayout(app, { scope = 'full', collapseNotes = false
       }
     }
   } catch { /* DOM 不可用时退回存档尺寸 */ }
+  lap('effH');
   const model = buildModel(snapshot);
+  lap('model');
   let selectedIds = scope === 'selected'
     ? [...(app.canvas.selectedItems ?? [])].map((n) => String(n?.id ?? n)).filter((id) => model.nodes.has(id))
     : null;
@@ -202,12 +208,16 @@ export async function runAutoLayout(app, { scope = 'full', collapseNotes = false
     }
   }
   if (!constraints.movableIds.length) return { moved: 0, skipped: 'nothing-movable' };
+  lap('plan');
 
   let positions = await elkLayout(model, constraints.movableIds, { layerSpacing: layerGap });
+  lap('elk');
   const st = straightenEdges(model, positions);
   positions = st.positions;
+  lap('straighten');
   const track = layoutComponents(model, positions, { inlineGap, layerGap, sideGap: layerGap, nodeGap, align: columnAlign, arrangement: componentLayout, movableIds: new Set(constraints.movableIds.map(String)) });
   positions = track.positions;
+  lap('tracks');
   if (scope === 'selected') {
     // 就地锚定：每个被整理的连通流平移到其原始左上角（不往空白处飞）
     const movedSet = new Set(constraints.movableIds.map(String));
@@ -222,19 +232,27 @@ export async function runAutoLayout(app, { scope = 'full', collapseNotes = false
     // 全图：障碍规避（未选/Reroute 固定）整体平移到空白带
     shiftToFreeBand(positions, constraints.obstacles, { margin: 60 });
   }
+  lap('anchor');
 
   // Group 成员表（快照时按几何包含推导，随模型保留）
   const memberIdsByGroupId = new Map(model.groups.filter((g) => g.memberIds.length).map((g) => [g.id, g.memberIds]));
 
   // 撤销链：布局前 capture → 写入 → 布局后 capture（activeState 模型，Phase D 实测口径）
   captureState(app);
+  lap('capture1');
   const noteIds = new Set(model.notes);
   const moved = applyPositions(graph, positions, { collapseNotes, noteIds });
   recomputeGroupBounds(graph, memberIdsByGroupId, model.groups.map((g) => g.id));
+  lap('write');
   captureState(app);
+  lap('capture2');
 
   app.canvas.setDirty(true, true);
+  lap('refresh');
   const positionsFinal = new Map([...model.nodes.values()].map((n) => [n.id, positions.get(n.id) ?? n.pos]));
+  const metrics = evaluateLayout(model, positionsFinal, new Map([...model.nodes.values()].map((n) => [n.id, n.pos])));
+  lap('metrics');
+  stages.total = Math.round((performance.now() - t0) * 100) / 100;
   return {
     moved,
     skippedRerouteComponents: skipIds.size ? [...skipIds] : [],
@@ -250,7 +268,10 @@ export async function runAutoLayout(app, { scope = 'full', collapseNotes = false
     overlaps: track.overlaps,
     noteIdsCollapsed: collapseNotes ? [...noteIds] : [],
     groups: memberIdsByGroupId.size,
-    metrics: evaluateLayout(model, positionsFinal, new Map([...model.nodes.values()].map((n) => [n.id, n.pos]))),
-    ms: Math.round((performance.now() - t0) * 100) / 100,
+    metrics,
+    // 规模诊断与阶段耗时（只读观测；不影响布局结果）
+    scale: { nodes: model.nodes.size, edges: model.edges.length, components: model.components.length, movable: constraints.movableIds.length, groups: model.groups.length, reroutes: model.reroutes.size, skipped: skipIds.size },
+    stages,
+    ms: stages.total,
   };
 }
