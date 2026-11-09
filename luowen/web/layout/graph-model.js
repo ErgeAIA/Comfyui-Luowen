@@ -53,6 +53,7 @@ export function buildModel(snapshot) {
       pos: [Number(n.pos?.[0] ?? 0), Number(n.pos?.[1] ?? 0)],
       size: [Number(n.size?.[0] ?? 0), Number(n.size?.[1] ?? 0)],
       effH: Number(n.effH ?? n.size?.[1] ?? 0),
+      effW: Number(n.effW ?? n.size?.[0] ?? 0),
       inPorts: toPorts(n.inputs),
       outPorts: toPorts(n.outputs),
       kind,

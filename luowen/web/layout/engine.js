@@ -205,7 +205,11 @@ export async function runAutoLayout(app, { scope = 'full', collapseNotes = false
       }
       for (const s of snapshot.nodes) {
         const el = byId.get(s.id);
-        if (el) { const h = el.getBoundingClientRect().height / scale; if (Number.isFinite(h) && h > s.size[1]) s.effH = h; }
+        if (!el) continue;
+        const r = el.getBoundingClientRect();
+        const h = r.height / scale, w = r.width / scale;
+        if (Number.isFinite(h) && h > s.size[1]) s.effH = h;
+        if (Number.isFinite(w) && w > s.size[0]) s.effW = w;
       }
     }
   } catch { /* DOM 不可用时退回存档尺寸 */ }

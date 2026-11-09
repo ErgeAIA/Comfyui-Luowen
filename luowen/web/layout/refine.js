@@ -336,6 +336,7 @@ export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 
   const inDeg = new Map(), outDeg = new Map();
   for (const e of model.edges) { inDeg.set(e.dst, (inDeg.get(e.dst) ?? 0) + 1); outDeg.set(e.src, (outDeg.get(e.src) ?? 0) + 1); }
   const effH = (id) => { const n = model.nodes.get(id); return n ? (n.effH ?? n.size[1]) : 0; };
+  const effW = (id) => { const n = model.nodes.get(id); return n ? (n.effW ?? n.size[0]) : 0; };
   const movable = (id) => { const n = model.nodes.get(id); return !!(n && !n.fixed && (!only || only.has(id))); };
   let topLine = spine.chain.filter((id) => pos.has(id));
   if (topLine.length < 2) return { positions: pos, overlaps: 0 };
@@ -389,13 +390,18 @@ export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 
     });
     if (!ids.length) continue;
     const totalH = ids.reduce((s, id) => s + effH(id), 0) + (ids.length - 1) * nodeGap;
-    const centerY = hubPos[1] + hubN.size[1] / 2;
+    let centerY = hubPos[1] + hubN.size[1] / 2;
+    if (g.depth > 1) {
+      const parents = new Set();
+      for (const id of ids) for (const e of model.edges) if (e.src === id) { const inf = info.get(e.dst); if (inf && inf.hub === g.hub && inf.depth === g.depth - 1) parents.add(e.dst); }
+      if (parents.size) centerY = [...parents].reduce((s2, id) => s2 + pos.get(id)[1] + effH(id) / 2, 0) / parents.size;
+    }
     const al = align === 'auto' ? (g.side === 'L' ? 'right' : 'left') : align;
-    const maxW = Math.max(...ids.map((id) => model.nodes.get(id).size[0]));
+    const maxW = Math.max(...ids.map((id) => effW(id)));
     let colLeft, colRight;
     if (g.side === 'R') {
       const parent = groupList.find((p) => p.hub === g.hub && p.side === 'R' && p.depth === g.depth - 1);
-      const base = parent ? Math.max(...parent.nodes.filter(movable).map((id) => pos.get(id)[0] + model.nodes.get(id).size[0])) + sideGap : hubPos[0] + hubN.size[0] + sideGap;
+      const base = parent ? Math.max(...parent.nodes.filter(movable).map((id) => pos.get(id)[0] + effW(id))) + sideGap : hubPos[0] + effW(g.hub) + sideGap;
       colLeft = base; colRight = base + maxW;
     } else {
       const parent = groupList.find((p) => p.hub === g.hub && p.side === 'L' && p.depth === g.depth - 1);
@@ -411,8 +417,8 @@ export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 
       if (g.side === 'R') { left = colLeft + off; right = left + w; }
       else { right = colRight - off; left = right - w; }
       let x = left;
-      if (al === 'right') x = right - n.size[0];
-      else if (al === 'center') x = left + (w - n.size[0]) / 2;
+      if (al === 'right') x = right - effW(id);
+      else if (al === 'center') x = left + (w - effW(id)) / 2;
       pos.set(id, [x, y]);
       return y + effH(id) + nodeGap;
     };
@@ -432,7 +438,7 @@ export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 
         row.forEach((id, ci) => cols[ci].push({ id, dy: h + ci * 6 }));
         h += rh + nodeGap;
       }
-      const widths = cols.map((col) => Math.max(...col.map((it) => model.nodes.get(it.id).size[0])));
+      const widths = cols.map((col) => Math.max(...col.map((it) => effW(it.id))));
       const offsets = [];
       widths.forEach((w, i) => offsets.push(i === 0 ? 0 : offsets[i - 1] + sideGap + widths[i - 1]));
       return { cols, h: Math.max(0, h - nodeGap), nodes: list, widths, offsets };
@@ -461,13 +467,25 @@ export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 
     }
     if (!placed) {
       const layout = { widths: [maxW], offsets: [0] };
-      let y = centerY - totalH / 2;
+      const startY = centerY - totalH / 2;
+      let y = startY;
       for (const id of ids) y = place(id, y, 0, layout);
-      placedGroups.push({ nodes: ids, order: centerY - totalH / 2 });
+      // 深度≥2：禁止消解器把整列推过父节点（上/下侧锁定）
+      let limit = null;
+      if (g.depth > 1) {
+        const parents = new Set();
+        for (const id of ids) for (const e of model.edges) if (e.src === id) { const inf = info.get(e.dst); if (inf && inf.hub === g.hub && inf.depth === g.depth - 1) parents.add(e.dst); }
+        if (parents.size) {
+          const pTop = Math.min(...[...parents].map((id) => pos.get(id)[1]));
+          const pBot = Math.max(...[...parents].map((id) => pos.get(id)[1] + effH(id)));
+          limit = (startY + totalH / 2 <= (pTop + pBot) / 2) ? { type: 'above', y: pTop - nodeGap } : { type: 'below', y: pBot + nodeGap };
+        }
+      }
+      placedGroups.push({ nodes: ids, order: startY, limit });
     }
   }
   // 4. 碰撞消解（整列就近上下、保持列内顺序）：顶线固定；侧列与顶线/已放置对象重叠 → 取最近的合法位置
-  const rect = (id) => { const n = model.nodes.get(id), p = pos.get(id); return { x: p[0], y: p[1], w: n.size[0], h: effH(id) }; };
+  const rect = (id) => { const n = model.nodes.get(id), p = pos.get(id); return { x: p[0], y: p[1], w: effW(id), h: effH(id) }; };
   const xOv = (a, b) => a.x < b.x + b.w - 1 && b.x < a.x + a.w - 1;
   const yOv = (a, b) => a.y < b.y + b.h - 1 && b.y < a.y + a.h - 1;
   const bboxOf = (gids) => { let mnx = 1e9, mny = 1e9, mxx = -1e9, mxy = -1e9; for (const id of gids) { const r = rect(id); mnx = Math.min(mnx, r.x); mny = Math.min(mny, r.y); mxx = Math.max(mxx, r.x + r.w); mxy = Math.max(mxy, r.y + r.h); } return { x: mnx, y: mny, w: mxx - mnx, h: mxy - mny }; };
@@ -487,12 +505,15 @@ export function layoutSpineTracks(model, positions, { spine = null, inlineGap = 
       if (!fits(box.y)) {
         const cands = [];
         for (const [a, b] of gaps) { cands.push(a - box.h); cands.push(b); }
+        const lim = g.limit;
+        const okLim = (c) => !lim || (lim.type === 'above' ? c + box.h <= lim.y + 1e-6 : c >= lim.y - 1e-6);
         let best = null;
         for (const c of cands) {
-          if (!fits(c)) continue;
+          if (!fits(c) || !okLim(c)) continue;
           const d = Math.abs(c - box.y);
           if (!best || d < best.d - 1e-9 || (Math.abs(d - best.d) <= 1e-9 && c > best.c)) best = { c, d };
         }
+        if (!best) for (const c of cands) { if (!fits(c)) continue; const d = Math.abs(c - box.y); if (!best || d < best.d - 1e-9) best = { c, d }; }
         if (best) for (const id of gids) { const p = pos.get(id); pos.set(id, [p[0], p[1] + (best.c - box.y)]); }
       }
     }
@@ -556,7 +577,7 @@ export function layoutComponents(model, positions, { arrangement = 'vertical', a
       for (const id of comp) { const p = laid.positions.get(id); if (p) pos.set(id, [ox + (p[0] - mnx), oy + (p[1] - mny)]); }
     } else {
       let maxW = 0, maxH = 0;
-      for (const id of comp) { const p = laid.positions.get(id), n = model.nodes.get(id); if (p && n) { maxW = Math.max(maxW, p[0] - mnx + n.size[0]); maxH = Math.max(maxH, p[1] - mny + (n.effH ?? n.size[1])); } }
+      for (const id of comp) { const p = laid.positions.get(id), n = model.nodes.get(id); if (p && n) { maxW = Math.max(maxW, p[0] - mnx + (n.effW ?? n.size[0])); maxH = Math.max(maxH, p[1] - mny + (n.effH ?? n.size[1])); } }
       for (const id of comp) { const p = laid.positions.get(id); if (p) pos.set(id, [(horiz ? cursor : startX) + (p[0] - mnx), (horiz ? startY : cursor) + (p[1] - mny)]); }
       cursor += (horiz ? maxW : maxH) + 120;
     }
