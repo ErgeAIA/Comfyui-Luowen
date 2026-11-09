@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildModel } from '../../luowen/web/layout/graph-model.js';
-import { straightenEdges, spineTopAlign, swapReduceCrossings, rerouteComponentIds } from '../../luowen/web/layout/refine.js';
+import { straightenEdges, spineOf, swapReduceCrossings, rerouteComponentIds } from '../../luowen/web/layout/refine.js';
 import { countCrossings } from '../../luowen/web/layout/metrics.js';
 
 const N = (id, type = 'KSampler', pos = [0, 0], size = [80, 60], opts = {}) => ({ id, type, pos, size, inputs: opts.inputs ?? [], outputs: opts.outputs ?? [], ...opts });
@@ -106,10 +106,61 @@ test('layoutRefine.swapReduceCrossings: 列内对齐 right(默认)/left/center�
   const center = swapReduceCrossings(m, pos, { align: 'center' }).positions;
   assert.equal(center.get('1')[0], 0);
   assert.equal(center.get('2')[0], 50, 'center：居中于 [0,200]');
-  assert.equal(swapReduceCrossings(m, pos).positions.get('2')[0], 100, '默认 right');
+  assert.equal(swapReduceCrossings(m, pos).positions.get('2')[0], 100, '默认 auto（无连线→右）');
 });
 
-test('layoutRefine.spineTopAlign: 最长路径顶边对齐到链上第二个节点（并列取起点 top 最小）', () => {
+test('layoutRefine.swapReduceCrossings: auto 逐列对齐——单源扇出→左，多源扇入→右', () => {
+  // 扇出：S→A,B（A/B 为汇点）。中列 inFromSingle=2 > outToSingle=0 → 左对齐
+  const m1 = buildModel({
+    nodes: [
+      N(1, 'S', [0, 0], [80, 60], { outputs: [{}] }),
+      N(2, 'A', [300, 0], [200, 60], { inputs: [{}] }),
+      N(3, 'B', [300, 200], [100, 60], { inputs: [{}] }),
+    ],
+    links: [L('e1', 1, 0, 2, 0), L('e2', 1, 0, 3, 0)],
+    groups: [],
+  });
+  const pos1 = new Map([['1', [0, 0]], ['2', [300, 0]], ['3', [300, 200]]]);
+  const r1 = swapReduceCrossings(m1, pos1, { align: 'auto' });
+  assert.equal(r1.positions.get('2')[0], 300, '扇出列左对齐：宽节点 A 左缘 300');
+  assert.equal(r1.positions.get('3')[0], 300, '扇出列左对齐：窄节点 B 左缘 300');
+
+  // 扇入：S1→A、S2→B；A,B→T。中列 outToSingle=2 > inFromSingle=1 → 右对齐
+  const m2 = buildModel({
+    nodes: [
+      N(1, 'S1', [0, 0], [80, 60], { outputs: [{}] }),
+      N(5, 'S2', [0, 200], [80, 60], { outputs: [{}] }),
+      N(2, 'A', [300, 0], [200, 60], { inputs: [{}], outputs: [{}] }),
+      N(3, 'B', [300, 200], [100, 60], { inputs: [{}], outputs: [{}] }),
+      N(4, 'T', [600, 100], [80, 60], { inputs: [{}] }),
+    ],
+    links: [L('e1', 1, 0, 2, 0), L('e2', 5, 0, 3, 0), L('e3', 2, 0, 4, 0), L('e4', 3, 0, 4, 0)],
+    groups: [],
+  });
+  const pos2 = new Map([['1', [0, 0]], ['5', [0, 200]], ['2', [300, 0]], ['3', [300, 200]], ['4', [600, 100]]]);
+  const r2 = swapReduceCrossings(m2, pos2, { align: 'auto' });
+  assert.equal(r2.positions.get('2')[0], 300, '扇入列右对齐：宽节点 A 左缘 300');
+  assert.equal(r2.positions.get('3')[0], 400, '扇入列右对齐：窄节点 B 左缘 400');
+});
+
+test('layoutRefine.swapReduceCrossings: 主链锚定——列内顶端为主链节点时起始 y=锚顶', () => {
+  const m = buildModel({
+    nodes: [
+      N(1, 'S1', [0, 0], [80, 60], { outputs: [{}] }),
+      N(2, 'S2', [0, 200], [80, 60], { outputs: [{}] }),
+      N(3, 'A', [400, 100], [80, 60], { inputs: [{}] }),
+    ],
+    links: [L('e1', 1, 0, 3, 0)],
+    groups: [],
+  });
+  const pos = new Map([['1', [0, 0]], ['2', [0, 200]], ['3', [400, 100]]]);
+  const spine = { ids: new Set(['1', '3']), anchorTop: 100 };
+  const r = swapReduceCrossings(m, pos, { align: 'auto', spine });
+  assert.equal(r.positions.get('1')[1], 100, 'S1 起始 y 锚定锚顶 100');
+  assert.equal(r.positions.get('2')[1], 100 + 60 + 40, 'S2 顺次 = 100+60+40');
+});
+
+test('layoutRefine.spineOf: 最长路径（并列取起点 top 最小）返回链与锚顶', () => {
   const m = buildModel({
     nodes: [
       N(1, 'Load', [0, 0], [80, 60], { outputs: [{}] }),
@@ -121,22 +172,20 @@ test('layoutRefine.spineTopAlign: 最长路径顶边对齐到链上第二个节�
     groups: [],
   });
   const pos = new Map([['1', [0, 0]], ['2', [200, 30]], ['3', [400, 90]], ['4', [600, 20]]]);
-  const r = spineTopAlign(m, pos);
+  const r = spineOf(m, pos);
   assert.deepEqual(r.chain, ['1', '3', '4'], '并列最长路径取起点 top 最小（1 的 0 < 2 的 30）');
-  assert.equal(r.positions.get('1')[1], 90, '链首顶边拉到锚 90');
-  assert.equal(r.positions.get('3')[1], 90, '锚保持 90');
-  assert.equal(r.positions.get('4')[1], 90, '链尾顶边拉到锚 90');
-  assert.equal(r.movedCount, 2);
+  assert.equal(r.anchorTop, 90, '锚顶 = 链上第二个节点 3 的 top');
+  assert.ok(r.ids.has('1') && r.ids.has('3') && r.ids.has('4'));
 });
 
-test('layoutRefine.spineTopAlign: 含环保守跳过（不移动）', () => {
+test('layoutRefine.spineOf: 含环返回空链', () => {
   const m = buildModel({
     nodes: [N(1, 'A', [0, 0]), N(2, 'B', [200, 0]), N(3, 'C', [400, 0])],
     links: [L('e1', 1, 0, 2, 0), L('e2', 2, 0, 3, 0), L('e3', 3, 0, 1, 0)],
     groups: [],
   });
   const pos = new Map([['1', [0, 0]], ['2', [200, 0]], ['3', [400, 0]]]);
-  const r = spineTopAlign(m, pos);
-  assert.equal(r.movedCount, 0);
+  const r = spineOf(m, pos);
   assert.deepEqual(r.chain, []);
+  assert.equal(r.anchorTop, null);
 });

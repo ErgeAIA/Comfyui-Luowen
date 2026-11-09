@@ -73,15 +73,16 @@ export function straightenEdges(model, positions, { maxTolRatio = 0.5 } = {}) {
 }
 
 /**
- * R4 主链顶边对齐（用户校准 2026-11-09）：在可动子图内取最长路径（并列时取起点 top 更小者），
- * 把链上节点顶边对齐到「链上第二个节点」的 top，其余节点上下平移。
- * 仅 y 方向平移：同列重叠由随后的 R2 列重排消解，跨列因水平分层不会重叠。
- * 单链 <3 节点或含环时保守跳过。
+ * 主链识别（用户校准 2026-11-09）：在可动子图内取最长路径（并列时取起点 top 更小者），
+ * 返回链节点 ids 与锚顶（链上第二个节点的 top）。定位交给 R2 列重排：列内顶端是主链节点的列
+ * 锚定到锚顶——既保证主链顶边成一条线，又不会把扇出列（顶端非主链）的堆叠打断。
+ * 链 <3 节点或含环时返回空。
  */
-export function spineTopAlign(model, positions) {
-  const pos = new Map(positions);
+export function spineOf(model, positions) {
+  const empty = { chain: [], ids: new Set(), anchorTop: null };
+  const pos = positions;
   const movable = [...model.nodes.values()].filter((n) => pos.has(n.id) && !n.fixed);
-  if (movable.length < 3) return { positions: pos, movedCount: 0, chain: [] };
+  if (movable.length < 3) return empty;
   const ids = new Set(movable.map((n) => n.id));
   const prevs = new Map(), nexts = new Map();
   for (const id of ids) { prevs.set(id, []); nexts.set(id, []); }
@@ -99,7 +100,7 @@ export function spineTopAlign(model, positions) {
     order.push(id);
     for (const nx of nexts.get(id)) { indeg.set(nx, indeg.get(nx) - 1); if (indeg.get(nx) === 0) q.push(nx); }
   }
-  if (order.length !== ids.size) return { positions: pos, movedCount: 0, chain: [] };
+  if (order.length !== ids.size) return empty; // 有环
   // 最长路径 DP：len=节点数；并列取起点 top 更小者
   const best = new Map();
   let bestEnd = null, bestLen = 0, bestStartY = Infinity;
@@ -113,73 +114,94 @@ export function spineTopAlign(model, positions) {
     best.set(id, cur);
     if (cur.len > bestLen || (cur.len === bestLen && cur.startY < bestStartY)) { bestLen = cur.len; bestStartY = cur.startY; bestEnd = id; }
   }
-  if (!bestEnd || bestLen < 3) return { positions: pos, movedCount: 0, chain: [] };
+  if (!bestEnd || bestLen < 3) return empty;
   const chain = [];
   for (let id = bestEnd; id != null; id = best.get(id).prev) chain.unshift(id);
-  const anchorTop = pos.get(chain[1])[1];
-  let movedCount = 0;
-  for (const id of chain) {
-    if (id === chain[1]) continue;
-    const old = pos.get(id);
-    if (Math.abs(anchorTop - old[1]) < 1e-6) continue;
-    pos.set(id, [old[0], anchorTop]);
-    movedCount++;
-  }
-  return { positions: pos, movedCount, chain };
+  return { chain, ids: new Set(chain), anchorTop: pos.get(chain[1])[1] };
 }
 
 /**
  * R2 列内重排（用户反馈 ②「VAE 放 K采样器下方」+ ①「同级对齐」）：
  * 1. 按 x 聚类分列（列内节点 x 差 ≤ colThreshold）
  * 2. 列内按「目标口平均 y」排序（喂到下层低端口的节点排在下方）
- * 3. 整列重堆叠（等间距、无重叠；x 按 align 对齐：right 右缘 / left 左缘 / center 居中，默认右对齐）
+ * 3. 整列重堆叠（等间距、无重叠）；x 按 align 对齐：
+ *    auto（默认）= 逐列按扇入/扇出判定——多对一（收拢）→ 右缘对齐，一对多（发散）→ 左缘对齐，避免线打架；
+ *    right / left / center = 全部列强制该对齐。
+ * 主链感知：列内顶端是主链节点的列，起始 y 锚定到主链锚顶（否则从列内最小 y 起堆）。
  * 替换旧版 y 交换——高度不等的节点 y 交换会触发重叠，重排才正确。
  */
-export function swapReduceCrossings(model, positions, { colGap = 150, nodeGap = 40, align = 'right' } = {}) {
+export function swapReduceCrossings(model, positions, { colGap = 150, nodeGap = 40, align = 'auto', spine = null } = {}) {
   const pos = new Map(positions);
-  const movable = [...model.nodes.values()].filter((n) => pos.has(n.id) && !n.fixed).sort((a, b) => (pos.get(a.id)[0] - pos.get(b.id)[0]) || a.id.localeCompare(b.id));
-  if (movable.length < 2) return { positions: pos, columns: 0, swaps: 0 };
+  const ori = new Map(positions); // 排序/目标口用原始位置，避免处理顺序影响
+  const movable = [...model.nodes.values()].filter((n) => ori.has(n.id) && !n.fixed).sort((a, b) => (ori.get(a.id)[0] - ori.get(b.id)[0]) || a.id.localeCompare(b.id));
+  if (movable.length < 2) return { positions: pos, columns: 0, swaps: 0, aligns: [] };
 
-  // 1. 按 x 聚类分列
+  // 1. 按 x 聚类分列（原始位置）
   const cols = [];
   let cur = [movable[0]];
   for (let i = 1; i < movable.length; i++) {
-    if (pos.get(movable[i].id)[0] - pos.get(movable[i - 1].id)[0] <= colGap) cur.push(movable[i]);
+    if (ori.get(movable[i].id)[0] - ori.get(movable[i - 1].id)[0] <= colGap) cur.push(movable[i]);
     else { cols.push(cur); cur = [movable[i]]; }
   }
   cols.push(cur);
+  const colOf = new Map();
+  cols.forEach((c, i) => c.forEach((n) => colOf.set(n.id, i)));
 
-  // 2. 列内按「目标口平均 y」排序 + 3. 重堆叠
+  // 2. 列内按「目标口平均 y」排序（基于原始位置，确定性）
   const targetYOf = (id) => {
     let sum = 0, n = 0;
     for (const e of model.edges) {
       if (e.src !== id) continue;
-      const t = portPos(model, pos, e.dst, 'in', e.dstPort);
+      const t = portPos(model, ori, e.dst, 'in', e.dstPort);
       if (t) { sum += t[1]; n++; }
     }
-    return n ? sum / n : pos.get(id)?.[1] ?? 0;
+    return n ? sum / n : ori.get(id)?.[1] ?? 0;
   };
+  // 逐列对齐：auto 按扇入/扇出判定（单源扇出→左，多源扇入→右）
+  const alignOf = (ci) => {
+    if (align !== 'auto') return align;
+    const leftSrc = new Map(), rightTgt = new Map();
+    for (const e of model.edges) {
+      const si = colOf.get(e.src), di = colOf.get(e.dst);
+      if (di === ci && si != null && si < ci) leftSrc.set(e.src, (leftSrc.get(e.src) ?? 0) + 1);
+      if (si === ci && di != null && di > ci) rightTgt.set(e.dst, (rightTgt.get(e.dst) ?? 0) + 1);
+    }
+    let inFromSingle = 0, outToSingle = 0;
+    for (const v of leftSrc.values()) inFromSingle = Math.max(inFromSingle, v);
+    for (const v of rightTgt.values()) outToSingle = Math.max(outToSingle, v);
+    return inFromSingle > outToSingle ? 'left' : 'right';
+  };
+  const spineIds = spine?.ids ?? null;
+  const anchorTop = spine && spine.anchorTop != null ? spine.anchorTop : null;
+
   let columns = 0, swaps = 0;
-  for (const col of cols) {
-    if (col.length < 2) continue;
+  const aligns = [];
+  cols.forEach((col, ci) => {
+    const al = alignOf(ci);
+    if (col.length < 2) {
+      const n = col[0];
+      if (spineIds?.has(n.id) && anchorTop != null) pos.set(n.id, [ori.get(n.id)[0], anchorTop]);
+      return;
+    }
     const sorted = col.slice().sort((a, b) => targetYOf(a.id) - targetYOf(b.id) || a.id.localeCompare(b.id));
-    const origOrder = col.map((n) => n.id).join(',');
-    const newOrder = sorted.map((n) => n.id).join(',');
-    const isReordered = origOrder !== newOrder;
-    const colLeft = Math.min(...col.map((n) => pos.get(n.id)[0]));
-    const colRight = Math.max(...col.map((n) => pos.get(n.id)[0] + n.size[0]));
-    let y = Math.min(...col.map((n) => pos.get(n.id)[1]));
+    const isReordered = col.map((n) => n.id).join(',') !== sorted.map((n) => n.id).join(',');
+    const colLeft = Math.min(...col.map((n) => ori.get(n.id)[0]));
+    const colRight = Math.max(...col.map((n) => ori.get(n.id)[0] + n.size[0]));
+    // 主链锚定：列内顶端节点是主链节点时，起始 y = 主链锚顶（否则用列内最小 y）
+    const anchored = !!(spineIds?.has(sorted[0].id) && anchorTop != null);
+    let y = anchored ? anchorTop : Math.min(...col.map((n) => ori.get(n.id)[1]));
     for (const n of sorted) {
       let x = colLeft;
-      if (align === 'right') x = colRight - n.size[0];
-      else if (align === 'center') x = colLeft + (colRight - colLeft - n.size[0]) / 2;
+      if (al === 'right') x = colRight - n.size[0];
+      else if (al === 'center') x = colLeft + (colRight - colLeft - n.size[0]) / 2;
       pos.set(n.id, [x, y]);
       y += n.size[1] + nodeGap;
     }
     if (isReordered) swaps++;
     columns++;
-  }
-  return { positions: pos, columns, swaps };
+    aligns.push({ align: al, anchored });
+  });
+  return { positions: pos, columns, swaps, aligns };
 }
 
 function countCross(model, pos) {

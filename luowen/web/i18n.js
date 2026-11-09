@@ -66,10 +66,13 @@ const LOCALES = {
     'AutoLayoutCollapse.name': '整理时折叠说明节点',
     'AutoLayoutCollapse.tooltip': '执行自动布局时，把 Note/Markdown 说明节点折叠为标题条（写入折叠标志与折叠高度）。\n默认关闭。\n一次整理 = 一条撤销记录，可整次恢复。',
     'AutoLayoutAlign.name': '整理时列内对齐',
-    'AutoLayoutAlign.tooltip': '自动布局时，同一列（纵向排列）的节点如何对齐：\n右对齐（默认）：右缘对齐，输出口齐平、朝向下一列更整齐。\n居中：沿列中轴对齐。\n左对齐：左缘对齐。\n仅在「整理」时生效。',
+    'AutoLayoutAlign.tooltip': '自动布局时，同一列（纵向排列）的节点如何对齐。\n自动（默认）：按流向逐列判定——多节点汇聚到一个节点（扇入）→ 右缘对齐；一个节点发散到多个节点（扇出）→ 左缘对齐，避免连线打架。\n右对齐/居中/左对齐：所有列统一成该对齐。\n仅在「整理」时生效。',
+    'AutoLayoutAlign.opt.auto': '自动（按流向）',
     'AutoLayoutAlign.opt.right': '右对齐',
     'AutoLayoutAlign.opt.center': '居中',
     'AutoLayoutAlign.opt.left': '左对齐',
+    'AutoLayoutGap.name': '整理时列内上下间距',
+    'AutoLayoutGap.tooltip': '自动布局时，同一列内相邻节点之间的垂直间距（上节点底 → 下节点顶）。\n默认 40。\n节点较高或想让扇入/扇出更舒展时可调大。\n仅在「整理」时生效。',
   },
 
   en: {
@@ -134,10 +137,13 @@ const LOCALES = {
     'AutoLayoutCollapse.name': 'Collapse Notes on Layout',
     'AutoLayoutCollapse.tooltip': 'When running auto-layout, collapses Note/Markdown nodes to their title bar (writes the collapsed flag and height).\nDefault off.\nOne layout run = one undo entry; a single undo restores everything.',
     'AutoLayoutAlign.name': 'Column Alignment on Layout',
-    'AutoLayoutAlign.tooltip': 'How nodes stacked in the same column align during auto-layout:\nRight (default): right edges align, outputs line up toward the next column.\nCenter: aligned on the column center axis.\nLeft: left edges align.\nApplies on Arrange only.',
+    'AutoLayoutAlign.tooltip': 'How nodes stacked in the same column align during auto-layout.\nAuto (default): per-column by flow — many nodes converging into one (fan-in) → right edges; one node fanning out to many (fan-out) → left edges, avoiding clashing links.\nRight/Center/Left: force that alignment on all columns.\nApplies on Arrange only.',
+    'AutoLayoutAlign.opt.auto': 'Auto (by flow)',
     'AutoLayoutAlign.opt.right': 'Right',
     'AutoLayoutAlign.opt.center': 'Center',
     'AutoLayoutAlign.opt.left': 'Left',
+    'AutoLayoutGap.name': 'Vertical Gap on Layout',
+    'AutoLayoutGap.tooltip': 'Vertical gap between adjacent nodes in the same column during auto-layout (bottom of upper → top of lower).\nDefault 40.\nIncrease for tall nodes or airier fan-in/out.\nApplies on Arrange only.',
   },
 };
 

@@ -41,6 +41,11 @@ description: >
   - ①入边计数间距：自适应层间距改按 in-degree（widget 不计），列距 **222→102px**；②新增 refine.spineTopAlign，主链顶边全对齐 **53.6**；③swapReduceCrossings 增加 align 参数 + 新设置 `LuoWen.AutoLayout.ColumnAlign`（默认右对齐，可选居中/左），中列右缘全 **905**。
   - 单测 **154/154**；宿主探针 `.verify/p7/calibration-probe.mjs`：重叠 0 / 交叉 0 / verify ok / undo 10/10 / 无页面错误 / 96ms；对比图 `.verify/p7/calibration-after.html`。
   - **待用户宿主验证**；新功能未合 main（按纪律验收后再合）。
+- **本轮自动布局列对齐泛化（2026-11-09，分支 auto-layout；DEC-046；改 refine.js/engine.js/index.js/i18n.js + 单测；已部署、探针全绿，待用户验收）**：
+  - 新场景（13 节点，图像端 4 个 save 同级节点）暴露：全局右对齐在扇出列线打架；主链顶边被列重排打断（KSampler 123.8）。
+  - 改：①`align` 默认 `auto`——逐列按流向（多源扇入→右，单源扇出→左；基于边数、与节点类型/端口数无关，通用）；②`spineOf` 识别主链，重排对「列内顶端是主链节点」的列锚定锚顶（扇出列保持自身堆叠）；③新增 `LuoWen.AutoLayout.NodeGap`（20–120，默认 40）。
+  - 单测 **156/156**；宿主 test1：col0/1/2 右对齐、col4 左对齐、KSampler 顶边 225.6、重叠 0 / 交叉 0 / undo 13/13 / verify ok / 66ms；截图 calib13.png。
+  - **待用户宿主验证**；未合 main。
 - **本轮接手核对（2026-11-09，新会话只读盘点 + 本条记录，未改功能代码）**：分支 auto-layout = origin = `a7d1ec9`，工作区干净；单测实跑 **151/151**；宿主 `custom_nodes/luowen/web/index.js` 与仓库 SHA256 一致（`4c3abbbd…`，含 actionbar 按钮版）。F-015 交付项已闭合（DEC-043 补记 G），待用户事项：①盲测 A/B（`.verify/p7/blind-A/B.json`）②actionbar「⌁整理」按钮宿主验收（`a7d1ec9` 未见于决策日志，验收状态待用户确认）③auto-layout 合入 main 的时机。文档卫生观察（只报告不删历史）：本文件「实施轮」条目与 decision-log DEC-043 补记 F 各有三份重复；四份 handoff 均为 2026-11-07 早于本工作线，最新事实以本文件与 DEC-043 补记 G 为准。
 - **本轮动效 v3 实施（2026-11-08，用户指示「实施吧」；DEC-042；改 trace.js/renderLinkAdapter.js/index.js + 新增 beamTrace.test.mjs；已部署宿主自测，等用户验收）**：
         - **样本部署宿主（用户指示）**：六份选样工作流复制进 portable 工作流目录（前缀 `LW样本-`，不覆盖同名），宿主 loadGraphData 冒烟通过（最大样本 230 节点 248 链装载 ok、路由接管、verify ok、零报错；routed 计数随视口/缩放符合既有裁剪口径）。脚本 `.verify/p7/deploy-samples.mjs`。

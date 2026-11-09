@@ -36,3 +36,10 @@ description: >
 - **spineTopAlign 顺序**：先对齐顶边、再列重排；反过来 KSampler 列间距会被拉大。跨列不会重叠（水平分层），同列重叠由列重排处理。
 - **探针启动**：`executablePath` 用 `chromium-1248/chrome-win64/chrome.exe`（默认 1254 缺失）；设置持久化在服务端 `comfy.settings.json`，测后还原（本轮已还原 ColumnAlign=right、CollapseNotes=false）。
 - **对比材料**：test2=旧引擎整理结果，test3=用户手动期望（均 10 节点 Z-Image-Turbo，拓扑逐字节一致）；test2 里有 2 处模型缺失红标与宿主版本告警，与布局无关。
+
+## 2026-11-09 补记：DEC-046（逐列 auto 对齐 + 主链感知 + Y 间距可调，supersedes 上文）
+
+- **新测试样本**：`user/default/workflows/test1.json`（13 节点，刻意打乱）/`test2.json`（一键整理）/`test3.json`（手动期望）。**注意 test3 节点 id 已重编号（72–84），与 test1/2（9,62–74）不同**——比对必须按「类型/数组顺序」而非 id。
+- **实现变更**：`refine.js` 的 `swapReduceCrossings` 新增 `align='auto'`（逐列按扇入/扇出：`inFromSingle>outToSingle`→左，否则右；基于边数，通用）、`spine` 锚定参数；`spineTopAlign` 改为 `spineOf`（只识别最长路径链+锚顶，不移动）；`engine.js` 接 `nodeGap`；`index.js` 新增 `LuoWen.AutoLayout.NodeGap`（20–120，默认 40），`ColumnAlign` 选项含「自动」且默认自动。
+- **实测（宿主 test1）**：col0/1/2 右对齐、col4（VAEDecode→4 save 扇出）左对齐、KSampler 顶边 225.6、重叠 0、交叉 0、undo 13/13、verify ok、66ms。单测 156/156。
+- **仍待用户确认**：末列 Y 间距（现统一 40，可调；用户 test3 用 69/114/75 的非均匀值，暂未复现），以及整体观感。

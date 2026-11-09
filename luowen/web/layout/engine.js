@@ -156,7 +156,7 @@ function recomputeGroupBounds(graph, memberIdsByGroupId, groupIdsInOrder) {
  * @param {object} opts { scope:'full'|'selected', collapseNotes:boolean }
  * @returns { report } { moved, noteIdsCollapsed, groups, metrics, ms }
  */
-export async function runAutoLayout(app, { scope = 'full', collapseNotes = false, columnAlign = 'right' } = {}) {
+export async function runAutoLayout(app, { scope = 'full', collapseNotes = false, columnAlign = 'auto', nodeGap = 40 } = {}) {
   const graph = app.canvas.graph;
   if (!graph) throw new Error('no graph');
   const t0 = performance.now();
@@ -186,14 +186,13 @@ export async function runAutoLayout(app, { scope = 'full', collapseNotes = false
 
   let positions = await elkLayout(model, constraints.movableIds);
   // R1/R2/R4 精修后处理（用户反馈：③拉直 ①对齐 ②同列减交叉；重叠守卫内建）
-  const { straightenEdges, spineTopAlign, swapReduceCrossings } = await import('./refine.js');
+  const { straightenEdges, spineOf, swapReduceCrossings } = await import('./refine.js');
   const st = straightenEdges(model, positions);
   positions = st.positions;
-  // R4 主链顶边对齐（2026-11-09 校准：主流程链顶边拉成一条水平线）
-  const sp = spineTopAlign(model, positions);
-  positions = sp.positions;
-  // R2 列内重排 + 列对齐（默认右对齐，用户校准）
-  const sw = swapReduceCrossings(model, positions, { colGap: 150, align: columnAlign });
+  // 主链识别 → 交给列重排锚定顶边（2026-11-09 校准）
+  const spine = spineOf(model, positions);
+  // R2 列内重排 + 逐列对齐（auto=按扇入/扇出，默认）
+  const sw = swapReduceCrossings(model, positions, { colGap: 150, align: columnAlign, nodeGap, spine });
   positions = sw.positions;
   // 障碍规避：有 fixed/未选（局部）时，把新布局整体平移到 fixed 包围盒右侧空白带（硬约束：不重叠）
   shiftToFreeBand(positions, constraints.obstacles, { margin: 60 });
@@ -214,9 +213,10 @@ export async function runAutoLayout(app, { scope = 'full', collapseNotes = false
     moved,
     skippedRerouteComponents: skipIds.size ? [...skipIds] : [],
     straightened: st.movedCount,
-    spineAligned: sp.movedCount,
+    spineChain: spine.chain,
     swaps: sw.swaps,
     columnAlign,
+    nodeGap,
     noteIdsCollapsed: collapseNotes ? [...noteIds] : [],
     groups: memberIdsByGroupId.size,
     metrics: evaluateLayout(model, positionsFinal, new Map([...model.nodes.values()].map((n) => [n.id, n.pos]))),

@@ -28,6 +28,7 @@ const LANGUAGE_ID = 'LuoWen.Language';
 const BROTHER_SPACING_ID = 'LuoWen.BrotherSpacing';
 const AUTOLAYOUT_COLLAPSE_ID = 'LuoWen.AutoLayout.CollapseNotes';
 const AUTOLAYOUT_ALIGN_ID = 'LuoWen.AutoLayout.ColumnAlign';
+const AUTOLAYOUT_GAP_ID = 'LuoWen.AutoLayout.NodeGap';
 const ENABLED_ID = 'LuoWen.Enabled';
 const STYLE_ID = 'LuoWen.WireStyle';
 const AVOID_ID = 'LuoWen.NodeAvoidance';
@@ -304,13 +305,29 @@ app.registerExtension({
       type: 'combo',
       get options() {
         return [
+          { text: t('AutoLayoutAlign.opt.auto'), value: 'auto' },
           { text: t('AutoLayoutAlign.opt.right'), value: 'right' },
           { text: t('AutoLayoutAlign.opt.center'), value: 'center' },
           { text: t('AutoLayoutAlign.opt.left'), value: 'left' },
         ];
       },
-      defaultValue: 'right',
-      onChange: (v) => setSettings({ autoLayoutAlign: v === 'center' || v === 'left' ? v : 'right' }),
+      defaultValue: 'auto',
+      onChange: (v) => setSettings({ autoLayoutAlign: v === 'right' || v === 'center' || v === 'left' ? v : 'auto' }),
+    },
+    {
+      id: AUTOLAYOUT_GAP_ID,
+      get name() {
+        return t('AutoLayoutGap.name');
+      },
+      category: ['LuoWen', '自动布局', 'NodeGap'],
+      sortOrder: 106,
+      get tooltip() {
+        return { value: t('AutoLayoutGap.tooltip'), class: TIP_CLASS };
+      },
+      type: 'slider',
+      attrs: { min: 20, max: 120, step: 5 },
+      defaultValue: 40,
+      onChange: (v) => setSettings({ autoLayoutGap: Math.max(20, Math.min(120, Number(v) || 40)) }),
     },
     {
       id: ENABLED_ID,
@@ -683,7 +700,8 @@ get tooltip() {
       autoLayout: (scope = 'full', opts = {}) => import('./layout/engine.js').then((m) => m.runAutoLayout(app, {
         scope,
         collapseNotes: opts.collapseNotes ?? !!readSetting(AUTOLAYOUT_COLLAPSE_ID, false),
-        columnAlign: opts.columnAlign ?? readSetting(AUTOLAYOUT_ALIGN_ID, 'right'),
+        columnAlign: opts.columnAlign ?? readSetting(AUTOLAYOUT_ALIGN_ID, 'auto'),
+        nodeGap: opts.nodeGap ?? Math.max(20, Math.min(120, Number(readSetting(AUTOLAYOUT_GAP_ID, 40)) || 40)),
       })),
       routes: () => getDebugRoutes(),
       trace: () => getTrace(),
