@@ -108,7 +108,7 @@
 - 相邻色相最差：vae(15) / video(25) @ ΔE 0.0261
 - 连线覆盖：4388 条，显式 4388、规则 0、回落 0
 
-## luowen-light（canvas #FAF1E9 / card #FFFFFF）
+## luowen-dawn（canvas #FAF1E9 / card #FFFFFF）
 
 | token | hex | L | C | H | 画布对比度 | 卡片对比度 | 门槛 |
 | --- | --- | --- | --- | --- | --- | --- | --- |

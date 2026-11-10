@@ -21,11 +21,12 @@ description: >
 - **日期**：2026-11-10
 - **背景**：选择器中仍有「暗色（LuoWen Dark）」，与夜灯默认重复；用户要求夜灯替换默认、只保留一个，并补上 ThemeVault **#002 erge/light** 浅色主题。
 - **决策**：
-  1. 新增 `luowen-light`（ThemeVault #002，canvas `#FAF1E9` / card `#FFFFFF`）；浅底适配明度，色相沿用 IMAGE 250 / VIDEO 40 / CONDITIONING 105 / CLIP 195 / MODEL 300 / LATENT 330 / VAE 10 / MASK 140 / AUDIO 165 / MESH 220。
+  1. 新增 `luowen-dawn`（晨光，ThemeVault #002，canvas `#FAF1E9` / card `#FFFFFF`）；浅底适配明度，色相沿用 IMAGE 250 / VIDEO 40 / CONDITIONING 105 / CLIP 195 / MODEL 300 / LATENT 330 / VAE 10 / MASK 140 / AUDIO 165 / MESH 220。
   2. `luowen-dark` 从选择器与运行时 `THEMES` 移除，**token 仅作 extends 母版**；旧存档值 `luowen-dark` 自动迁移为 `luowen-nightlight`。
   3. 修复 `materialize.mjs` 未解析 `extends` 导致继承主题 `typeRules` 为空的问题（长尾类型曾落 unknown）。
 - **验证**：浅色对比度最低 3.20:1（canvas）/3.57:1（card）、CVD 0.0298、相邻 0.0520；五套运行时主题 62 类全覆盖；单测 167/167。
-- **状态**：选择器现为 夜灯（默认）/ Cyberpunk / 浅色 / 水母 / Solarized；**待用户验收**。
+- **补记（命名修正）**：夜灯明确为**暗色**主题（#001 erge/dark）；浅色主题正式命名为**晨光（Dawn）**，id `luowen-dawn`（旧 `luowen-light` 自动迁移）。
+- **状态**：选择器现为 夜灯（默认，暗色）/ Cyberpunk / 晨光（浅色）/ 水母 / Solarized；**待用户验收**。
 
 ## DEC-063: 新增 JellyFish(#057) 与 Solarized(#137) 连线主题，固定主题来源映射
 

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { themeSlotColors, applySlotPalette, clearSlotPalette } from '../../luowen/web/colors/slotPalette.js';
 
 test('slotPalette: 五主题 62 类颜色表齐全且为 #RRGGBB', () => {
-  for (const id of ['luowen-cyberpunk', 'luowen-nightlight', 'luowen-light', 'luowen-jellyfish', 'luowen-solarized']) {
+  for (const id of ['luowen-cyberpunk', 'luowen-nightlight', 'luowen-dawn', 'luowen-jellyfish', 'luowen-solarized']) {
     const map = themeSlotColors(id);
     assert.ok(map, `${id} 存在`);
     assert.equal(Object.keys(map).length, 62, `${id} 62 类`);

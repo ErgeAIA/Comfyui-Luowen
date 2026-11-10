@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0.0",
-  "id": "luowen-light",
-  "name": "LuoWen Light 连线 token",
+  "id": "luowen-dawn",
+  "name": "LuoWen Dawn 连线 token",
   "extends": "luowen-dark",
-  "$description": "浅色：ThemeVault #002 erge/light（canvas #FAF1E9 / card #FFFFFF）；品牌橙红 #FF6A2B 向色相，浅底适配明度。",
+  "$description": "晨光：ThemeVault #002 erge/light（canvas #FAF1E9 / card #FFFFFF）；浅色主题，品牌橙红向色相。",
   "context": {
     "canvas": "#FAF1E9",
     "card": "#FFFFFF"

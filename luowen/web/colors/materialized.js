@@ -301,9 +301,9 @@ export const THEMES = {
       }
     ]
   },
-  "luowen-light": {
-    "id": "luowen-light",
-    "name": "LuoWen Light 连线 token",
+  "luowen-dawn": {
+    "id": "luowen-dawn",
+    "name": "LuoWen Dawn 连线 token",
     "context": {
       "canvas": "#FAF1E9",
       "card": "#FFFFFF"

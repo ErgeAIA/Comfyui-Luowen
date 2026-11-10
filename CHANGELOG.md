@@ -9,7 +9,7 @@
 
 ### 新增
 
-- 新增连线主题「浅色（Erge Light，ThemeVault #002）」「水母（JellyFish，#057）」「Solarized（暗，#137）」；移除「暗色」选项（夜灯为唯一默认，旧存档自动迁移）；主题来源与 ThemeVault 编号对应见 `docs/specs/link-color-tokens/theme-sources.md`
+- 新增连线主题「晨光（Dawn，ThemeVault #002，浅色）」「水母（JellyFish，#057）」「Solarized（暗，#137）」；移除「暗色」选项（夜灯为唯一默认，旧存档自动迁移）；主题来源与 ThemeVault 编号对应见 `docs/specs/link-color-tokens/theme-sources.md`
 
 - 夜灯连线主题（默认）：`LuoWen.ColorTheme` 新增「夜灯」并设为默认（取色源 ThemeVault erge #001，暖深底低蓝）；62 类语义映射，对比度/色盲/相邻色相门槛全过；连线主题同时把类型色同步到节点槽点，关闭/切换时还原宿主配色；新增「主题范围」：连线+槽点 / 仅连线
 

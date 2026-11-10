@@ -243,10 +243,11 @@ function colorThemeScope() {
   return readSetting(COLOR_THEME_SCOPE_ID, 'links+slots') === 'links' ? 'links' : 'links+slots';
 }
 
-const COLOR_THEME_IDS = ['luowen-nightlight', 'luowen-cyberpunk', 'luowen-light', 'luowen-jellyfish', 'luowen-solarized'];
+const COLOR_THEME_IDS = ['luowen-nightlight', 'luowen-cyberpunk', 'luowen-dawn', 'luowen-jellyfish', 'luowen-solarized'];
 // luowen-dark 已从选择器移除（仅保留为 token 母版）：旧存档迁移到夜灯默认
 function normalizeColorTheme(v) {
   if (v === 'luowen-dark') return 'luowen-nightlight';
+  if (v === 'luowen-light') return 'luowen-dawn';
   return COLOR_THEME_IDS.includes(v) ? v : 'off';
 }
 
@@ -540,7 +541,7 @@ get options() {
           { text: t('ColorTheme.opt.off'), value: 'off' },
           { text: t('ColorTheme.opt.luowen-cyberpunk'), value: 'luowen-cyberpunk' },
           { text: t('ColorTheme.opt.luowen-nightlight'), value: 'luowen-nightlight' },
-          { text: t('ColorTheme.opt.luowen-light'), value: 'luowen-light' },
+          { text: t('ColorTheme.opt.luowen-dawn'), value: 'luowen-dawn' },
           { text: t('ColorTheme.opt.luowen-jellyfish'), value: 'luowen-jellyfish' },
           { text: t('ColorTheme.opt.luowen-solarized'), value: 'luowen-solarized' },
         ];

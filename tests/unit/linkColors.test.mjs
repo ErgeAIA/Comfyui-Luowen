@@ -13,7 +13,7 @@ test('linkColors: 主题关闭（默认）→ resolve 返回 null，适配器回
 });
 
 test('linkColors: 五套主题内置，62 类映射齐全，hex 格式合法', () => {
-  assert.deepEqual(listThemes().sort(), ['luowen-cyberpunk', 'luowen-jellyfish', 'luowen-light', 'luowen-nightlight', 'luowen-solarized']);
+  assert.deepEqual(listThemes().sort(), ['luowen-cyberpunk', 'luowen-dawn', 'luowen-jellyfish', 'luowen-nightlight', 'luowen-solarized']);
   for (const id of listThemes()) {
     setTheme(id);
     const info = themeInfo();

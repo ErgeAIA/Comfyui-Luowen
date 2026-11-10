@@ -20,7 +20,7 @@ function loadToken(id, seen = new Set()) {
   return { ...base, ...raw, typeMap: raw.typeMap ?? base.typeMap, typeRules: raw.typeRules ?? base.typeRules };
 }
 
-for (const id of ['luowen-cyberpunk', 'luowen-nightlight', 'luowen-light', 'luowen-jellyfish', 'luowen-solarized']) {
+for (const id of ['luowen-cyberpunk', 'luowen-nightlight', 'luowen-dawn', 'luowen-jellyfish', 'luowen-solarized']) {
   const token = loadToken(id);
   const data = JSON.parse(readFileSync(join(here, 'data', `link-colors-${id}.json`), 'utf8'));
   themes[id] = {

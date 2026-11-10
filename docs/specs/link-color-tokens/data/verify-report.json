@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T06:28:08.151Z",
+  "generatedAt": "2026-11-10T06:30:33.365Z",
   "gate": {
     "contrast": 3,
     "deltaE": 0.02,
@@ -7193,7 +7193,7 @@
         "fallback": 0
       }
     },
-    "luowen-light": {
+    "luowen-dawn": {
       "context": {
         "canvas": "#FAF1E9",
         "card": "#FFFFFF"
