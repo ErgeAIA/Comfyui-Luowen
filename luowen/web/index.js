@@ -21,6 +21,7 @@ import { graphNodes, linkTuples } from './adapters/graphRead.js';
 import { applySlotPalette, clearSlotPalette } from './colors/slotPalette.js';
 import { t, i18nDebug } from './i18n.js';
 import { layoutOf } from './settings-layout.js';
+import { LUOWEN_LOGO_SVG } from './brandLogo.js';
 import { installSnap, uninstallSnap, setSnapEnabled, getSnapDebug } from './snap/dragSnap.js';
 
 // 前端 1.55.18 只暴露 window.comfyAPI shim（见 docs/phase0/drawing-api-notes.md §2）
@@ -34,6 +35,7 @@ const AUTOLAYOUT_GAP_ID = 'LuoWen.AutoLayout.NodeGap';
 const AUTOLAYOUT_LAYER_GAP_ID = 'LuoWen.AutoLayout.LayerGap';
 const AUTOLAYOUT_INLINE_GAP_ID = 'LuoWen.AutoLayout.InlineGap';
 const AUTOLAYOUT_COMPONENT_ID = 'LuoWen.AutoLayout.ComponentLayout';
+const AUTOLAYOUT_BUTTON_ID = 'LuoWen.AutoLayout.Button';
 const ENABLED_ID = 'LuoWen.Enabled';
 const STYLE_ID = 'LuoWen.WireStyle';
 const AVOID_ID = 'LuoWen.NodeAvoidance';
@@ -262,11 +264,23 @@ function syncColorTheme(idOverride, scopeOverride) {
   } catch { /* 槽点同步失败不阻断主题 */ }
 }
 
+// 浮动整理按钮：设置项先于 setup 触发 onChange，故用模块态承接，按钮建好后再套用
+let layoutButton = null;
+let layoutButtonVisible = true;
+let layoutButtonTip = null;
+function applyLayoutButtonVisibility(value) {
+  layoutButtonVisible = !!value;
+  if (layoutButton) layoutButton.style.display = layoutButtonVisible ? 'inline-flex' : 'none';
+  if (!layoutButtonVisible && layoutButtonTip) layoutButtonTip.style.display = 'none';
+}
+
 app.registerExtension({
   name: 'LuoWen',
 
   // 1.55.18 公开扩展钩子（app.ts collectCanvasMenuItems）；Vue 模式空白处右键仍走 litegraph 菜单
   getCanvasMenuItems() {
+    const flowOn = !!readSetting(FLOW_ID, false);
+    const flowStyle = readSetting(FLOW_STYLE_ID, 'beam') === 'dash' ? 'dash' : 'beam';
     return [
       {
         content: '络纹',
@@ -275,6 +289,14 @@ app.registerExtension({
           options: [
             { content: t('AutoLayout.full'), callback: () => { window.LuoWen?.autoLayout?.('full'); } },
             { content: t('AutoLayout.selected'), callback: () => { window.LuoWen?.autoLayout?.('selected'); } },
+            {
+              content: flowOn ? t('Menu.flowOff') : t('Menu.flowOn'),
+              callback: () => { app.ui?.settings?.setSettingValue?.(FLOW_ID, !flowOn); },
+            },
+            {
+              content: flowStyle === 'dash' ? t('Menu.styleBeam') : t('Menu.styleDash'),
+              callback: () => { app.ui?.settings?.setSettingValue?.(FLOW_STYLE_ID, flowStyle === 'dash' ? 'beam' : 'dash'); },
+            },
           ],
         },
       },
@@ -399,6 +421,19 @@ app.registerExtension({
       },
       defaultValue: 'vertical',
       onChange: (v) => setSettings({ autoLayoutComponent: v === 'horizontal' ? 'horizontal' : 'vertical' }),
+    },
+    {
+      id: AUTOLAYOUT_BUTTON_ID,
+      get name() {
+        return t('AutoLayoutButton.name');
+      },
+      ...layoutOf(AUTOLAYOUT_BUTTON_ID),
+      get tooltip() {
+        return { value: t('AutoLayoutButton.tooltip'), class: TIP_CLASS };
+      },
+      type: 'boolean',
+      defaultValue: true,
+      onChange: (v) => applyLayoutButtonVisibility(v),
     },
     {
       id: ENABLED_ID,
@@ -901,11 +936,29 @@ get tooltip() {
     // 自动布局浮动按钮：可拖动、位置持久化；默认锚在 actionbar 运行按钮左侧
     {
       const btn = document.createElement('button');
-      btn.textContent = t('AutoLayout.button');
+      btn.innerHTML = LUOWEN_LOGO_SVG;
+      btn.setAttribute('aria-label', t('AutoLayout.button'));
       btn.className = 'p-button p-component p-button-outlined';
-      // z=1000：高于顶栏覆盖层 z-999，低于设置对话框 z-1700
-      btn.style.cssText = 'position:fixed;z-index:1000;padding:0.3rem 0.75rem;font-size:0.75rem;cursor:grab;white-space:nowrap;touch-action:none';
+      // z=1000：高于顶栏覆盖层 z-999，低于设置对话框 z-1700；文字色 = 夜灯品牌橙 #F2570F
+      btn.style.cssText = 'position:fixed;z-index:1000;display:inline-flex;align-items:center;justify-content:center;padding:0.3rem 0.55rem;line-height:0;color:#F2570F;cursor:grab;white-space:nowrap;touch-action:none';
       document.body.appendChild(btn);
+      layoutButton = btn;
+      // 按钮只剩 logo，用主题化浮层代替原生 title（夜灯 card 底 + 品牌橙描边）
+      const tip = document.createElement('div');
+      tip.textContent = t('AutoLayout.buttonTip');
+      tip.style.cssText = 'position:fixed;z-index:1001;display:none;pointer-events:none;padding:5px 9px;border-radius:6px;font-size:12px;line-height:1.4;white-space:nowrap;color:#EDE3D8;background:#241F1B;border:1px solid rgba(242,87,15,0.45);box-shadow:0 6px 18px rgba(0,0,0,0.45)';
+      document.body.appendChild(tip);
+      layoutButtonTip = tip;
+      const showTip = () => {
+        if (!layoutButtonVisible) return;
+        tip.style.display = 'block';
+        const r = btn.getBoundingClientRect();
+        tip.style.left = Math.max(4, Math.min(window.innerWidth - tip.offsetWidth - 4, r.left + r.width / 2 - tip.offsetWidth / 2)) + 'px';
+        tip.style.top = Math.max(4, r.top - tip.offsetHeight - 6) + 'px';
+      };
+      const hideTip = () => { tip.style.display = 'none'; };
+      btn.addEventListener('pointerenter', showTip);
+      btn.addEventListener('pointerleave', hideTip);
       const POS_KEY = 'luowen.autolayout.btnPos';
       const place = (x, y) => {
         const r = btn.getBoundingClientRect();
@@ -928,6 +981,7 @@ get tooltip() {
       if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) place(saved.x, saved.y);
       else if (!dockDefault()) setTimeout(() => { if (!dockDefault()) place(window.innerWidth - 120, 8); }, 2000);
       window.addEventListener('resize', () => {
+        if (!layoutButtonVisible) return;
         const r = btn.getBoundingClientRect();
         place(r.left, r.top);
       });
@@ -935,6 +989,7 @@ get tooltip() {
       let moved = false;
       btn.addEventListener('pointerdown', (e) => {
         if (e.button !== 0) return;
+        hideTip();
         e.stopPropagation();
         e.preventDefault();
         const r = btn.getBoundingClientRect();
@@ -964,6 +1019,8 @@ get tooltip() {
           window.LuoWen?.autoLayout?.(hasSel ? 'selected' : 'full');
         }
       });
+      // 设置项在注册期已按存储值触发过 onChange；按钮建好后套用当前值
+      applyLayoutButtonVisibility(readSetting(AUTOLAYOUT_BUTTON_ID, true));
     }
     // 空闲预热 ELK：把首次「整理」的 bundle 装载与冷 JIT 挪到浏览器空闲期（只跑脱离图的 2 节点布局）
     {

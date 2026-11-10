@@ -22,6 +22,7 @@ export const SETTINGS_GROUPS = [
       ['LuoWen.AutoLayout.InlineGap', 6],
       ['LuoWen.AutoLayout.NodeGap', 5],
       ['LuoWen.AutoLayout.CollapseNotes', 4],
+      ['LuoWen.AutoLayout.Button', 3],
     ],
   },
   {

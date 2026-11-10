@@ -16,6 +16,7 @@ const EXPECTED = [
       'LuoWen.AutoLayout.InlineGap',
       'LuoWen.AutoLayout.NodeGap',
       'LuoWen.AutoLayout.CollapseNotes',
+      'LuoWen.AutoLayout.Button',
     ],
   ],
   ['动效', ['LuoWen.FlowAnim', 'LuoWen.AnimMode', 'LuoWen.FlowStyle', 'LuoWen.DisableAnimOnRun']],
@@ -63,6 +64,6 @@ test('settingsOrder: 同组分类唯一键不重复（否则宿主把同组设�
     }
   }
   const ids = SETTINGS_GROUPS.flatMap((group) => group.items.map(([id]) => id));
-  assert.equal(ids.length, 27, '登记项数 = 运行时注册数');
-  assert.equal(new Set(ids).size, 27, 'id 无重复');
+  assert.equal(ids.length, 28, '登记项数 = 运行时注册数');
+  assert.equal(new Set(ids).size, 28, 'id 无重复');
 });
