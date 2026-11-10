@@ -209,3 +209,13 @@ export function i18nDebug() {
   const lang = currentLang();
   return { lang, zhKeys: Object.keys(LOCALES.zh).length, enKeys: Object.keys(LOCALES.en).length };
 }
+
+// 验收：zh/en 键集差异（缺 key 时 en 回退中文，会在英文界面露出中文）
+export function i18nKeyDiff() {
+  const zh = new Set(Object.keys(LOCALES.zh));
+  const en = new Set(Object.keys(LOCALES.en));
+  return {
+    missingInEn: [...zh].filter((key) => !en.has(key)),
+    missingInZh: [...en].filter((key) => !zh.has(key)),
+  };
+}
