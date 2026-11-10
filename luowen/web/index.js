@@ -949,7 +949,7 @@ get tooltip() {
       const scope = e.altKey ? 'selected' : 'full';
       window.LuoWen?.autoLayout?.(scope).catch(() => {});
     }, { passive: false });
-    // 自动布局浮动按钮：可拖动、位置持久化；默认锚在 actionbar 运行按钮左侧
+    // 自动布局浮动按钮：可拖动、位置持久化；默认锚在右上控制面板左侧空白处
     {
       const btn = document.createElement('button');
       btn.innerHTML = LUOWEN_LOGO_SVG;
