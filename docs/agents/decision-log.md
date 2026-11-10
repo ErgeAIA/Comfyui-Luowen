@@ -33,7 +33,7 @@ description: >
   - 搜索命中（zh）：`LuoWen` 27、`配色` 2、`整理` 5、`动效` 10、`吸附` 1、`圆角` 1、`主题` 1、`避障` 1；**丢失**：`拐角` 0、`曲线` 0——旧名「拐角曲线」改为「圆角半径」，而 tooltip 不参与搜索。
   - 持久化：三个自动布局间距写入后刷新读回一致；探针结束后还原为 40/60/50（探针前 `comfy.settings.json` 无这三键，按默认值处理）。
   - 复跑单测 172/172（新增 `tests/unit/i18n.test.mjs`：zh/en 键集相等）。
-- **已知边界**：组名是 category 字面量，宿主无公开 API 可翻译，en 界面组标题仍为中文（既有问题，本轮不造 hack）；`赛博朋克（Cyberpunk）` 在 240px 下拉中溢出约 5px（可用 198 / 需要 203），展开列表完整显示。
+- **已知边界**：组名是 category 字面量，宿主无公开 API 可翻译，en 界面组标题仍为中文（既有问题，本轮不造 hack）；主题名溢出问题已由 DEC-065 补记解决（zh 去英文括注，实测无截断）。
 - **状态**：待用户验收。
 
 ## DEC-065: 主题显示名跟随界面语言（赛博朋克 / 日晒）
@@ -46,6 +46,7 @@ description: >
   3. 只改显示串：不动 setting id、option value、默认值；不动 `materialized.js` 的内部 token `name`（非 UI 文案）。
   4. `theme-sources.md` 增补「显示名（zh / en）」两列，作为主题与 ThemeVault 映射的人读口径。
 - **验证**：宿主 8188 实测 zh/en 各渲染一次下拉，6 项文案与设置参数 getter 一致（zh：关闭（原生）/ 赛博朋克（Cyberpunk）/ 夜灯（Night Light）/ 晨光（Dawn）/ 水母（JellyFish）/ 日晒（Solarized）；en：Off (native) / Cyberpunk / Night Light / Dawn / JellyFish / Solarized）；探针结束后 `LuoWen.Language` 已还原 `auto`；单测 167/167。
+- **补记（2026-11-10，用户拍板）**：zh 显示名去掉英文括注，五套统一为 夜灯 / 晨光 / 赛博朋克 / 水母 / 日晒（en 不变）。原因：「赛博朋克（Cyberpunk）」在 240px 下拉中溢出 5px（可用 198 / 需要 203），且中文界面无需英文对照。宿主实测去括注后选中值 clientWidth = scrollWidth = 198，无截断；id/value 与 en 文案未变。
 - **状态**：待用户验收。
 
 ## DEC-064: 新增浅色主题（#002）并移除「暗色」选项，夜灯为唯一默认
