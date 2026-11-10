@@ -938,9 +938,10 @@ get tooltip() {
       const btn = document.createElement('button');
       btn.innerHTML = LUOWEN_LOGO_SVG;
       btn.setAttribute('aria-label', t('AutoLayout.button'));
-      btn.className = 'p-button p-component p-button-outlined';
+      // 保留宿主按钮类以维持原点击区尺寸，只把底色与描边改成透明（悬停给品牌橙淡底）
       // z=1000：高于顶栏覆盖层 z-999，低于设置对话框 z-1700；文字色 = 夜灯品牌橙 #F2570F
-      btn.style.cssText = 'position:fixed;z-index:1000;display:inline-flex;align-items:center;justify-content:center;padding:0.3rem 0.55rem;line-height:0;color:#F2570F;cursor:grab;white-space:nowrap;touch-action:none';
+      btn.className = 'p-button p-component p-button-outlined';
+      btn.style.cssText = 'position:fixed;z-index:1000;display:inline-flex;align-items:center;justify-content:center;padding:0.3rem 0.55rem;background:transparent;border-color:transparent;border-radius:8px;line-height:0;color:#F2570F;cursor:grab;white-space:nowrap;touch-action:none';
       document.body.appendChild(btn);
       layoutButton = btn;
       // 按钮只剩 logo，用主题化浮层代替原生 title（夜灯 card 底 + 品牌橙描边）
@@ -951,12 +952,16 @@ get tooltip() {
       layoutButtonTip = tip;
       const showTip = () => {
         if (!layoutButtonVisible) return;
+        btn.style.background = 'rgba(242,87,15,0.12)';
         tip.style.display = 'block';
         const r = btn.getBoundingClientRect();
         tip.style.left = Math.max(4, Math.min(window.innerWidth - tip.offsetWidth - 4, r.left + r.width / 2 - tip.offsetWidth / 2)) + 'px';
         tip.style.top = Math.max(4, r.top - tip.offsetHeight - 6) + 'px';
       };
-      const hideTip = () => { tip.style.display = 'none'; };
+      const hideTip = () => {
+        tip.style.display = 'none';
+        btn.style.background = 'transparent';
+      };
       btn.addEventListener('pointerenter', showTip);
       btn.addEventListener('pointerleave', hideTip);
       const POS_KEY = 'luowen.autolayout.btnPos';
@@ -966,15 +971,13 @@ get tooltip() {
         btn.style.top = Math.max(4, Math.min(window.innerHeight - r.height - 4, y)) + 'px';
       };
       const dockDefault = () => {
-        const bar = document.querySelector('.actionbar');
-        const ref = bar && [...bar.children].find((el) => (el.innerText || '').includes('运行'));
-        if (ref) {
-          const r = ref.getBoundingClientRect();
-          const b = btn.getBoundingClientRect();
-          place(r.left - b.width - 8, r.top + (r.height - b.height) / 2);
-          return true;
-        }
-        return false;
+        // 停靠在右上角控制面板（运行/任务队列）左侧的空白处，避免压在「Show Image Feed」等文字上
+        const panel = document.querySelector('.actionbar-container')?.parentElement;
+        if (!panel) return false;
+        const r = panel.getBoundingClientRect();
+        const b = btn.getBoundingClientRect();
+        place(r.left - b.width - 8, r.top + (r.height - b.height) / 2);
+        return true;
       };
       let saved = null;
       try { saved = JSON.parse(localStorage.getItem(POS_KEY)); } catch { /* 首次无保存位置 */ }
