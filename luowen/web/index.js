@@ -483,8 +483,8 @@ app.registerExtension({
         return { value: t('SnapTolerance.tooltip'), class: TIP_CLASS };
       },
       type: 'slider',
-      attrs: { min: 1, max: 5, step: 1 },
-      defaultValue: 2,
+      attrs: { min: 2, max: 20, step: 2 },
+      defaultValue: 20,
       onChange: (v) => setSnapTolerance(v),
     },
     {
@@ -814,7 +814,7 @@ get tooltip() {
       /* 设置读取失败保持默认 */
     }
     setSnapEnabled(!!readSetting(SNAP_ID, true));
-    setSnapTolerance(readSetting(SNAP_TOL_ID, 2));
+    setSnapTolerance(readSetting(SNAP_TOL_ID, 20));
     // 宿主调色板服务可能在扩展 setup 之后才应用主题：重放三次覆盖启动竞态
     syncColorTheme();
     setTimeout(() => syncColorTheme(), 800);

@@ -5,7 +5,10 @@ import {
   DEFAULT_SNAP_TOL,
   DEFAULT_RELEASE_TOL,
   SNAP_TIE_WINDOW,
-  GRID_SIZE,
+  clampSnapTol,
+  SNAP_MIN_PX,
+  SNAP_MAX_PX,
+  SNAP_STEP_PX,
 } from '../../luowen/web/snap/alignSnap.js';
 
 // 约定：所有坐标均为图坐标（graph units），此处没有任何缩放/屏幕像素换算。
@@ -288,8 +291,15 @@ test('alignSnap: 2px 平手窗口内相连邻居的引脚行优先于更近的�
   assert.equal(r.guides.y.candAnchor, 'pin');
 });
 
-test('alignSnap: 画布一小格 = 10 图坐标像素（背景 tile 100×100 内每 10 单位细线）', () => {
-  assert.equal(GRID_SIZE, 10);
+test('alignSnap: 吸附距离按 2 图 px 一档，范围 2–20', () => {
+  assert.equal(SNAP_STEP_PX, 2);
+  assert.equal(SNAP_MIN_PX, 2);
+  assert.equal(SNAP_MAX_PX, 20);
+  assert.equal(clampSnapTol(0), 2);
+  assert.equal(clampSnapTol(1), 2);
+  assert.equal(clampSnapTol(13), 14);
+  assert.equal(clampSnapTol(21), 20);
+  assert.equal(clampSnapTol(Number.NaN), 20);
 });
 
 test('alignSnap: 吸附距离可调——15 图 px 偏移在 10 时不吸、20 时吸到 0', () => {

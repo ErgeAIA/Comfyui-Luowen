@@ -21,8 +21,15 @@
 export const DEFAULT_SNAP_TOL = 10;
 export const DEFAULT_RELEASE_TOL = 15;
 export const SNAP_TIE_WINDOW = 2;
-// 画布一小格的图坐标尺寸：LGraphCanvas 背景 tile 100×100，内含每 10 单位细线（实测宿主 1.55.18）
-export const GRID_SIZE = 10;
+// 设置项「吸附距离」的取值范围与步长（图坐标像素）；画布一小格 = 10 图 px 仅作参考，不再作为档位
+export const SNAP_MIN_PX = 2;
+export const SNAP_MAX_PX = 20;
+export const SNAP_STEP_PX = 2;
+
+export function clampSnapTol(px) {
+  const n = Math.round(Number(px) / SNAP_STEP_PX) * SNAP_STEP_PX;
+  return Math.max(SNAP_MIN_PX, Math.min(SNAP_MAX_PX, Number.isFinite(n) ? n : SNAP_MAX_PX));
+}
 
 const EPS = 1e-6;
 

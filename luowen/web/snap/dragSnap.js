@@ -10,7 +10,7 @@
 //   - 提示线是 DOM overlay（pointer-events:none，z-index 高于 Vue 节点卡片层），随 canvas.ds 平移缩放同步。
 //   - 只改绘制表达与拖动落点，不写图数据（Link ID / slot / 节点数据不变）。
 
-import { alignSnap, GRID_SIZE } from './alignSnap.js';
+import { alignSnap, clampSnapTol } from './alignSnap.js';
 import { graphLinks, nodeRects } from '../adapters/graphRead.js';
 
 const OVERLAY_ID = 'luowen-snap-overlay';
@@ -24,17 +24,16 @@ const state = {
   installed: false,
   canvas: null,
   enabled: true,
-  snapCells: 2,
+  snapTol: 20,
   handlers: null,
   rafId: null,
   drag: null,
   guides: null, // {host, el, x, y}
 };
 
-// 吸附距离按画布格数计（1 格 = GRID_SIZE 图 px）；解除距离 = 捕获距离 × 1.5
+// 吸附距离（图 px，2–20，步长 2）；解除距离 = 捕获距离 × 1.5
 function snapTolerances() {
-  const cells = Math.max(1, Math.min(5, Math.round(Number(state.snapCells) || 2)));
-  const snapTol = cells * GRID_SIZE;
+  const snapTol = clampSnapTol(state.snapTol);
   return { snapTol, releaseTol: snapTol * 1.5 };
 }
 
@@ -383,10 +382,10 @@ export function setSnapEnabled(enabled) {
   return state.enabled;
 }
 
-// 吸附距离（画布格数，1–5）；设置项 onChange 调用
-export function setSnapTolerance(cells) {
-  state.snapCells = Math.max(1, Math.min(5, Math.round(Number(cells) || 2)));
-  return state.snapCells;
+// 吸附距离（图 px，2–20，步长 2）；设置项 onChange 调用
+export function setSnapTolerance(px) {
+  state.snapTol = clampSnapTol(px);
+  return state.snapTol;
 }
 
 export function getSnapDebug() {
@@ -394,7 +393,7 @@ export function getSnapDebug() {
   return {
     installed: state.installed,
     enabled: state.enabled,
-    snapCells: state.snapCells,
+    snapTolSetting: state.snapTol,
     ...snapTolerances(),
     active: !!drag?.active,
     nodeId: drag ? String(drag.node?.id) : null,
