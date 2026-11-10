@@ -16,6 +16,18 @@ description: >
 > 格式：`## DEC-NNN: 标题`，新条目置顶，NNN 三位递增。
 > 字段：`- **日期**：` / `- **背景**：` / `- **决策**：` / `- **验证**：`
 
+## DEC-063: 新增 JellyFish(#057) 与 Solarized(#137) 连线主题，固定主题来源映射
+
+- **日期**：2026-11-10
+- **背景**：用户自有品牌主题为 ThemeVault **#001/#002**；要求把 LuoWen 主题与主题库的对应关系写清，并新增 **#057（jellyfish/dark）** 与 **#137（opencode/solarized）**。
+- **决策**：
+  1. 新增 `luowen-jellyfish`（canvas `#00002C` / card `#171520`）与 `luowen-solarized`（canvas `#002B36` / card `#073642`），均 `extends: luowen-dark`，只覆盖 context/primitive/semantic。
+  2. 色相锚：JellyFish = 粉/黄/青霓虹；Solarized = 蓝/青/靛/品红/黄/橙经典色。明度/彩度按门槛重算。
+  3. 新增 `docs/specs/link-color-tokens/theme-sources.md`：固定 `luowen-dark`（自有）、`luowen-cyberpunk`（旧 host JSON，非 ThemeVault #019）、`luowen-nightlight`（#001）、`luowen-jellyfish`（#057）、`luowen-solarized`（#137）的对应关系；#002 浅色主题列为未实现。
+  4. 默认仍为夜灯（DEC-062）。
+- **验证**：JellyFish 对比度 ≥4.29（card）、CVD 0.0324、相邻 0.0511；Solarized 对比度 ≥3.28、CVD 0.0275、相邻 0.0261；两套 62 类 / 4388 条全覆盖；单测 167/167。
+- **状态**：已接线（materialize/设置/i18n/单测）；**待用户验收**。
+
 ## DEC-062: 夜灯主题重排（常用类型强分离）并设为默认
 
 - **日期**：2026-11-10

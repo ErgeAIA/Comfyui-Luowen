@@ -12,8 +12,8 @@ test('linkColors: 主题关闭（默认）→ resolve 返回 null，适配器回
   assert.equal(mod.flowParams, undefined, 'flowParams 死代码已删除');
 });
 
-test('linkColors: 三套主题内置，62 类映射齐全，hex 格式合法', () => {
-  assert.deepEqual(listThemes().sort(), ['luowen-cyberpunk', 'luowen-dark', 'luowen-nightlight']);
+test('linkColors: 五套主题内置，62 类映射齐全，hex 格式合法', () => {
+  assert.deepEqual(listThemes().sort(), ['luowen-cyberpunk', 'luowen-dark', 'luowen-jellyfish', 'luowen-nightlight', 'luowen-solarized']);
   for (const id of listThemes()) {
     setTheme(id);
     const info = themeInfo();

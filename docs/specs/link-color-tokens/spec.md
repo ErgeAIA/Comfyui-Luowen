@@ -48,6 +48,9 @@ JSON Schema：`link-tokens.schema.json`（draft 2020-12）。校验点：
 | `luowen-dark.tokens.json` | 基准主题：13 个语义 token + 62 条显式映射 + 13 条外推规则 |
 | `luowen-cyberpunk.tokens.json` | `extends: luowen-dark`，覆盖色相锚、彩度、明度带、画布上下文（DEC-060 重排） |
 | `luowen-nightlight.tokens.json` | `extends: luowen-dark`；夜灯：erge #001 暖深底（canvas `#16120E` / card `#241F1B`），覆盖色相/明度/底色与 mask/clip 明度档 |
+| `luowen-jellyfish.tokens.json` | `extends: luowen-dark`；ThemeVault #057 jellyfish/dark（canvas `#00002C` / card `#171520`） |
+| `luowen-solarized.tokens.json` | `extends: luowen-dark`；ThemeVault #137 opencode/solarized（canvas `#002B36` / card `#073642`） |
+| `theme-sources.md` | 五套主题与 ThemeVault 编号、取色口径、新增主题清单 |
 | `verify.mjs` | 零依赖复算：结构校验、对比度、ΔE/CVD 矩阵、类型覆盖 |
 | `data/` | 原始统计快照、生成的对比度表、CVD 矩阵 CSV、覆盖清单 |
 

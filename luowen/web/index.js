@@ -534,11 +534,13 @@ get options() {
           { text: t('ColorTheme.opt.luowen-dark'), value: 'luowen-dark' },
           { text: t('ColorTheme.opt.luowen-cyberpunk'), value: 'luowen-cyberpunk' },
           { text: t('ColorTheme.opt.luowen-nightlight'), value: 'luowen-nightlight' },
+          { text: t('ColorTheme.opt.luowen-jellyfish'), value: 'luowen-jellyfish' },
+          { text: t('ColorTheme.opt.luowen-solarized'), value: 'luowen-solarized' },
         ];
       },
       defaultValue: 'luowen-nightlight',
       onChange: (v) => {
-        const id = ['luowen-dark', 'luowen-cyberpunk', 'luowen-nightlight'].includes(v) ? v : 'off';
+        const id = ['luowen-dark', 'luowen-cyberpunk', 'luowen-nightlight', 'luowen-jellyfish', 'luowen-solarized'].includes(v) ? v : 'off';
         setSettings({ colorTheme: id });
         syncColorTheme(id);
       },

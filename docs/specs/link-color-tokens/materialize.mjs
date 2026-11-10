@@ -10,7 +10,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const OUT = join(here, '..', '..', '..', 'luowen', 'web', 'colors', 'materialized.js');
 
 const themes = {};
-for (const id of ['luowen-dark', 'luowen-cyberpunk', 'luowen-nightlight']) {
+for (const id of ['luowen-dark', 'luowen-cyberpunk', 'luowen-nightlight', 'luowen-jellyfish', 'luowen-solarized']) {
   const short = id.replace(/^luowen-/, '');
   const token = JSON.parse(readFileSync(join(here, `luowen-${short}.tokens.json`), 'utf8'));
   const data = JSON.parse(readFileSync(join(here, 'data', `link-colors-${id}.json`), 'utf8'));
