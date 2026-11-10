@@ -1,11 +1,11 @@
-# Python（template/ 与后续节点包）
+# Python（节点包）
 __pycache__/
 *.py[cod]
 *.egg-info/
 .venv/
 venv/
 
-# Node / 前端（web/ 与 tests/ 后续引入）
+# Node / 前端
 node_modules/
 
 # 构建产物
@@ -19,12 +19,20 @@ build/
 *.key
 !.env.example
 
-# 工具产物
-.codegraph/
+# 内部开发材料（不随插件发布）
+docs/
+AGENTS.md
+GLOSSARY.md
+.research/
+scripts/
+prototype/
+template/
 
-# 项目本地验证与浏览器自动化工件
+# 本地验证、自动化与工具产物
 .verify/
+.screenshots/
 .playwright-mcp/
+.codegraph/
 
 # OS 临时文件
 .DS_Store

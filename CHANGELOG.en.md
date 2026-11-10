@@ -27,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Corner-radius setting: `smooth` corner radius 0–24 graph px, default 10
 - Port stubs shrink with connection distance (short links no longer fold back)
 - Trunk diagnostics: `LuoWen.status().trunks` / `trunkDebug`
-- `docs/routing-algorithm.md`; MIT-reused Cable Management geometry kernel registered in `THIRD_PARTY_NOTICES.md`
+- MIT-reused Cable Management geometry kernel registered in `THIRD_PARTY_NOTICES.md`
 
 ### Changed
 

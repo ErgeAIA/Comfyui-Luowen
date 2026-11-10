@@ -4,7 +4,7 @@ ComfyUI 的连线表达与工作流整理扩展：正交/贝塞尔线路、节�
 
 纯前端扩展，不注册任何节点。**默认只读取工作流**——线路怎么画、节点槽点什么颜色，都不改图数据；唯一的写入是用户主动触发的「整理」（一整次一条撤销）与可选的「整理时折叠说明节点」。
 
-![络纹 LuoWen](docs/specs/assets/luowen-banner.svg)
+![络纹 LuoWen](assets/luowen-banner.svg)
 
 ## 能力
 
@@ -38,7 +38,6 @@ ComfyUI 的连线表达与工作流整理扩展：正交/贝塞尔线路、节�
   | 日晒 | ThemeVault #137 | Solarized 色相 |
 
 - **配色范围**可选「连线 + 槽点」或「仅连线」；槽点同步会写入宿主调色板，关闭/切换时还原
-- 主题来源与取色口径见 [docs/specs/link-color-tokens/theme-sources.md](docs/specs/link-color-tokens/theme-sources.md)
 
 ### 自动布局（整理）
 
@@ -87,7 +86,7 @@ ComfyUI 的连线表达与工作流整理扩展：正交/贝塞尔线路、节�
 
 ## 设置总览
 
-分组与顺序按使用频率排：基础 → 线路外观 → 连线配色 → 自动布局 → 动效 → 动效·光束 → 动效·虚线 → 实验。完整说明与提示文案见 [docs/specs/luowen-settings-ui.md](docs/specs/luowen-settings-ui.md)。
+分组与顺序按使用频率排：基础 → 线路外观 → 连线配色 → 自动布局 → 动效 → 动效·光束 → 动效·虚线 → 实验。每一项的完整说明见设置面板内的问号提示。
 
 | 组 | 设置（默认值） |
 |---|---|
@@ -135,26 +134,14 @@ ComfyUI 的连线表达与工作流整理扩展：正交/贝塞尔线路、节�
 - **前端版本**：按 1.55.18 验证；宿主 requirements 声明 1.57.4 但未重装，更新版本未验证
 - **节点渲染模式**：拖动对齐吸附只在 Vue 节点拖动模式下生效；经典画布（关闭 Vue 节点）仅做过单轮实测
 - **自动布局**：使用仓库内 vendored 的 elkjs（EPL-2.0）；大图整理耗时随节点数增长，属用户主动操作，不在渲染热路径
-- **大图性能**：合成 500 节点 / 996 线实测 smooth ≈ 119 ms/帧、ortho ≈ 363 ms/帧（2026-11-09 同页 A/B），未达 60 fps 交互；方法与数据见 [docs/agents/performance.md](docs/agents/performance.md)
-- **第三方共存**：与 Cable Management / NKD Reroutes / Zip Ties 等只做了源码级冲突面分析，未做完整运行时矩阵，见 [docs/agents/compatibility-matrix.md](docs/agents/compatibility-matrix.md)
+- **大图性能**：合成 500 节点 / 996 线实测 smooth ≈ 119 ms/帧、ortho ≈ 363 ms/帧（2026-11-09 同页 A/B），未达 60 fps 交互
+- **第三方共存**：与 Cable Management / NKD Reroutes / Zip Ties 等只做了源码级冲突面分析，未做完整运行时矩阵
 - **离线交叉清理**为实验项，默认关闭；只在交叉对数严格下降且总长增幅 ≤15% 时采纳
 - **数据边界**：除「整理」（含可选折叠说明节点）外，其余功能不写工作流数据；`verify()` 可用于自检
 
-## 文档导航
+## 变更日志
 
-| 文档 | 内容 |
-|---|---|
-| [docs/prd/luowen-prd-v1.0.md](docs/prd/luowen-prd-v1.0.md) | 产品需求基线：范围、算法方案、验收标准 |
-| [docs/routing-algorithm.md](docs/routing-algorithm.md) | 路由算法现状：挂载链路、lane 分配、主干/斜切、等距带、缓存降级 |
-| [docs/comfyui-dev-conventions.md](docs/comfyui-dev-conventions.md) | ComfyUI 开发约定与源码级取证（file:line） |
-| [docs/specs/auto-layout/](docs/specs/auto-layout/) | 自动布局规格与实测 |
-| [docs/specs/link-color-tokens/](docs/specs/link-color-tokens/spec.md) | 连线配色 token、门槛与验收材料 |
-| [docs/specs/luowen-settings-ui.md](docs/specs/luowen-settings-ui.md) | 设置面板信息架构、排序机制与验收记录 |
-| [docs/agents/performance.md](docs/agents/performance.md) | 性能口径、A/B 数据与热点 |
-| [docs/agents/compatibility-matrix.md](docs/agents/compatibility-matrix.md) | 兼容性与第三方冲突面 |
-| [GLOSSARY.md](GLOSSARY.md) | 项目术语表 |
-| [CHANGELOG.md](CHANGELOG.md) / [CHANGELOG.en.md](CHANGELOG.en.md) | 变更日志（Keep a Changelog） |
-| [docs/agents/project-progress.md](docs/agents/project-progress.md) | 当前进度与未完成项（开发过程档案） |
+版本变更记录见 [CHANGELOG.md](CHANGELOG.md)（英文版 [CHANGELOG.en.md](CHANGELOG.en.md)），格式遵循 Keep a Changelog。
 
 ## 许可
 

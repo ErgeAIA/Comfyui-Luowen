@@ -15,7 +15,7 @@
 
 - 浮动整理按钮改为络纹 logo（夜灯品牌橙 `#F2570F`，透明底、悬停淡橙），悬停显示主题化提示；新增设置「显示「整理」按钮」（默认显示，隐藏后仍可用右键菜单或 Ctrl+Shift+L）
 
-- 新增连线主题「晨光（Dawn，ThemeVault #002，浅色）」「水母（JellyFish，#057）」「Solarized（暗，#137）」；移除「暗色」选项（夜灯为唯一默认，旧存档自动迁移）；主题来源与 ThemeVault 编号对应见 `docs/specs/link-color-tokens/theme-sources.md`
+- 新增连线主题「晨光（Dawn，ThemeVault #002，浅色）」「水母（JellyFish，#057）」「Solarized（暗，#137）」；移除「暗色」选项（夜灯为唯一默认，旧存档自动迁移）
 
 - 夜灯连线主题（默认）：`LuoWen.ColorTheme` 新增「夜灯」并设为默认（取色源 ThemeVault erge #001，暖深底低蓝）；62 类语义映射，对比度/色盲/相邻色相门槛全过；连线主题同时把类型色同步到节点槽点，关闭/切换时还原宿主配色；新增「主题范围」：连线+槽点 / 仅连线
 
@@ -29,10 +29,10 @@
 
 - PRD §14.2 算法固定样本 10 组全部落地（`tests/unit/fixtures14.test.mjs`）：每组断言拓扑类别、正交/不穿卡/分道/绕行比等结构属性
 
-- 连线配色主题 `LuoWen.ColorTheme`（关闭/暗色/Cyberpunk）：按连线数据类型着色，62 类语义映射（对比度与色盲 ΔE 已过门槛，见 `docs/specs/link-color-tokens/`）；默认关闭，行为与原生一致；Cyberpunk 主题按 DEC-060 重排（沿用旧主题色相锚，常用类型拉开；门槛见 docs/specs/link-color-tokens/）
+- 连线配色主题 `LuoWen.ColorTheme`（关闭/暗色/Cyberpunk）：按连线数据类型着色，62 类语义映射（对比度与色盲 ΔE 已过门槛）；默认关闭，行为与原生一致；Cyberpunk 主题按 DEC-060 重排（沿用旧主题色相锚，常用类型拉开；门槛已校验）
 - 动效系统 v2（DEC-040）：`LuoWen.FlowAnim`（总开关，默认关）+ 独立「动效」设置组——模式（全部连线/仅选中/仅执行中）、线型（虚线行进/发光/脉冲）、虚线长度/间距/流速、`LuoWen.DisableAnimOnRun`（默认开：工作流运行期间暂停全部动效，结束自动恢复）；reduced-motion、宿主「禁用动画」、缩放 ≤40% 三重闸门；空闲零重绘
 
-- smooth 样式拐角由圆弧拼接改为贝塞尔曲线（PRD §5.1 真 Bezier）：控制点=角点、切距沿用 `LuoWen.CornerRadius`（0–24px，默认 10px，0 为直角）；骨架路径与命中几何不变；同机 A/B 帧耗时较圆角折线略优（`docs/agents/performance.md` §2026-11-07）
+- smooth 样式拐角由圆弧拼接改为贝塞尔曲线（PRD §5.1 真 Bezier）：控制点=角点、切距沿用 `LuoWen.CornerRadius`（0–24px，默认 10px，0 为直角）；骨架路径与命中几何不变；同机 A/B 帧耗时较圆角折线略优（同机 A/B 实测）
 
 
 ### 新增
@@ -55,7 +55,7 @@
 - 圆角半径设置：`smooth` 圆角半径 0–24 图 px、默认 10
 - 端口 stub 按连接距离动态收缩（短连接不折返）
 - 主干调试信息：`LuoWen.status().trunks` / `trunkDebug`
-- 文档 `docs/routing-algorithm.md`；MIT 复用的 Cable Management 几何内核登记于 `THIRD_PARTY_NOTICES.md`
+- MIT 复用的 Cable Management 几何内核登记于 `THIRD_PARTY_NOTICES.md`
 
 ### 变更
 
