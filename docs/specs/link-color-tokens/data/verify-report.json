@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-09T17:42:12.919Z",
+  "generatedAt": "2026-11-10T05:13:37.299Z",
   "gate": {
     "contrast": 3,
     "deltaE": 0.02,
@@ -1448,64 +1448,64 @@
       },
       "colors": {
         "link.image": {
-          "hex": "#77CBFF",
-          "L": 0.82,
-          "C": 0.14,
-          "H": 248.8
+          "hex": "#5EDDFF",
+          "L": 0.88,
+          "C": 0.2,
+          "H": 250
         },
         "link.video": {
-          "hex": "#4398E4",
-          "L": 0.662,
-          "C": 0.14,
-          "H": 248.8
+          "hex": "#FF8147",
+          "L": 0.78,
+          "C": 0.2,
+          "H": 40
         },
         "link.latent": {
-          "hex": "#F4A3F3",
-          "L": 0.82,
-          "C": 0.14,
-          "H": 327.1
+          "hex": "#FC82F3",
+          "L": 0.78,
+          "C": 0.2,
+          "H": 330
         },
         "link.conditioning": {
-          "hex": "#D9902B",
-          "L": 0.712,
-          "C": 0.14,
-          "H": 69.8
+          "hex": "#F3E300",
+          "L": 0.9,
+          "C": 0.2,
+          "H": 105
         },
         "link.clip": {
-          "hex": "#D1C951",
-          "L": 0.82,
-          "C": 0.14,
-          "H": 105.3
+          "hex": "#00FEFF",
+          "L": 0.88,
+          "C": 0.2,
+          "H": 195
         },
         "link.vae": {
-          "hex": "#FF9E99",
-          "L": 0.82,
-          "C": 0.14,
-          "H": 22.9
+          "hex": "#EA4770",
+          "L": 0.64,
+          "C": 0.2,
+          "H": 10
         },
         "link.model": {
-          "hex": "#A491F2",
-          "L": 0.712,
-          "C": 0.14,
-          "H": 291.4
+          "hex": "#AD74FF",
+          "L": 0.68,
+          "C": 0.2,
+          "H": 300
         },
         "link.mask": {
-          "hex": "#65B969",
-          "L": 0.712,
-          "C": 0.14,
-          "H": 144.8
+          "hex": "#89F670",
+          "L": 0.88,
+          "C": 0.2,
+          "H": 140
         },
         "link.audio": {
-          "hex": "#29E1CC",
-          "L": 0.82,
-          "C": 0.14,
-          "H": 182.9
+          "hex": "#00DD97",
+          "L": 0.78,
+          "C": 0.2,
+          "H": 165
         },
         "link.mesh3d": {
-          "hex": "#00B8D4",
-          "L": 0.712,
-          "C": 0.14,
-          "H": 211.2
+          "hex": "#00A3DE",
+          "L": 0.64,
+          "C": 0.2,
+          "H": 220
         },
         "link.scalar": {
           "hex": "#89939E",
@@ -1529,112 +1529,112 @@
       "contrastRows": [
         {
           "id": "link.image",
-          "hex": "#77CBFF",
-          "L": 0.82,
-          "C": 0.14,
-          "H": 248.8,
+          "hex": "#5EDDFF",
+          "L": 0.88,
+          "C": 0.2,
+          "H": 250,
           "gamut": false,
-          "canvas": 10.99,
-          "card": 9.4,
+          "canvas": 12.38,
+          "card": 10.59,
           "ok": true
         },
         {
           "id": "link.video",
-          "hex": "#4398E4",
-          "L": 0.662,
-          "C": 0.14,
-          "H": 248.8,
-          "gamut": true,
-          "canvas": 6.39,
-          "card": 5.47,
+          "hex": "#FF8147",
+          "L": 0.78,
+          "C": 0.2,
+          "H": 40,
+          "gamut": false,
+          "canvas": 7.92,
+          "card": 6.77,
           "ok": true
         },
         {
           "id": "link.latent",
-          "hex": "#F4A3F3",
-          "L": 0.82,
-          "C": 0.14,
-          "H": 327.1,
+          "hex": "#FC82F3",
+          "L": 0.78,
+          "C": 0.2,
+          "H": 330,
           "gamut": true,
-          "canvas": 10.62,
-          "card": 9.08,
+          "canvas": 8.99,
+          "card": 7.68,
           "ok": true
         },
         {
           "id": "link.conditioning",
-          "hex": "#D9902B",
-          "L": 0.712,
-          "C": 0.14,
-          "H": 69.8,
-          "gamut": true,
-          "canvas": 7.44,
-          "card": 6.37,
+          "hex": "#F3E300",
+          "L": 0.9,
+          "C": 0.2,
+          "H": 105,
+          "gamut": false,
+          "canvas": 14.75,
+          "card": 12.61,
           "ok": true
         },
         {
           "id": "link.clip",
-          "hex": "#D1C951",
-          "L": 0.82,
-          "C": 0.14,
-          "H": 105.3,
-          "gamut": true,
-          "canvas": 11.37,
-          "card": 9.73,
+          "hex": "#00FEFF",
+          "L": 0.88,
+          "C": 0.2,
+          "H": 195,
+          "gamut": false,
+          "canvas": 15.52,
+          "card": 13.27,
           "ok": true
         },
         {
           "id": "link.vae",
-          "hex": "#FF9E99",
-          "L": 0.82,
-          "C": 0.14,
-          "H": 22.9,
-          "gamut": false,
-          "canvas": 9.9,
-          "card": 8.46,
+          "hex": "#EA4770",
+          "L": 0.64,
+          "C": 0.2,
+          "H": 10,
+          "gamut": true,
+          "canvas": 5.26,
+          "card": 4.5,
           "ok": true
         },
         {
           "id": "link.model",
-          "hex": "#A491F2",
-          "L": 0.712,
-          "C": 0.14,
-          "H": 291.4,
+          "hex": "#AD74FF",
+          "L": 0.68,
+          "C": 0.2,
+          "H": 300,
           "gamut": true,
-          "canvas": 7.38,
-          "card": 6.31,
+          "canvas": 6.27,
+          "card": 5.36,
           "ok": true
         },
         {
           "id": "link.mask",
-          "hex": "#65B969",
-          "L": 0.712,
-          "C": 0.14,
-          "H": 144.8,
+          "hex": "#89F670",
+          "L": 0.88,
+          "C": 0.2,
+          "H": 140,
           "gamut": true,
-          "canvas": 8.12,
-          "card": 6.94,
+          "canvas": 14.45,
+          "card": 12.36,
           "ok": true
         },
         {
           "id": "link.audio",
-          "hex": "#29E1CC",
-          "L": 0.82,
-          "C": 0.14,
-          "H": 182.9,
-          "gamut": true,
-          "canvas": 11.89,
-          "card": 10.17,
+          "hex": "#00DD97",
+          "L": 0.78,
+          "C": 0.2,
+          "H": 165,
+          "gamut": false,
+          "canvas": 11.01,
+          "card": 9.41,
           "ok": true
         },
         {
           "id": "link.mesh3d",
-          "hex": "#00B8D4",
-          "L": 0.712,
-          "C": 0.14,
-          "H": 211.2,
+          "hex": "#00A3DE",
+          "L": 0.64,
+          "C": 0.2,
+          "H": 220,
           "gamut": false,
-          "canvas": 8.22,
-          "card": 7.03,
+          "canvas": 6.81,
+          "card": 5.82,
           "ok": true
         },
         {
@@ -1675,677 +1675,677 @@
         {
           "a": "link.image",
           "b": "link.video",
-          "normal": 0.1512,
-          "protan": 0.1497,
-          "deutan": 0.1569,
-          "tritan": 0.1315,
-          "min": 0.1315
+          "normal": 0.3073,
+          "protan": 0.2726,
+          "deutan": 0.2245,
+          "tritan": 0.3567,
+          "min": 0.2245
         },
         {
           "a": "link.image",
           "b": "link.latent",
-          "normal": 0.1777,
-          "protan": 0.0562,
-          "deutan": 0.0372,
-          "tritan": 0.2294,
-          "min": 0.0372
+          "normal": 0.2744,
+          "protan": 0.1699,
+          "deutan": 0.0506,
+          "tritan": 0.2948,
+          "min": 0.0506
         },
         {
           "a": "link.image",
           "b": "link.conditioning",
-          "normal": 0.2673,
-          "protan": 0.2718,
-          "deutan": 0.2451,
-          "tritan": 0.2839,
-          "min": 0.2451
+          "normal": 0.2706,
+          "protan": 0.2418,
+          "deutan": 0.2764,
+          "tritan": 0.2027,
+          "min": 0.2027
         },
         {
           "a": "link.image",
           "b": "link.clip",
-          "normal": 0.2295,
-          "protan": 0.2238,
-          "deutan": 0.233,
-          "tritan": 0.1768,
-          "min": 0.1768
+          "normal": 0.0904,
+          "protan": 0.0873,
+          "deutan": 0.0739,
+          "tritan": 0.0606,
+          "min": 0.0606
         },
         {
           "a": "link.image",
           "b": "link.vae",
-          "normal": 0.2172,
-          "protan": 0.1442,
-          "deutan": 0.1549,
-          "tritan": 0.2667,
-          "min": 0.1442
+          "normal": 0.3695,
+          "protan": 0.3423,
+          "deutan": 0.2239,
+          "tritan": 0.4362,
+          "min": 0.2239
         },
         {
           "a": "link.image",
           "b": "link.model",
-          "normal": 0.1506,
-          "protan": 0.1419,
-          "deutan": 0.1017,
-          "tritan": 0.1498,
-          "min": 0.1017
-        },
-        {
-          "a": "link.image",
-          "b": "link.mask",
-          "normal": 0.2058,
-          "protan": 0.1993,
-          "deutan": 0.191,
-          "tritan": 0.1032,
-          "min": 0.1032
-        },
-        {
-          "a": "link.image",
-          "b": "link.audio",
-          "normal": 0.1185,
-          "protan": 0.094,
-          "deutan": 0.0839,
-          "tritan": 0.0406,
-          "min": 0.0406
-        },
-        {
-          "a": "link.image",
-          "b": "link.mesh3d",
-          "normal": 0.1028,
-          "protan": 0.081,
-          "deutan": 0.0913,
-          "tritan": 0.063,
-          "min": 0.063
-        },
-        {
-          "a": "link.image",
-          "b": "link.scalar",
-          "normal": 0.1753,
-          "protan": 0.1865,
-          "deutan": 0.1621,
-          "tritan": 0.1846,
-          "min": 0.1621
-        },
-        {
-          "a": "link.image",
-          "b": "link.struct",
-          "normal": 0.2286,
-          "protan": 0.2438,
-          "deutan": 0.2163,
-          "tritan": 0.2344,
-          "min": 0.2163
-        },
-        {
-          "a": "link.image",
-          "b": "link.unknown",
-          "normal": 0.1266,
-          "protan": 0.1297,
-          "deutan": 0.1128,
-          "tritan": 0.1413,
-          "min": 0.1128
-        },
-        {
-          "a": "link.video",
-          "b": "link.latent",
-          "normal": 0.2373,
-          "protan": 0.0936,
-          "deutan": 0.1852,
-          "tritan": 0.2551,
-          "min": 0.0936
-        },
-        {
-          "a": "link.video",
-          "b": "link.conditioning",
-          "normal": 0.2841,
-          "protan": 0.2504,
-          "deutan": 0.2818,
-          "tritan": 0.2553,
-          "min": 0.2504
-        },
-        {
-          "a": "link.video",
-          "b": "link.clip",
-          "normal": 0.3089,
-          "protan": 0.2849,
-          "deutan": 0.3251,
-          "tritan": 0.2172,
-          "min": 0.2172
-        },
-        {
-          "a": "link.video",
-          "b": "link.vae",
-          "normal": 0.2722,
-          "protan": 0.1547,
-          "deutan": 0.2509,
-          "tritan": 0.2674,
-          "min": 0.1547
-        },
-        {
-          "a": "link.video",
-          "b": "link.model",
-          "normal": 0.1139,
-          "protan": 0.0223,
-          "deutan": 0.0556,
-          "tritan": 0.1028,
-          "min": 0.0223
-        },
-        {
-          "a": "link.video",
-          "b": "link.mask",
-          "normal": 0.2259,
-          "protan": 0.2175,
-          "deutan": 0.2227,
-          "tritan": 0.0587,
-          "min": 0.0587
-        },
-        {
-          "a": "link.video",
-          "b": "link.audio",
-          "normal": 0.2189,
-          "protan": 0.2148,
-          "deutan": 0.2082,
-          "tritan": 0.1675,
-          "min": 0.1675
-        },
-        {
-          "a": "link.video",
-          "b": "link.mesh3d",
-          "normal": 0.0989,
-          "protan": 0.0927,
-          "deutan": 0.0871,
-          "tritan": 0.0708,
-          "min": 0.0708
-        },
-        {
-          "a": "link.video",
-          "b": "link.scalar",
-          "normal": 0.1198,
-          "protan": 0.1056,
-          "deutan": 0.1208,
-          "tritan": 0.0959,
-          "min": 0.0959
-        },
-        {
-          "a": "link.video",
-          "b": "link.struct",
-          "normal": 0.1352,
-          "protan": 0.1361,
-          "deutan": 0.1299,
-          "tritan": 0.1205,
-          "min": 0.1205
-        },
-        {
-          "a": "link.video",
-          "b": "link.unknown",
-          "normal": 0.1327,
-          "protan": 0.1053,
-          "deutan": 0.1398,
-          "tritan": 0.1048,
-          "min": 0.1048
-        },
-        {
-          "a": "link.latent",
-          "b": "link.conditioning",
-          "normal": 0.2438,
+          "normal": 0.2701,
           "protan": 0.2539,
-          "deutan": 0.2233,
-          "tritan": 0.118,
-          "min": 0.118
+          "deutan": 0.1886,
+          "tritan": 0.238,
+          "min": 0.1886
         },
         {
-          "a": "link.latent",
+          "a": "link.image",
+          "b": "link.mask",
+          "normal": 0.2155,
+          "protan": 0.2084,
+          "deutan": 0.2092,
+          "tritan": 0.0605,
+          "min": 0.0605
+        },
+        {
+          "a": "link.image",
+          "b": "link.audio",
+          "normal": 0.1562,
+          "protan": 0.1384,
+          "deutan": 0.1333,
+          "tritan": 0.0471,
+          "min": 0.0471
+        },
+        {
+          "a": "link.image",
+          "b": "link.mesh3d",
+          "normal": 0.1704,
+          "protan": 0.17,
+          "deutan": 0.1747,
+          "tritan": 0.1521,
+          "min": 0.1521
+        },
+        {
+          "a": "link.image",
+          "b": "link.scalar",
+          "normal": 0.2086,
+          "protan": 0.2199,
+          "deutan": 0.1841,
+          "tritan": 0.2264,
+          "min": 0.1841
+        },
+        {
+          "a": "link.image",
+          "b": "link.struct",
+          "normal": 0.2622,
+          "protan": 0.2791,
+          "deutan": 0.2412,
+          "tritan": 0.2782,
+          "min": 0.2412
+        },
+        {
+          "a": "link.image",
+          "b": "link.unknown",
+          "normal": 0.158,
+          "protan": 0.1596,
+          "deutan": 0.1286,
+          "tritan": 0.178,
+          "min": 0.1286
+        },
+        {
+          "a": "link.video",
+          "b": "link.latent",
+          "normal": 0.2266,
+          "protan": 0.2406,
+          "deutan": 0.2134,
+          "tritan": 0.0908,
+          "min": 0.0908
+        },
+        {
+          "a": "link.video",
+          "b": "link.conditioning",
+          "normal": 0.2448,
+          "protan": 0.241,
+          "deutan": 0.1695,
+          "tritan": 0.2332,
+          "min": 0.1695
+        },
+        {
+          "a": "link.video",
           "b": "link.clip",
-          "normal": 0.2615,
-          "protan": 0.2378,
-          "deutan": 0.2005,
-          "tritan": 0.068,
-          "min": 0.068
+          "normal": 0.3548,
+          "protan": 0.322,
+          "deutan": 0.2287,
+          "tritan": 0.3924,
+          "min": 0.2287
         },
         {
-          "a": "link.latent",
+          "a": "link.video",
           "b": "link.vae",
-          "normal": 0.1243,
-          "protan": 0.129,
+          "normal": 0.1476,
+          "protan": 0.161,
           "deutan": 0.1239,
-          "tritan": 0.0602,
-          "min": 0.0602
+          "tritan": 0.0859,
+          "min": 0.0859
         },
         {
-          "a": "link.latent",
+          "a": "link.video",
           "b": "link.model",
-          "normal": 0.1374,
-          "protan": 0.087,
-          "deutan": 0.1317,
-          "tritan": 0.1585,
-          "min": 0.087
+          "normal": 0.297,
+          "protan": 0.2836,
+          "deutan": 0.3077,
+          "tritan": 0.1823,
+          "min": 0.1823
         },
         {
-          "a": "link.latent",
+          "a": "link.video",
           "b": "link.mask",
-          "normal": 0.2996,
-          "protan": 0.1932,
-          "deutan": 0.1736,
-          "tritan": 0.2162,
-          "min": 0.1736
+          "normal": 0.31,
+          "protan": 0.2548,
+          "deutan": 0.134,
+          "tritan": 0.3361,
+          "min": 0.134
         },
         {
-          "a": "link.latent",
+          "a": "link.video",
           "b": "link.audio",
-          "normal": 0.2661,
-          "protan": 0.1324,
-          "deutan": 0.0504,
-          "tritan": 0.2412,
-          "min": 0.0504
+          "normal": 0.3003,
+          "protan": 0.1822,
+          "deutan": 0.093,
+          "tritan": 0.3386,
+          "min": 0.093
         },
         {
-          "a": "link.latent",
+          "a": "link.video",
           "b": "link.mesh3d",
-          "normal": 0.2442,
-          "protan": 0.0449,
-          "deutan": 0.1086,
-          "tritan": 0.2359,
-          "min": 0.0449
+          "normal": 0.3147,
+          "protan": 0.2091,
+          "deutan": 0.2629,
+          "tritan": 0.3037,
+          "min": 0.2091
         },
         {
-          "a": "link.latent",
+          "a": "link.video",
           "b": "link.scalar",
-          "normal": 0.2114,
-          "protan": 0.1434,
-          "deutan": 0.1669,
-          "tritan": 0.1998,
-          "min": 0.1434
+          "normal": 0.2033,
+          "protan": 0.1235,
+          "deutan": 0.1732,
+          "tritan": 0.211,
+          "min": 0.1235
         },
         {
-          "a": "link.latent",
+          "a": "link.video",
           "b": "link.struct",
-          "normal": 0.2602,
-          "protan": 0.1968,
-          "deutan": 0.2251,
-          "tritan": 0.2515,
-          "min": 0.1968
-        },
-        {
-          "a": "link.latent",
-          "b": "link.unknown",
-          "normal": 0.17,
-          "protan": 0.0967,
-          "deutan": 0.1097,
-          "tritan": 0.1543,
-          "min": 0.0967
-        },
-        {
-          "a": "link.conditioning",
-          "b": "link.clip",
-          "normal": 0.1388,
-          "protan": 0.1438,
-          "deutan": 0.1062,
-          "tritan": 0.1428,
-          "min": 0.1062
-        },
-        {
-          "a": "link.conditioning",
-          "b": "link.vae",
-          "normal": 0.1342,
-          "protan": 0.1289,
-          "deutan": 0.1152,
-          "tritan": 0.0639,
-          "min": 0.0639
-        },
-        {
-          "a": "link.conditioning",
-          "b": "link.model",
-          "normal": 0.261,
-          "protan": 0.2688,
-          "deutan": 0.2634,
-          "tritan": 0.1612,
-          "min": 0.1612
-        },
-        {
-          "a": "link.conditioning",
-          "b": "link.mask",
-          "normal": 0.1712,
-          "protan": 0.0831,
-          "deutan": 0.0617,
-          "tritan": 0.2248,
-          "min": 0.0617
-        },
-        {
-          "a": "link.conditioning",
-          "b": "link.audio",
-          "normal": 0.2577,
-          "protan": 0.2333,
-          "deutan": 0.1785,
-          "tritan": 0.3032,
-          "min": 0.1785
-        },
-        {
-          "a": "link.conditioning",
-          "b": "link.mesh3d",
-          "normal": 0.2535,
-          "protan": 0.21,
-          "deutan": 0.2141,
-          "tritan": 0.2637,
-          "min": 0.21
-        },
-        {
-          "a": "link.conditioning",
-          "b": "link.scalar",
-          "normal": 0.1684,
-          "protan": 0.1508,
-          "deutan": 0.1675,
-          "tritan": 0.1677,
-          "min": 0.1508
-        },
-        {
-          "a": "link.conditioning",
-          "b": "link.struct",
-          "normal": 0.196,
-          "protan": 0.1641,
-          "deutan": 0.1988,
-          "tritan": 0.1978,
-          "min": 0.1641
-        },
-        {
-          "a": "link.conditioning",
-          "b": "link.unknown",
-          "normal": 0.1605,
-          "protan": 0.1611,
-          "deutan": 0.1544,
-          "tritan": 0.1572,
-          "min": 0.1544
-        },
-        {
-          "a": "link.clip",
-          "b": "link.vae",
-          "normal": 0.1716,
-          "protan": 0.1339,
-          "deutan": 0.0807,
-          "tritan": 0.1038,
-          "min": 0.0807
-        },
-        {
-          "a": "link.clip",
-          "b": "link.model",
-          "normal": 0.2991,
-          "protan": 0.2949,
-          "deutan": 0.29,
-          "tritan": 0.1361,
-          "min": 0.1361
-        },
-        {
-          "a": "link.clip",
-          "b": "link.mask",
-          "normal": 0.1428,
-          "protan": 0.0846,
-          "deutan": 0.127,
-          "tritan": 0.1689,
-          "min": 0.0846
-        },
-        {
-          "a": "link.clip",
-          "b": "link.audio",
-          "normal": 0.175,
-          "protan": 0.1444,
-          "deutan": 0.151,
-          "tritan": 0.1839,
-          "min": 0.1444
-        },
-        {
-          "a": "link.clip",
-          "b": "link.mesh3d",
-          "normal": 0.2383,
-          "protan": 0.2048,
-          "deutan": 0.243,
-          "tritan": 0.1864,
-          "min": 0.1864
-        },
-        {
-          "a": "link.clip",
-          "b": "link.scalar",
-          "normal": 0.2251,
-          "protan": 0.2193,
-          "deutan": 0.2291,
-          "tritan": 0.1771,
-          "min": 0.1771
-        },
-        {
-          "a": "link.clip",
-          "b": "link.struct",
-          "normal": 0.2715,
-          "protan": 0.2636,
-          "deutan": 0.2771,
-          "tritan": 0.2343,
-          "min": 0.2343
-        },
-        {
-          "a": "link.clip",
-          "b": "link.unknown",
-          "normal": 0.186,
-          "protan": 0.1832,
-          "deutan": 0.1879,
-          "tritan": 0.1221,
-          "min": 0.1221
-        },
-        {
-          "a": "link.vae",
-          "b": "link.model",
-          "normal": 0.2025,
-          "protan": 0.1674,
-          "deutan": 0.2123,
-          "tritan": 0.1677,
-          "min": 0.1674
-        },
-        {
-          "a": "link.vae",
-          "b": "link.mask",
-          "normal": 0.2398,
-          "protan": 0.0669,
-          "deutan": 0.0913,
-          "tritan": 0.2309,
-          "min": 0.0669
-        },
-        {
-          "a": "link.vae",
-          "b": "link.audio",
-          "normal": 0.2537,
-          "protan": 0.1243,
-          "deutan": 0.0738,
-          "tritan": 0.2815,
-          "min": 0.0738
-        },
-        {
-          "a": "link.vae",
-          "b": "link.mesh3d",
-          "normal": 0.2539,
-          "protan": 0.086,
-          "deutan": 0.1661,
-          "tritan": 0.2609,
-          "min": 0.086
-        },
-        {
-          "a": "link.vae",
-          "b": "link.scalar",
-          "normal": 0.1902,
-          "protan": 0.0928,
-          "deutan": 0.1664,
-          "tritan": 0.1938,
-          "min": 0.0928
-        },
-        {
-          "a": "link.vae",
-          "b": "link.struct",
-          "normal": 0.2376,
-          "protan": 0.1478,
-          "deutan": 0.2217,
-          "tritan": 0.2364,
-          "min": 0.1478
-        },
-        {
-          "a": "link.vae",
-          "b": "link.unknown",
-          "normal": 0.1525,
-          "protan": 0.05,
-          "deutan": 0.1152,
-          "tritan": 0.1632,
-          "min": 0.05
-        },
-        {
-          "a": "link.model",
-          "b": "link.mask",
-          "normal": 0.2678,
-          "protan": 0.2315,
-          "deutan": 0.203,
-          "tritan": 0.0855,
-          "min": 0.0855
-        },
-        {
-          "a": "link.model",
-          "b": "link.audio",
-          "normal": 0.251,
-          "protan": 0.2147,
-          "deutan": 0.1602,
-          "tritan": 0.1826,
-          "min": 0.1602
-        },
-        {
-          "a": "link.model",
-          "b": "link.mesh3d",
-          "normal": 0.1672,
-          "protan": 0.0968,
-          "deutan": 0.0515,
-          "tritan": 0.1163,
-          "min": 0.0515
-        },
-        {
-          "a": "link.model",
-          "b": "link.scalar",
-          "normal": 0.1361,
-          "protan": 0.1265,
-          "deutan": 0.1192,
-          "tritan": 0.058,
-          "min": 0.058
-        },
-        {
-          "a": "link.model",
-          "b": "link.struct",
-          "normal": 0.169,
-          "protan": 0.1583,
-          "deutan": 0.1519,
-          "tritan": 0.1149,
-          "min": 0.1149
-        },
-        {
-          "a": "link.model",
-          "b": "link.unknown",
-          "normal": 0.1256,
-          "protan": 0.119,
-          "deutan": 0.1118,
-          "tritan": 0.0278,
-          "min": 0.0278
-        },
-        {
-          "a": "link.mask",
-          "b": "link.audio",
-          "normal": 0.1403,
-          "protan": 0.1507,
-          "deutan": 0.1345,
-          "tritan": 0.1331,
-          "min": 0.1331
-        },
-        {
-          "a": "link.mask",
-          "b": "link.mesh3d",
-          "normal": 0.1511,
-          "protan": 0.1518,
-          "deutan": 0.153,
-          "tritan": 0.0496,
-          "min": 0.0496
-        },
-        {
-          "a": "link.mask",
-          "b": "link.scalar",
-          "normal": 0.1566,
-          "protan": 0.138,
-          "deutan": 0.1102,
-          "tritan": 0.0918,
-          "min": 0.0918
-        },
-        {
-          "a": "link.mask",
-          "b": "link.struct",
-          "normal": 0.1863,
-          "protan": 0.1792,
-          "deutan": 0.1512,
-          "tritan": 0.1367,
+          "normal": 0.2335,
+          "protan": 0.1367,
+          "deutan": 0.2119,
+          "tritan": 0.2335,
           "min": 0.1367
         },
         {
+          "a": "link.video",
+          "b": "link.unknown",
+          "normal": 0.1889,
+          "protan": 0.1388,
+          "deutan": 0.1495,
+          "tritan": 0.2055,
+          "min": 0.1388
+        },
+        {
+          "a": "link.latent",
+          "b": "link.conditioning",
+          "normal": 0.3784,
+          "protan": 0.3503,
+          "deutan": 0.2965,
+          "tritan": 0.1637,
+          "min": 0.1637
+        },
+        {
+          "a": "link.latent",
+          "b": "link.clip",
+          "normal": 0.3487,
+          "protan": 0.257,
+          "deutan": 0.1216,
+          "tritan": 0.3238,
+          "min": 0.1216
+        },
+        {
+          "a": "link.latent",
+          "b": "link.vae",
+          "normal": 0.196,
+          "protan": 0.2223,
+          "deutan": 0.1873,
+          "tritan": 0.1696,
+          "min": 0.1696
+        },
+        {
+          "a": "link.latent",
+          "b": "link.model",
+          "normal": 0.1446,
+          "protan": 0.0872,
+          "deutan": 0.1452,
+          "tritan": 0.1603,
+          "min": 0.0872
+        },
+        {
+          "a": "link.latent",
+          "b": "link.mask",
+          "normal": 0.4094,
+          "protan": 0.332,
+          "deutan": 0.2289,
+          "tritan": 0.2726,
+          "min": 0.2289
+        },
+        {
+          "a": "link.latent",
+          "b": "link.audio",
+          "normal": 0.3728,
+          "protan": 0.233,
+          "deutan": 0.1305,
+          "tritan": 0.2865,
+          "min": 0.1305
+        },
+        {
+          "a": "link.latent",
+          "b": "link.mesh3d",
+          "normal": 0.2779,
+          "protan": 0.0325,
+          "deutan": 0.1253,
+          "tritan": 0.2707,
+          "min": 0.0325
+        },
+        {
+          "a": "link.latent",
+          "b": "link.scalar",
+          "normal": 0.2313,
+          "protan": 0.1266,
+          "deutan": 0.1387,
+          "tritan": 0.1999,
+          "min": 0.1266
+        },
+        {
+          "a": "link.latent",
+          "b": "link.struct",
+          "normal": 0.2678,
+          "protan": 0.1642,
+          "deutan": 0.1935,
+          "tritan": 0.2403,
+          "min": 0.1642
+        },
+        {
+          "a": "link.latent",
+          "b": "link.unknown",
+          "normal": 0.2066,
+          "protan": 0.1108,
+          "deutan": 0.0898,
+          "tritan": 0.1719,
+          "min": 0.0898
+        },
+        {
+          "a": "link.conditioning",
+          "b": "link.clip",
+          "normal": 0.2468,
+          "protan": 0.2152,
+          "deutan": 0.2317,
+          "tritan": 0.206,
+          "min": 0.206
+        },
+        {
+          "a": "link.conditioning",
+          "b": "link.vae",
+          "normal": 0.3869,
+          "protan": 0.3942,
+          "deutan": 0.2898,
+          "tritan": 0.3186,
+          "min": 0.2898
+        },
+        {
+          "a": "link.conditioning",
+          "b": "link.model",
+          "normal": 0.4453,
+          "protan": 0.4267,
+          "deutan": 0.4269,
+          "tritan": 0.2371,
+          "min": 0.2371
+        },
+        {
+          "a": "link.conditioning",
+          "b": "link.mask",
+          "normal": 0.1213,
+          "protan": 0.0431,
+          "deutan": 0.0683,
+          "tritan": 0.1548,
+          "min": 0.0431
+        },
+        {
+          "a": "link.conditioning",
+          "b": "link.audio",
+          "normal": 0.2054,
+          "protan": 0.1199,
+          "deutan": 0.1807,
+          "tritan": 0.2115,
+          "min": 0.1199
+        },
+        {
+          "a": "link.conditioning",
+          "b": "link.mesh3d",
+          "normal": 0.375,
+          "protan": 0.3302,
+          "deutan": 0.3919,
+          "tritan": 0.2649,
+          "min": 0.2649
+        },
+        {
+          "a": "link.conditioning",
+          "b": "link.scalar",
+          "normal": 0.3182,
+          "protan": 0.3029,
+          "deutan": 0.3233,
+          "tritan": 0.2526,
+          "min": 0.2526
+        },
+        {
+          "a": "link.conditioning",
+          "b": "link.struct",
+          "normal": 0.3661,
+          "protan": 0.3501,
+          "deutan": 0.3725,
+          "tritan": 0.3106,
+          "min": 0.3106
+        },
+        {
+          "a": "link.conditioning",
+          "b": "link.unknown",
+          "normal": 0.2745,
+          "protan": 0.2599,
+          "deutan": 0.2779,
+          "tritan": 0.1952,
+          "min": 0.1952
+        },
+        {
+          "a": "link.clip",
+          "b": "link.vae",
+          "normal": 0.4406,
+          "protan": 0.4164,
+          "deutan": 0.2643,
+          "tritan": 0.4751,
+          "min": 0.2643
+        },
+        {
+          "a": "link.clip",
+          "b": "link.model",
+          "normal": 0.3596,
+          "protan": 0.3405,
+          "deutan": 0.262,
+          "tritan": 0.2898,
+          "min": 0.262
+        },
+        {
+          "a": "link.clip",
+          "b": "link.mask",
+          "normal": 0.1709,
+          "protan": 0.1739,
+          "deutan": 0.1691,
+          "tritan": 0.0638,
+          "min": 0.0638
+        },
+        {
+          "a": "link.clip",
+          "b": "link.audio",
+          "normal": 0.1473,
+          "protan": 0.1506,
+          "deutan": 0.1393,
+          "tritan": 0.1044,
+          "min": 0.1044
+        },
+        {
+          "a": "link.clip",
+          "b": "link.mesh3d",
+          "normal": 0.2491,
+          "protan": 0.2559,
+          "deutan": 0.2468,
+          "tritan": 0.2127,
+          "min": 0.2127
+        },
+        {
+          "a": "link.clip",
+          "b": "link.scalar",
+          "normal": 0.2834,
+          "protan": 0.2946,
+          "deutan": 0.2402,
+          "tritan": 0.2828,
+          "min": 0.2402
+        },
+        {
+          "a": "link.clip",
+          "b": "link.struct",
+          "normal": 0.3364,
+          "protan": 0.3546,
+          "deutan": 0.2998,
+          "tritan": 0.3367,
+          "min": 0.2998
+        },
+        {
+          "a": "link.clip",
+          "b": "link.unknown",
+          "normal": 0.2321,
+          "protan": 0.2328,
+          "deutan": 0.1796,
+          "tritan": 0.2305,
+          "min": 0.1796
+        },
+        {
+          "a": "link.vae",
+          "b": "link.model",
+          "normal": 0.2327,
+          "protan": 0.2155,
+          "deutan": 0.2236,
+          "tritan": 0.2361,
+          "min": 0.2155
+        },
+        {
+          "a": "link.vae",
+          "b": "link.mask",
+          "normal": 0.4338,
+          "protan": 0.4001,
+          "deutan": 0.2418,
+          "tritan": 0.4193,
+          "min": 0.2418
+        },
+        {
+          "a": "link.vae",
+          "b": "link.audio",
+          "normal": 0.3943,
+          "protan": 0.3087,
+          "deutan": 0.1418,
+          "tritan": 0.4149,
+          "min": 0.1418
+        },
+        {
+          "a": "link.vae",
+          "b": "link.mesh3d",
+          "normal": 0.318,
+          "protan": 0.1971,
+          "deutan": 0.1733,
+          "tritan": 0.3651,
+          "min": 0.1733
+        },
+        {
+          "a": "link.vae",
+          "b": "link.scalar",
+          "normal": 0.211,
+          "protan": 0.1225,
+          "deutan": 0.0716,
+          "tritan": 0.263,
+          "min": 0.0716
+        },
+        {
+          "a": "link.vae",
+          "b": "link.struct",
+          "normal": 0.2144,
+          "protan": 0.0635,
+          "deutan": 0.0901,
+          "tritan": 0.2677,
+          "min": 0.0635
+        },
+        {
+          "a": "link.vae",
+          "b": "link.unknown",
+          "normal": 0.2257,
+          "protan": 0.184,
+          "deutan": 0.0977,
+          "tritan": 0.2733,
+          "min": 0.0977
+        },
+        {
+          "a": "link.model",
+          "b": "link.mask",
+          "normal": 0.4414,
+          "protan": 0.4118,
+          "deutan": 0.362,
+          "tritan": 0.2486,
+          "min": 0.2486
+        },
+        {
+          "a": "link.model",
+          "b": "link.audio",
+          "normal": 0.369,
+          "protan": 0.3128,
+          "deutan": 0.2515,
+          "tritan": 0.2131,
+          "min": 0.2131
+        },
+        {
+          "a": "link.model",
+          "b": "link.mesh3d",
+          "normal": 0.1936,
+          "protan": 0.1032,
+          "deutan": 0.0528,
+          "tritan": 0.1399,
+          "min": 0.0528
+        },
+        {
+          "a": "link.model",
+          "b": "link.scalar",
+          "normal": 0.1889,
+          "protan": 0.1655,
+          "deutan": 0.1542,
+          "tritan": 0.0572,
+          "min": 0.0572
+        },
+        {
+          "a": "link.model",
+          "b": "link.struct",
+          "normal": 0.2043,
+          "protan": 0.1743,
+          "deutan": 0.1677,
+          "tritan": 0.095,
+          "min": 0.095
+        },
+        {
+          "a": "link.model",
+          "b": "link.unknown",
+          "normal": 0.1926,
+          "protan": 0.1783,
+          "deutan": 0.163,
+          "tritan": 0.0701,
+          "min": 0.0701
+        },
+        {
+          "a": "link.mask",
+          "b": "link.audio",
+          "normal": 0.1136,
+          "protan": 0.1028,
+          "deutan": 0.1173,
+          "tritan": 0.0837,
+          "min": 0.0837
+        },
+        {
+          "a": "link.mask",
+          "b": "link.mesh3d",
+          "normal": 0.3241,
+          "protan": 0.3148,
+          "deutan": 0.3279,
+          "tritan": 0.188,
+          "min": 0.188
+        },
+        {
+          "a": "link.mask",
+          "b": "link.scalar",
+          "normal": 0.3028,
+          "protan": 0.2994,
+          "deutan": 0.2655,
+          "tritan": 0.2406,
+          "min": 0.2406
+        },
+        {
+          "a": "link.mask",
+          "b": "link.struct",
+          "normal": 0.349,
+          "protan": 0.3511,
+          "deutan": 0.3185,
+          "tritan": 0.297,
+          "min": 0.297
+        },
+        {
           "a": "link.mask",
           "b": "link.unknown",
-          "normal": 0.1464,
-          "protan": 0.1145,
-          "deutan": 0.0932,
-          "tritan": 0.0725,
-          "min": 0.0725
+          "normal": 0.2611,
+          "protan": 0.2501,
+          "deutan": 0.2155,
+          "tritan": 0.185,
+          "min": 0.185
         },
         {
           "a": "link.audio",
           "b": "link.mesh3d",
-          "normal": 0.1237,
-          "protan": 0.1236,
-          "deutan": 0.1229,
-          "tritan": 0.0969,
-          "min": 0.0969
+          "normal": 0.222,
+          "protan": 0.2136,
+          "deutan": 0.2131,
+          "tritan": 0.1147,
+          "min": 0.1147
         },
         {
           "a": "link.audio",
           "b": "link.scalar",
-          "normal": 0.2093,
-          "protan": 0.2053,
-          "deutan": 0.1578,
-          "tritan": 0.2171,
-          "min": 0.1578
+          "normal": 0.2214,
+          "protan": 0.2003,
+          "deutan": 0.1502,
+          "tritan": 0.1922,
+          "min": 0.1502
         },
         {
           "a": "link.audio",
           "b": "link.struct",
-          "normal": 0.2584,
-          "protan": 0.2648,
-          "deutan": 0.2179,
-          "tritan": 0.2681,
-          "min": 0.2179
+          "normal": 0.2622,
+          "protan": 0.255,
+          "deutan": 0.2063,
+          "tritan": 0.2412,
+          "min": 0.2063
         },
         {
           "a": "link.audio",
           "b": "link.unknown",
-          "normal": 0.1662,
-          "protan": 0.1443,
-          "deutan": 0.0966,
-          "tritan": 0.1704,
-          "min": 0.0966
+          "normal": 0.1898,
+          "protan": 0.1481,
+          "deutan": 0.0983,
+          "tritan": 0.1498,
+          "min": 0.0983
         },
         {
           "a": "link.mesh3d",
           "b": "link.scalar",
-          "normal": 0.1264,
-          "protan": 0.1057,
-          "deutan": 0.0794,
-          "tritan": 0.1352,
-          "min": 0.0794
+          "normal": 0.1217,
+          "protan": 0.0949,
+          "deutan": 0.1027,
+          "tritan": 0.1063,
+          "min": 0.0949
         },
         {
           "a": "link.mesh3d",
           "b": "link.struct",
-          "normal": 0.1637,
-          "protan": 0.1631,
-          "deutan": 0.127,
-          "tritan": 0.1781,
-          "min": 0.127
+          "normal": 0.1417,
+          "protan": 0.1366,
+          "deutan": 0.1197,
+          "tritan": 0.1397,
+          "min": 0.1197
         },
         {
           "a": "link.mesh3d",
           "b": "link.unknown",
-          "normal": 0.1101,
-          "protan": 0.0526,
-          "deutan": 0.0608,
-          "tritan": 0.1085,
-          "min": 0.0526
+          "normal": 0.1289,
+          "protan": 0.0811,
+          "deutan": 0.1184,
+          "tritan": 0.1006,
+          "min": 0.0811
         },
         {
           "a": "link.scalar",
@@ -2376,45 +2376,49 @@
         }
       ],
       "worst": {
-        "pair": "link.video / link.model",
-        "value": 0.022270639301382664
+        "pair": "link.latent / link.mesh3d",
+        "value": 0.03252582864439497
       },
       "hueAdj": [
         {
-          "pair": "vae(22.9) / conditioning(69.8)",
-          "deltaE": 0.1101
+          "pair": "vae(10) / video(40)",
+          "deltaE": 0.1036
         },
         {
-          "pair": "conditioning(69.8) / clip(105.3)",
-          "deltaE": 0.0856
+          "pair": "video(40) / conditioning(105)",
+          "deltaE": 0.1827
         },
         {
-          "pair": "clip(105.3) / mask(144.8)",
-          "deltaE": 0.0951
+          "pair": "conditioning(105) / mask(140)",
+          "deltaE": 0.1252
         },
         {
-          "pair": "mask(144.8) / audio(182.9)",
-          "deltaE": 0.0861
+          "pair": "mask(140) / audio(165)",
+          "deltaE": 0.073
         },
         {
-          "pair": "audio(182.9) / mesh3d(211.2)",
-          "deltaE": 0.0702
+          "pair": "audio(165) / clip(195)",
+          "deltaE": 0.1028
         },
         {
-          "pair": "mesh3d(211.2) / image(248.8)",
-          "deltaE": 0.081
+          "pair": "clip(195) / mesh3d(220)",
+          "deltaE": 0.0821
         },
         {
-          "pair": "image(248.8) / model(291.4)",
-          "deltaE": 0.1019
+          "pair": "mesh3d(220) / image(250)",
+          "deltaE": 0.0696
         },
         {
-          "pair": "model(291.4) / latent(327.1)",
-          "deltaE": 0.0861
+          "pair": "image(250) / model(300)",
+          "deltaE": 0.1682
         },
         {
-          "pair": "latent(327.1) / vae(22.9)",
-          "deltaE": 0.1312
+          "pair": "model(300) / latent(330)",
+          "deltaE": 0.1029
+        },
+        {
+          "pair": "latent(330) / vae(10)",
+          "deltaE": 0.1375
         }
       ],
       "coverageRows": [

@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "id": "luowen-cyberpunk",
   "name": "LuoWen Cyberpunk 连线 token",
-  "$description": "继承 luowen-dark：语义键、typeMap、typeRules 全部沿用，只覆盖彩度、明度带、组件参数与画布上下文。换主题＝换这一层，绘制代码零改动。",
+  "$description": "继承 dark：语义/typeMap/typeRules 沿用。色相锚沿用旧 Cyberpunk（IMAGE 蓝/VIDEO 橙/CONDITIONING 黄/CLIP 青/MODEL 紫/LATENT 品红/VAE 红/MASK 绿），彩度 0.20、明度 5 档拉开常用类型。",
   "extends": "luowen-dark",
   "context": {
     "canvas": "#0A0A1A",
@@ -10,22 +10,27 @@
   },
   "primitive": {
     "hue": {
-      "vae": 22.9,
-      "conditioning": 69.8,
-      "clip": 105.3,
-      "mask": 144.8,
-      "audio": 182.9,
-      "mesh3d": 211.2,
-      "image": 248.8,
-      "model": 291.4,
-      "latent": 327.1
+      "vae": 10,
+      "conditioning": 105,
+      "clip": 195,
+      "mask": 140,
+      "audio": 165,
+      "mesh3d": 220,
+      "image": 250,
+      "model": 300,
+      "latent": 330,
+      "video": 40
     },
     "luminance": {
-      "hi": 0.82,
-      "lo": 0.712,
-      "video": 0.662
+      "hi": 0.88,
+      "bright": 0.9,
+      "mid": 0.78,
+      "lo": 0.68,
+      "dark": 0.64,
+      "mesh": 0.72,
+      "video": 0.72
     },
-    "chroma": 0.14,
+    "chroma": 0.2,
     "neutralChroma": 0.02,
     "neutralLuminance": {
       "scalar": 0.66,
@@ -39,16 +44,16 @@
       "luminance": "primitive.luminance.hi"
     },
     "link.video": {
-      "hue": "primitive.hue.image",
-      "luminance": "primitive.luminance.video"
+      "hue": "primitive.hue.video",
+      "luminance": "primitive.luminance.mid"
     },
     "link.latent": {
       "hue": "primitive.hue.latent",
-      "luminance": "primitive.luminance.hi"
+      "luminance": "primitive.luminance.mid"
     },
     "link.conditioning": {
       "hue": "primitive.hue.conditioning",
-      "luminance": "primitive.luminance.lo"
+      "luminance": "primitive.luminance.bright"
     },
     "link.clip": {
       "hue": "primitive.hue.clip",
@@ -56,7 +61,7 @@
     },
     "link.vae": {
       "hue": "primitive.hue.vae",
-      "luminance": "primitive.luminance.hi"
+      "luminance": "primitive.luminance.dark"
     },
     "link.model": {
       "hue": "primitive.hue.model",
@@ -64,36 +69,15 @@
     },
     "link.mask": {
       "hue": "primitive.hue.mask",
-      "luminance": "primitive.luminance.lo"
+      "luminance": "primitive.luminance.hi"
     },
     "link.audio": {
       "hue": "primitive.hue.audio",
-      "luminance": "primitive.luminance.hi"
+      "luminance": "primitive.luminance.mid"
     },
     "link.mesh3d": {
       "hue": "primitive.hue.mesh3d",
-      "luminance": "primitive.luminance.lo"
-    },
-    "link.scalar": {
-      "neutral": "primitive.neutralLuminance.scalar"
-    },
-    "link.struct": {
-      "neutral": "primitive.neutralLuminance.struct"
-    },
-    "link.unknown": {
-      "neutral": "primitive.neutralLuminance.unknown"
-    }
-  },
-  "component": {
-    "connection": {
-      "width": 3,
-      "flow": {
-        "enabled": false,
-        "dash": 7,
-        "gap": 13,
-        "speed": 48,
-        "opacity": 0.92
-      }
+      "luminance": "primitive.luminance.dark"
     }
   }
 }

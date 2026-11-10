@@ -46,7 +46,7 @@ JSON Schema：`link-tokens.schema.json`（draft 2020-12）。校验点：
 | --- | --- |
 | `link-tokens.schema.json` | 结构定义 |
 | `luowen-dark.tokens.json` | 基准主题：13 个语义 token + 62 条显式映射 + 13 条外推规则 |
-| `luowen-cyberpunk.tokens.json` | `extends: luowen-dark`，只覆盖彩度、明度带、组件参数、画布上下文 |
+| `luowen-cyberpunk.tokens.json` | `extends: luowen-dark`，覆盖色相锚、彩度、明度带、画布上下文（DEC-060 重排） |
 | `luowen-nightlight.tokens.json` | `extends: luowen-dark`；夜灯：erge #001 暖深底（canvas `#16120E` / card `#241F1B`），覆盖色相/明度/底色与 mask/clip 明度档 |
 | `verify.mjs` | 零依赖复算：结构校验、对比度、ΔE/CVD 矩阵、类型覆盖 |
 | `data/` | 原始统计快照、生成的对比度表、CVD 矩阵 CSV、覆盖清单 |
