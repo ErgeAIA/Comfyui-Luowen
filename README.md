@@ -116,19 +116,6 @@ ComfyUI 的连线表达与工作流整理扩展：正交/贝塞尔线路、节�
 | `setCrossCleanup()` / `crossCleanupNow()` | 离线交叉清理开关与手动触发 |
 | `setLanePitch()` / `setTrunkCap()` / `setBevelRatio()` | 调试对照参数（仅内存态，不持久化） |
 
-## 开发与测试
-
-| 场景 | 命令 | 验证状态 |
-|---|---|---|
-| 单元测试 | `node --test tests/unit/*.test.mjs` | [已运行验证] 2026-11-10，174/174 |
-| 启动验证宿主 | `run_nvidia_gpu.bat`（宿主根目录，默认 8188） | [未经运行验证] 宿主由用户启动，本轮以浏览器连 8188 实测 |
-| Python 语法自检 | `python_embeded\python.exe -I -m py_compile luowen/__init__.py` | [未经运行验证] 本轮未改 Python 文件 |
-| 查节点 schema | `curl http://127.0.0.1:8188/object_info/<类名>` | [未经运行验证] |
-
-- 改前端后刷新页面即可；改 `__init__.py` 需重启 ComfyUI
-- `node --test` 在 Windows 上必须用 glob（传目录会 `MODULE_NOT_FOUND`）
-- 设置页顺序有独立断言：[tests/unit/settingsOrder.test.mjs](tests/unit/settingsOrder.test.mjs)
-
 ## 兼容性与已知限制
 
 - **前端版本**：按 1.55.18 验证；宿主 requirements 声明 1.57.4 但未重装，更新版本未验证

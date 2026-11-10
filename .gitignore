@@ -27,6 +27,7 @@ GLOSSARY.md
 scripts/
 prototype/
 template/
+tests/
 
 # 本地验证、自动化与工具产物
 .verify/
