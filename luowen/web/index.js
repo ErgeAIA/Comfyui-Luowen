@@ -536,7 +536,7 @@ get options() {
           { text: t('ColorTheme.opt.luowen-nightlight'), value: 'luowen-nightlight' },
         ];
       },
-      defaultValue: 'off',
+      defaultValue: 'luowen-nightlight',
       onChange: (v) => {
         const id = ['luowen-dark', 'luowen-cyberpunk', 'luowen-nightlight'].includes(v) ? v : 'off';
         setSettings({ colorTheme: id });
