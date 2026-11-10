@@ -18,6 +18,7 @@ import {
 } from './adapters/renderLinkAdapter.js';
 import { DEFAULT_RADIUS } from './geometry/trace.js';
 import { graphNodes, linkTuples } from './adapters/graphRead.js';
+import { applySlotPalette, clearSlotPalette } from './colors/slotPalette.js';
 import { t, i18nDebug } from './i18n.js';
 import { installSnap, uninstallSnap, setSnapEnabled, getSnapDebug } from './snap/dragSnap.js';
 
@@ -521,7 +522,11 @@ get options() {
         ];
       },
       defaultValue: 'off',
-      onChange: (v) => setSettings({ colorTheme: ['luowen-dark', 'luowen-cyberpunk', 'luowen-nightlight'].includes(v) ? v : 'off' }),
+      onChange: (v) => {
+        const id = ['luowen-dark', 'luowen-cyberpunk', 'luowen-nightlight'].includes(v) ? v : 'off';
+        setSettings({ colorTheme: id });
+        try { if (id === 'off') clearSlotPalette(app); else applySlotPalette(app, id); } catch { /* 槽点同步失败不阻断主题 */ }
+      },
     },
     {
       id: FLOW_ID,
@@ -723,6 +728,7 @@ get tooltip() {
         cornerRadius: readSetting(CORNER_RADIUS_ID, DEFAULT_RADIUS),
         brotherSpacing: Math.max(4, Math.min(24, Number(readSetting(BROTHER_SPACING_ID, 12)) || 12)),
         crossCleanup: !!readSetting(CROSS_CLEANUP_ID, false),
+        colorTheme: readSetting(COLOR_THEME_ID, 'off'),
         dashSpeed: (() => { const raw = Number(readSetting(DASH_SPEED_ID, NaN)); if (Number.isFinite(raw) && raw >= 0) return Math.max(0, Math.min(10, raw)); const legacy = Number(readSetting('LuoWen.FlowSpeed', NaN)); return Number.isFinite(legacy) && legacy >= 0 ? Math.max(0, Math.min(10, legacy > 10 ? Math.round(legacy / 60) : legacy)) : 4; })(),
         dashLen: (() => { const raw = Number(readSetting(DASH_LEN_ID, NaN)); return Number.isFinite(raw) && raw >= 0 ? raw : Math.max(0, Math.min(30, Number(readSetting('LuoWen.FlowDash', 7)) || 7)); })(),
         dashGap: (() => { const raw = Number(readSetting(DASH_GAP_ID, NaN)); return Number.isFinite(raw) && raw >= 0 ? raw : Math.max(4, Math.min(40, Number(readSetting('LuoWen.FlowGap', 13)) || 13)); })(),
@@ -734,6 +740,10 @@ get tooltip() {
       /* 设置读取失败保持默认 */
     }
     setSnapEnabled(!!readSetting(SNAP_ID, true));
+    {
+      const themeId = readSetting(COLOR_THEME_ID, 'off');
+      if (themeId && themeId !== 'off') { try { applySlotPalette(app, themeId); } catch { /* 启动时同步失败保持宿主配色 */ } }
+    }
     if (!baseline) baseline = snapshotGraph();    // 队列执行事件 → 动效「生成时禁用」与「仅执行中」模式（DEC-040；事件名取证 api-DTg5QMcw.js）
     try {
       const api = app.api;
