@@ -20,6 +20,7 @@ import { DEFAULT_RADIUS } from './geometry/trace.js';
 import { graphNodes, linkTuples } from './adapters/graphRead.js';
 import { applySlotPalette, clearSlotPalette } from './colors/slotPalette.js';
 import { t, i18nDebug } from './i18n.js';
+import { layoutOf } from './settings-layout.js';
 import { installSnap, uninstallSnap, setSnapEnabled, getSnapDebug } from './snap/dragSnap.js';
 
 // 前端 1.55.18 只暴露 window.comfyAPI shim（见 docs/phase0/drawing-api-notes.md §2）
@@ -286,8 +287,7 @@ app.registerExtension({
       get name() {
         return t('Language.name');
       },
-      category: ['LuoWen', '基础', 'Language'],
-      sortOrder: 105,
+      ...layoutOf(LANGUAGE_ID),
       get tooltip() {
         return { value: t('Language.tooltip'), class: TIP_CLASS };
       },
@@ -310,8 +310,7 @@ app.registerExtension({
       get name() {
         return t('AutoLayoutCollapse.name');
       },
-      category: ['LuoWen', '自动布局', 'CollapseNotes'],
-      sortOrder: 110,
+      ...layoutOf(AUTOLAYOUT_COLLAPSE_ID),
       get tooltip() {
         return { value: t('AutoLayoutCollapse.tooltip'), class: TIP_CLASS };
       },
@@ -324,8 +323,7 @@ app.registerExtension({
       get name() {
         return t('AutoLayoutAlign.name');
       },
-      category: ['LuoWen', '自动布局', 'ColumnAlign'],
-      sortOrder: 108,
+      ...layoutOf(AUTOLAYOUT_ALIGN_ID),
       get tooltip() {
         return { value: t('AutoLayoutAlign.tooltip'), class: TIP_CLASS };
       },
@@ -346,8 +344,7 @@ app.registerExtension({
       get name() {
         return t('AutoLayoutGap.name');
       },
-      category: ['LuoWen', '自动布局', 'NodeGap'],
-      sortOrder: 106,
+      ...layoutOf(AUTOLAYOUT_GAP_ID),
       get tooltip() {
         return { value: t('AutoLayoutGap.tooltip'), class: TIP_CLASS };
       },
@@ -361,8 +358,7 @@ app.registerExtension({
       get name() {
         return t('AutoLayoutLayerGap.name');
       },
-      category: ['LuoWen', '自动布局', 'LayerGap'],
-      sortOrder: 104,
+      ...layoutOf(AUTOLAYOUT_LAYER_GAP_ID),
       get tooltip() {
         return { value: t('AutoLayoutLayerGap.tooltip'), class: TIP_CLASS };
       },
@@ -376,8 +372,7 @@ app.registerExtension({
       get name() {
         return t('AutoLayoutInlineGap.name');
       },
-      category: ['LuoWen', '自动布局', 'InlineGap'],
-      sortOrder: 103,
+      ...layoutOf(AUTOLAYOUT_INLINE_GAP_ID),
       get tooltip() {
         return { value: t('AutoLayoutInlineGap.tooltip'), class: TIP_CLASS };
       },
@@ -391,8 +386,7 @@ app.registerExtension({
       get name() {
         return t('AutoLayoutComponent.name');
       },
-      category: ['LuoWen', '自动布局', 'ComponentLayout'],
-      sortOrder: 102,
+      ...layoutOf(AUTOLAYOUT_COMPONENT_ID),
       get tooltip() {
         return { value: t('AutoLayoutComponent.tooltip'), class: TIP_CLASS };
       },
@@ -411,8 +405,7 @@ app.registerExtension({
       get name() {
         return t('Enabled.name');
       },
-      category: ['LuoWen', '基础', 'Enabled'],
-      sortOrder: 100,
+      ...layoutOf(ENABLED_ID),
       get tooltip() {
         return { value: t('Enabled.tooltip'), class: TIP_CLASS };
       },
@@ -433,8 +426,7 @@ app.registerExtension({
       get name() {
         return t('SnapAlign.name');
       },
-      category: ['LuoWen', '基础', 'SnapAlign'],
-      sortOrder: 90,
+      ...layoutOf(SNAP_ID),
       get tooltip() {
         return { value: t('SnapAlign.tooltip'), class: TIP_CLASS };
       },
@@ -450,8 +442,7 @@ app.registerExtension({
       get name() {
         return t('WireStyle.name');
       },
-      category: ['LuoWen', '线路外观', 'WireStyle'],
-      sortOrder: 80,
+      ...layoutOf(STYLE_ID),
       get tooltip() {
         return { value: t('WireStyle.tooltip'), class: TIP_CLASS };
       },
@@ -465,8 +456,7 @@ app.registerExtension({
       get name() {
         return t('CornerRadius.name');
       },
-      category: ['LuoWen', '线路外观', 'CornerRadius'],
-      sortOrder: 75,
+      ...layoutOf(CORNER_RADIUS_ID),
       get tooltip() {
         return { value: t('CornerRadius.tooltip'), class: TIP_CLASS };
       },
@@ -480,8 +470,7 @@ app.registerExtension({
       get name() {
         return t('NodeAvoidance.name');
       },
-      category: ['LuoWen', '线路外观', 'NodeAvoidance'],
-      sortOrder: 70,
+      ...layoutOf(AVOID_ID),
       get tooltip() {
         return { value: t('NodeAvoidance.tooltip'), class: TIP_CLASS };
       },
@@ -501,8 +490,7 @@ get options() {
       get name() {
         return t('BrotherSpacing.name');
       },
-      category: ['LuoWen', '线路外观', 'BrotherSpacing'],
-      sortOrder: 65,
+      ...layoutOf(BROTHER_SPACING_ID),
       get tooltip() {
         return { value: t('BrotherSpacing.tooltip'), class: TIP_CLASS };
       },
@@ -516,8 +504,7 @@ get options() {
       get name() {
         return t('Chamfer.name');
       },
-      category: ['LuoWen', '线路外观', 'Chamfer'],
-      sortOrder: 60,
+      ...layoutOf(CHAMFER_ID),
       get tooltip() {
         return { value: t('Chamfer.tooltip'), class: TIP_CLASS };
       },
@@ -530,8 +517,7 @@ get options() {
       get name() {
         return t('ColorTheme.name');
       },
-      category: ['LuoWen', '线路外观', 'ColorTheme'],
-      sortOrder: 55,
+      ...layoutOf(COLOR_THEME_ID),
       get tooltip() {
         return { value: t('ColorTheme.tooltip'), class: TIP_CLASS };
       },
@@ -558,8 +544,7 @@ get options() {
       get name() {
         return t('ColorThemeScope.name');
       },
-      category: ['LuoWen', '线路外观', 'ColorThemeScope'],
-      sortOrder: 54,
+      ...layoutOf(COLOR_THEME_SCOPE_ID),
       get tooltip() {
         return { value: t('ColorThemeScope.tooltip'), class: TIP_CLASS };
       },
@@ -581,8 +566,7 @@ get options() {
       get name() {
         return t('FlowAnim.name');
       },
-      category: ['LuoWen', '动效', 'FlowAnim'],
-      sortOrder: 100,
+      ...layoutOf(FLOW_ID),
       get tooltip() {
         return { value: t('FlowAnim.tooltip'), class: TIP_CLASS };
       },
@@ -595,8 +579,7 @@ get options() {
       get name() {
         return t('AnimMode.name');
       },
-      category: ['LuoWen', '动效', 'AnimMode'],
-      sortOrder: 90,
+      ...layoutOf(ANIM_MODE_ID),
       get tooltip() {
         return { value: t('AnimMode.tooltip'), class: TIP_CLASS };
       },
@@ -616,8 +599,7 @@ get options() {
       get name() {
         return t('FlowStyle.name');
       },
-      category: ['LuoWen', '动效', 'FlowStyle'],
-      sortOrder: 80,
+      ...layoutOf(FLOW_STYLE_ID),
       get tooltip() {
         return { value: t('FlowStyle.tooltip'), class: TIP_CLASS };
       },
@@ -639,8 +621,7 @@ get options() {
       get name() {
         return t('DashSpeed.name');
       },
-      category: ['LuoWen', '动效·虚线', 'DashSpeed'],
-      sortOrder: 30,
+      ...layoutOf(DASH_SPEED_ID),
       get tooltip() {
         return { value: t('DashSpeed.tooltip'), class: TIP_CLASS };
       },
@@ -654,8 +635,7 @@ get options() {
       get name() {
         return t('DashLen.name');
       },
-      category: ['LuoWen', '动效·虚线', 'DashLen'],
-      sortOrder: 25,
+      ...layoutOf(DASH_LEN_ID),
 get tooltip() {
         return { value: t('DashLen.tooltip'), class: TIP_CLASS };
       },
@@ -669,8 +649,7 @@ get tooltip() {
       get name() {
         return t('DashGap.name');
       },
-      category: ['LuoWen', '动效·虚线', 'DashGap'],
-      sortOrder: 20,
+      ...layoutOf(DASH_GAP_ID),
 get tooltip() {
         return { value: t('DashGap.tooltip'), class: TIP_CLASS };
       },
@@ -684,8 +663,7 @@ get tooltip() {
       get name() {
         return t('BeamSpeed.name');
       },
-      category: ['LuoWen', '动效·光束', 'BeamSpeed'],
-      sortOrder: 30,
+      ...layoutOf(BEAM_SPEED_ID),
       get tooltip() {
         return { value: t('BeamSpeed.tooltip'), class: TIP_CLASS };
       },
@@ -699,8 +677,7 @@ get tooltip() {
       get name() {
         return t('BeamLen.name');
       },
-      category: ['LuoWen', '动效·光束', 'BeamLen'],
-      sortOrder: 25,
+      ...layoutOf(BEAM_LEN_ID),
 get tooltip() {
         return { value: t('BeamLen.tooltip'), class: TIP_CLASS };
       },
@@ -714,8 +691,7 @@ get tooltip() {
       get name() {
         return t('BeamSpacing.name');
       },
-      category: ['LuoWen', '动效·光束', 'BeamSpacing'],
-      sortOrder: 20,
+      ...layoutOf(BEAM_SPACING_ID),
       get tooltip() {
         return { value: t('BeamSpacing.tooltip'), class: TIP_CLASS };
       },
@@ -729,8 +705,7 @@ get tooltip() {
       get name() {
         return t('DisableAnimOnRun.name');
       },
-      category: ['LuoWen', '动效', 'DisableAnimOnRun'],
-      sortOrder: 40,
+      ...layoutOf(DISABLE_ANIM_ON_RUN_ID),
       get tooltip() {
         return { value: t('DisableAnimOnRun.tooltip'), class: TIP_CLASS };
       },
@@ -743,8 +718,7 @@ get tooltip() {
       get name() {
         return t('CrossCleanup.name');
       },
-      category: ['LuoWen', '实验', 'CrossCleanup'],
-      sortOrder: 50,
+      ...layoutOf(CROSS_CLEANUP_ID),
       experimental: true,
       get tooltip() {
         return { value: t('CrossCleanup.tooltip'), class: TIP_CLASS };
