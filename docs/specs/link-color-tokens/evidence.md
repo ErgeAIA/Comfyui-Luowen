@@ -164,7 +164,7 @@ cyberpunk 的 10 对失败里，`IMAGE`/`MODEL` = 0.0015、`LATENT`/`VAE` = 0.00
 
 ```powershell
 cd docs\specs\link-color-tokens
-node verify.mjs --strict --out data --object-info C:\Users\GigaByte\AppData\Local\Temp\luowen-tokens\object_info.json
+node verify.mjs --strict --out data --object-info %TEMP%\luowen-tokens\object_info.json
 ```
 
 | 文件 | 内容 |

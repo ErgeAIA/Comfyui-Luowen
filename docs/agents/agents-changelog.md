@@ -30,3 +30,4 @@ description: >
 - `References 缺连线配色与组交互规格指针 → update → 新增两条：docs/specs/link-color-tokens/（尚未接入代码）、docs/specs/trunk-group-interaction/（组高亮 + 组删除，DEC-021 口径）`
 - `References 缺兼容性与第三方共存指针 → update → 新增「查兼容性与生命周期验收 / 第三方共存冲突面 → 见 docs/agents/compatibility-matrix.md」：该文档已成阶段 3 验收与 19 条冲突面的唯一落点，此前只能靠 project-progress 反查`
 - `Permissions「禁止自动节点布局、工作流语义分析、通用插件市场（PRD §2.3）」 → update → 「禁止工作流语义分析、通用插件市场（PRD §2.3）；节点自动布局已纳入范围（F-015/DEC-038），实现须用户主动触发、可撤销、不在渲染热路径运行」：用户 2026-11-07 拍板将自动布局从非目标纳入范围，PRD §2.3/§4.2/§4.3 同步修订；实现另行排期（在 A smooth Bezier / B 配色主题 / C fixture / D 性能之后）`
+- `Toolchain 记录本机盘符路径 → 脱敏 → 占位符：本机 portable 安装路径 → %ComfyUIPortable%（新增占位说明行），同步替换 docs/ 与 template 中的同类路径；用户目录临时路径 → %TEMP%，本地 file:/// 链接 → 仓库相对路径。原因：仓库已公开发布，禁止对外文档记录个人盘符与用户名；路径语义不变。自动布局性能脚本的宿主/样本路径改为必填环境变量（LUOWEN_COMFY / LUOWEN_TEST1），全局 Playwright 回退改用 `npm root -g`

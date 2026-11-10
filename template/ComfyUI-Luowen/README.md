@@ -1,7 +1,7 @@
 # ComfyUI-Luowen
 
 Luowen 的 ComfyUI 自定义节点包。当前为**最小约定模板**，已在
-`D:\AIGC\ComfyUI_windows_portable\ComfyUI`（v0.43.2 / 前端 1.55.18）上验证：
+`%ComfyUIPortable%\ComfyUI`（v0.43.2 / 前端 1.55.18）上验证：
 可加载、/object_info 可查、前端可搜索、可入队执行。
 
 ## 结构

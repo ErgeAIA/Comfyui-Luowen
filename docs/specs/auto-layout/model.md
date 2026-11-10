@@ -49,7 +49,7 @@
 
 ## 5. 真实样本清单与冒烟统计（Phase C 实验输入）
 
-样本库：`D:\AIGC\ComfyUI_windows_portable1\...\workflows` 递归扫描 **207 份 JSON**；六维选样副本在 `.verify/p7/samples/`（gitignored，不入库）。冒烟（`sample-smoke.mjs`，`sample-smoke.json`）：
+样本库：`%ComfyUIPortable%\...\workflows` 递归扫描 **207 份 JSON**；六维选样副本在 `.verify/p7/samples/`（gitignored，不入库）。冒烟（`sample-smoke.mjs`，`sample-smoke.json`）：
 
 | 样本 | 节点 | 原始边 | 折叠后边 | Reroute | 分量 | dropped | build+eval |
 |---|---|---|---|---|---|---|---|

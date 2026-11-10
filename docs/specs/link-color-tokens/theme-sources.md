@@ -2,7 +2,7 @@
 
 > 夜灯（#001）是**暗色**主题；晨光（#002）是**浅色**主题。
 >
-> 取色源：ThemeVault（`D:\Workspace\Code\ThemeVault`）。**只取底色与色相家族**；连线的明度/彩度由 `verify.mjs` 按对比度、色盲 ΔE、相邻色相门槛重算，不直接抄 palette hex。
+> 取色源：ThemeVault（`ThemeVault 仓库（本地克隆）`）。**只取底色与色相家族**；连线的明度/彩度由 `verify.mjs` 按对比度、色盲 ΔE、相邻色相门槛重算，不直接抄 palette hex。
 > 关联：DEC-059 / DEC-060 / DEC-062 / DEC-063 / DEC-065。
 
 | LuoWen 主题 | 来源 | ThemeVault 编号 | 底色 / 卡片 | 说明 | 显示名（zh） | 显示名（en） |

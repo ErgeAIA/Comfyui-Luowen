@@ -18,6 +18,6 @@ description: 源码级共存分析的执行清单；批准后按序执行，不�
 
 ## 约束
 
-- 不安装任何扩展到 `D:\AIGC\ComfyUI_windows_portable`。
+- 不安装任何扩展到 `%ComfyUIPortable%`。
 - 不改宿主依赖、不改 `renderLinkAdapter.js` / `dragSnap.js` 功能代码。
 - 不提交 git，提交由用户安排。

@@ -14,8 +14,8 @@ description: >
 ## 1. 目标与边界
 
 - 目标：查清四个扩展各自在哪里接管连线绘制（patch `drawConnections` / `onDrawForeground` / `renderLink`、link 渲染钩子、改写 link 数据、自建 canvas overlay），再判定与我方 `renderLinkAdapter`、磁吸 overlay、组悬停菜单的冲突面。
-- 边界：受 `AGENTS.md` 目标环境锁定约束，**不在 `D:\AIGC\ComfyUI_windows_portable` 安装任何第三方扩展、不改宿主依赖**。本轮只做源码级分析。
-- 取证方式：四个仓库浅克隆到 `C:\Users\GigaByte\AppData\Local\Temp\luowen-coexist\`（临时目录，非宿主 `custom_nodes`），只读源码与官方文档。
+- 边界：受 `AGENTS.md` 目标环境锁定约束，**不在 `%ComfyUIPortable%` 安装任何第三方扩展、不改宿主依赖**。本轮只做源码级分析。
+- 取证方式：四个仓库浅克隆到 `%TEMP%\luowen-coexist\`（临时目录，非宿主 `custom_nodes`），只读源码与官方文档。
 - 判定口径：无交集 / 可能冲突 / 确定冲突。全部结论均标注「未做运行时验证」。
 
 ## 2. 我方钩子基线（判定参照）
@@ -132,7 +132,7 @@ description: >
 
 | 项 | 内容 |
 |---|---|
-| 安装位置 | `D:\AIGC\ComfyUI_windows_portable\ComfyUI\custom_nodes\<repo-name>\`；四个仓库独立目录，逐个安装、逐个卸载，不并行 |
+| 安装位置 | `%ComfyUIPortable%\ComfyUI\custom_nodes\<repo-name>\`；四个仓库独立目录，逐个安装、逐个卸载，不并行 |
 | 依赖 | Cable Management / NKD Reroutes / Zip Ties 为纯前端扩展（无 pip 依赖）；rgthree-comfy 含后端自定义节点（`__init__.py` 注册），会改变节点列表与 `/object_info`，无法只装其 web 部分 |
 | 对宿主影响面 | 不改 `python_embeded`、不改 requirements、不动 `extra_model_paths.yaml`；影响限于新增 `custom_nodes` 目录、页面 JS 全局钩子、`graph.extra` 写入、启动日志与节点菜单（rgthree） |
 | 回滚方式 | 删除对应 `custom_nodes\<repo>` 目录 → 重启 `run_nvidia_gpu.bat` → 页面 hard reload；安装前记录 `custom_nodes` 目录清单与 mtime，卸载后逐一核对；不执行 git 操作 |

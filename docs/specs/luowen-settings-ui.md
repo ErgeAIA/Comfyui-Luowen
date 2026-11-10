@@ -1,7 +1,7 @@
 # 络纹设置界面：调研与需求对齐（v0.2）
 
 > 状态：方案 A 已确认并实施（2026-11-07）；调研内容保留，实施后的分类与证据见 §4.1、§7。
-> 取证环境：ComfyUI v0.43.2 + comfyui-frontend-package **1.55.18**（本机 `D:\AIGC\ComfyUI_windows_portable`）。
+> 取证环境：ComfyUI v0.43.2 + comfyui-frontend-package **1.55.18**（本机 `%ComfyUIPortable%`）。
 > 前端源码引用来自前端包自带 sourcemap（`static/assets/settingStore-DZ2-HL-F.js.map`），路径为 sourcemap 内的 TypeScript 原文路径。
 > 实测时间：2026-11-07，用 Playwright 访问本机 8188 端口的运行实例；未安装、未部署、未提交。
 

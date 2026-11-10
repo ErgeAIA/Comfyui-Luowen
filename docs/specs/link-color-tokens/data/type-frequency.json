@@ -1,6 +1,6 @@
 {
   "meta": {
-    "source": "http://127.0.0.1:8188/object_info + D:/AIGC/ComfyUI_windows_portable/ComfyUI/custom_nodes/ComfyUI-Browser-Templates 内 612 份官方模板",
+    "source": "http://127.0.0.1:8188/object_info + %ComfyUIPortable%/ComfyUI/custom_nodes/ComfyUI-Browser-Templates 内 612 份官方模板",
     "capturedAt": "2026-11-07",
     "hostVersion": "ComfyUI v0.43.2",
     "frontendVersion": "comfyui-frontend-package 1.55.18",

@@ -283,7 +283,7 @@ const stroke = typeof color === 'string' && color ? color : '#94a3b8';
 
 ```powershell
 cd docs\specs\link-color-tokens
-node verify.mjs --strict --out data --object-info C:\Users\GigaByte\AppData\Local\Temp\luowen-tokens\object_info.json
+node verify.mjs --strict --out data --object-info %TEMP%\luowen-tokens\object_info.json
 ```
 
 - 不带 `--object-info` 时只复算颜色门槛与 62 类覆盖。

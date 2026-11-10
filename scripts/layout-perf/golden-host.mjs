@@ -10,12 +10,16 @@ import { SAMPLE_FILES, replicate, hashOf } from './bench-node.mjs';
 
 const require = createRequire(import.meta.url);
 let playwright;
-try { playwright = require('playwright'); } catch { playwright = require('C:/Users/GigaByte/AppData/Roaming/npm/node_modules/playwright'); }
+try { playwright = require('playwright'); } catch {
+  const { execFileSync } = await import('node:child_process');
+  playwright = require(path.join(execFileSync('npm', ['root', '-g'], { encoding: 'utf8' }).trim(), 'playwright'));
+}
 const { chromium } = playwright;
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const OUT = process.env.LUOWEN_PERF_OUT ?? path.join(ROOT, '.verify/p8');
-const COMFY = process.env.LUOWEN_COMFY ?? 'D:/AIGC/ComfyUI_windows_portable/ComfyUI';
+const COMFY = process.env.LUOWEN_COMFY;
+if (!COMFY) throw new Error('请先设置 LUOWEN_COMFY=<ComfyUI 根目录>');
 const WORKFLOWS = process.env.LUOWEN_WORKFLOWS ?? path.join(COMFY, 'user/default/workflows');
 const HOST_ENGINE = process.env.LUOWEN_HOST_ENGINE ?? path.join(COMFY, 'custom_nodes/luowen/web/layout/engine.js');
 const label = process.argv[2] ?? 'run';

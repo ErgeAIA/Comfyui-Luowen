@@ -14,8 +14,8 @@
 ## 前置
 
 - 样本：默认 `.verify/p7/samples`（`LUOWEN_SAMPLES` 覆盖）
-- 宿主：默认 `D:/AIGC/ComfyUI_windows_portable/ComfyUI`（`LUOWEN_COMFY` / `LUOWEN_WORKFLOWS` / `LUOWEN_HOST_ENGINE` 覆盖）
-- Playwright：优先本地 `playwright`，其次全局 npm 路径；浏览器自动挑最新 `chromium-*`（`LUOWEN_CHROMIUM` 覆盖）
+- 宿主：必须设置 `LUOWEN_COMFY`=<ComfyUI 根目录>（`LUOWEN_WORKFLOWS` / `LUOWEN_HOST_ENGINE` 可分别覆盖路径）
+- Playwright：优先本地 `playwright`，其次 `npm root -g` 下的全局安装；浏览器自动挑最新 `chromium-*`（`LUOWEN_CHROMIUM` 覆盖）
 - 输出：默认 `.verify/p8`（gitignored，`LUOWEN_PERF_OUT` 覆盖）
 
 ## 命令

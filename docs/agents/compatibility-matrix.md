@@ -19,7 +19,7 @@ description: >
 
 | 项 | 实测值 | 来源 |
 |---|---|---|
-| ComfyUI 宿主 | 0.43.2 | `D:\AIGC\ComfyUI_windows_portable\ComfyUI\comfyui_version.py` |
+| ComfyUI 宿主 | 0.43.2 | `%ComfyUIPortable%\ComfyUI\comfyui_version.py` |
 | comfyui-frontend-package | 1.55.18（后端要求 ≥1.57.4，页面出现版本兼容告警） | 宿主 `python_embeded\Lib\site-packages` |
 | 页面 | `http://127.0.0.1:8188/` | Playwright headless Chromium |
 | 节点模式 | Vue 节点（Nodes 2.0）默认开启；经典画布以 `Comfy.VueNodes.Enabled=false` + reload 切换 | 设置项 |
@@ -170,7 +170,7 @@ description: >
 - 修前现象：删除 link 79（不动节点）后 `links=8`，但 `routes=9`、`status().routed=9`；重连后 `links=9` 而 `routes=10`。旧路径上悬停仍可命中已删的 79。
 - 判定依据：幽灵只存在于 `state.routes`（调试/悬停分类用），`getStats().routed = state.routes.size`；可见绘制按现存链路遍历，幽灵不可见；图数据未变（`verify ok`）。
 - 原根因：`beginFrame` 仅在 `obstacleHash` 变化时执行 `state.routes.clear()`；链路删除不改节点矩形，故不触发清理。
-- 修复：适配器层新增拓扑指纹 `computeLinksHash` 比对与 `pruneStaleLinkState` 差集清理（[L955-L1004](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/adapters/renderLinkAdapter.js#L955-L1004)）；不清空整表、不递增 `obstacleVersion`、不改几何/lane/带算法。修后计数见 §4.2。
+- 修复：适配器层新增拓扑指纹 `computeLinksHash` 比对与 `pruneStaleLinkState` 差集清理（[L955-L1004](luowen/web/adapters/renderLinkAdapter.js#L955-L1004)）；不清空整表、不递增 `obstacleVersion`、不改几何/lane/带算法。修后计数见 §4.2。
 - 记录：见 [debug-log.md](./debug-log.md) BUG-006「修复与验证」。待用户验收。
 
 ### 5.2 未覆盖 / 未支持
@@ -193,9 +193,9 @@ description: >
 
 ### 5.4 第三方扩展共存（源码级，「未做运行时验证」）
 
-> 范围：Cable Management、NKD Reroutes、Zip Ties、rgthree。受 AGENTS.md 目标环境锁定约束，**未安装任何扩展、未改宿主依赖**；以下全部为源码级判定，四个扩展浅克隆在临时目录 `C:\Users\GigaByte\AppData\Local\Temp\luowen-coexist\`。例外事实：宿主 `custom_nodes\rgthree-comfy` 目录已存在，但 2026-11-07 运行中的服务未加载它（`/extensions` 无其前端资源、`/object_info/Reroute` 返回 `{}`），本轮未改动、也未借它做运行时验证。运行时验证方案见 [spec.md](../specs/third-party-coexistence/spec.md) §6，需用户批准后才可安装。
+> 范围：Cable Management、NKD Reroutes、Zip Ties、rgthree。受 AGENTS.md 目标环境锁定约束，**未安装任何扩展、未改宿主依赖**；以下全部为源码级判定，四个扩展浅克隆在临时目录 `%TEMP%\luowen-coexist\`。例外事实：宿主 `custom_nodes\rgthree-comfy` 目录已存在，但 2026-11-07 运行中的服务未加载它（`/extensions` 无其前端资源、`/object_info/Reroute` 返回 `{}`），本轮未改动、也未借它做运行时验证。运行时验证方案见 [spec.md](../specs/third-party-coexistence/spec.md) §6，需用户批准后才可安装。
 
-**我方钩子基线**：原型级 wrap `renderLink` + `drawConnections`（[renderLinkAdapter.js L1537-1547](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/adapters/renderLinkAdapter.js#L1537-L1547)）；自绘成功后不回原函数（[L1399-1409](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/adapters/renderLinkAdapter.js#L1399-L1409)）；磁吸为 DOM overlay `luowen-snap-overlay`（[dragSnap.js L16-20](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/snap/dragSnap.js#L16-L20)）；组悬停菜单为 `LiteGraph.ContextMenu` 构造 Proxy（[L1205-1223](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/adapters/renderLinkAdapter.js#L1205-L1223)）；`verify()` 快照已纳入 `extra`（排除宿主自有键）、`node.properties` 与节点坐标，坐标只报 `moved`、不判失败（[index.js L51-201](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/index.js#L51-L201)）；本项为 2026-11-07 BUG-007 补丁，合成写入 A/B 通过，待验收。
+**我方钩子基线**：原型级 wrap `renderLink` + `drawConnections`（[renderLinkAdapter.js L1537-1547](luowen/web/adapters/renderLinkAdapter.js#L1537-L1547)）；自绘成功后不回原函数（[L1399-1409](luowen/web/adapters/renderLinkAdapter.js#L1399-L1409)）；磁吸为 DOM overlay `luowen-snap-overlay`（[dragSnap.js L16-20](luowen/web/snap/dragSnap.js#L16-L20)）；组悬停菜单为 `LiteGraph.ContextMenu` 构造 Proxy（[L1205-1223](luowen/web/adapters/renderLinkAdapter.js#L1205-L1223)）；`verify()` 快照已纳入 `extra`（排除宿主自有键）、`node.properties` 与节点坐标，坐标只报 `moved`、不判失败（[index.js L51-201](luowen/web/index.js#L51-L201)）；本项为 2026-11-07 BUG-007 补丁，合成写入 A/B 通过，待验收。
 
 | # | 冲突面 | 判定 | 依据（file:line / 官方文档） |
 |---|---|---|---|

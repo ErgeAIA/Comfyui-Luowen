@@ -35,6 +35,6 @@ description: >
 - **浮层 z 层**：顶栏覆盖层 z-999、设置对话框 z-1700、`.litecontextmenu` z-9999、节点卡片 19–34。浮动控件要在顶栏区域可点必须 z>999；本轮按钮取 1000。低 z（如 500）会被顶栏盖掉，`elementFromPoint` 返回 actionbar SPAN，点击/拖动全失效。
 - **菜单子项点击打开，非 hover**：探针等 submenu 出现要用 click，hover 会超时。
 - **官方钩子与旧 monkey-patch 不能并存**：`legacyMenuCompat.extractLegacyItems`（contextMenuCompat.ts:109-202）会差分提取旧 patch 产物 → 迁 `getCanvasMenuItems` 后务必删旧 patch。
-- **Playwright 启动**：全局 playwright 1.65.0 需 rev 1254（本机缺），用 `executablePath: 'C:/Users/GigaByte/AppData/Local/ms-playwright/chromium-1248/chrome-win64/chrome.exe'`。设置对话框经 `getByRole('button',{name:'设置 (Ctrl + ,)'})` 打开，搜索框用原生 value setter + input 事件。
+- **Playwright 启动**：全局 playwright 1.65.0 需 rev 1254（本机缺），用 `executablePath: '%LOCALAPPDATA%/ms-playwright/chromium-1248/chrome-win64/chrome.exe'`。设置对话框经 `getByRole('button',{name:'设置 (Ctrl + ,)'})` 打开，搜索框用原生 value setter + input 事件。
 - **设置持久化在服务端** `user/default/comfy.settings.json`：探针 `setSettingValue` 会写真用户设置，测后必须还原（本轮探针已含还原逻辑）；localStorage 是每 context 隔离，探针拖动位置不影响用户。
 - **盲测 A/B 是 500 节点合成梯度**，不适合人肉盲测（用户已反馈）；别再拿它当验收材料，改三工作流校准。

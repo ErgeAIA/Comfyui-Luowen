@@ -490,7 +490,7 @@ description: >
 - **日期**：2026-11-07
 - **背景**：阶段 3 需要回答 Cable Management / NKD Reroutes / Zip Ties / rgthree-comfy 的共存冲突，但 AGENTS.md 目标环境锁定明确「不动宿主环境依赖」，安装第三方扩展属红线操作。
 - **决策**：
-  1. 共存分析限定为源码级：只把扩展浅克隆到临时目录读源码，不装进 `D:\AIGC\ComfyUI_windows_portable\ComfyUI\custom_nodes`，不改宿主依赖。
+  1. 共存分析限定为源码级：只把扩展浅克隆到临时目录读源码，不装进 `%ComfyUIPortable%\ComfyUI\custom_nodes`，不改宿主依赖。
   2. 结论按「无交集 / 可能冲突 / 确定冲突」三档落 `docs/agents/compatibility-matrix.md` §5.4，共 19 条（8 / 8 / 3）；「确定冲突」为 NKD 双路由引擎、NKD Shift 双磁吸、Zip Ties 分段重绘。全部标注「未做运行时验证」。
   3. 运行时验证（安装位置、依赖、影响面、回滚与逐装逐卸步骤）写入 `docs/specs/third-party-coexistence/spec.md` §6，等用户单独批准后才可执行。
   4. 环境事实纠偏：宿主 `rgthree-comfy` 目录已存在但服务未加载，矩阵原「四者均未安装」改为准确描述；不因此改动宿主。
@@ -1086,5 +1086,5 @@ description: >
 
 - **日期**：2026-11-06
 - **背景**：本机存在 0.43.2 与 0.17.0（TE）两套 ComfyUI 安装。
-- **决策**：唯一开发与验证目标 = `D:\AIGC\ComfyUI_windows_portable\ComfyUI`（v0.43.2）；环境零改动原则（不升级前端包等依赖）。
+- **决策**：唯一开发与验证目标 = `%ComfyUIPortable%\ComfyUI`（v0.43.2）；环境零改动原则（不升级前端包等依赖）。
 - **验证**：模板 a–d 四项验证在该实例通过（docs/comfyui-dev-conventions.md §6）。

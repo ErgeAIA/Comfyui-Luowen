@@ -154,10 +154,10 @@ description: >
 
 ### 修复与验证（2026-11-07，阶段 3 补丁轮）
 
-- **改动范围**：只改适配器层 [renderLinkAdapter.js](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/adapters/renderLinkAdapter.js)，未改几何、lane 分配与等距带算法。
+- **改动范围**：只改适配器层 [renderLinkAdapter.js](luowen/web/adapters/renderLinkAdapter.js)，未改几何、lane 分配与等距带算法。
 - **修复**：
-  1. 新增 `pruneStaleLinkState(links)`（[L955-979](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/adapters/renderLinkAdapter.js#L955-L979)）：以现存 link 集合做差集，清理 `state.routes`、`lastGoodRoutes`、`prevRoutes`、`baseRoutes`、`effectiveRoutes`、`endpoints`、`pinOffsets`、`cleanup.routes`、`frame.bands`、`frame.orderCtx`；悬停引用的链路已消失时同步清空 `state.hover`。只删消失项，不清空整表，未受影响链路缓存与几何保留。
-  2. `beginFrame` 新增拓扑指纹 `computeLinksHash(graph)` 比对（[L996-1004](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/adapters/renderLinkAdapter.js#L996-L1004)），拓扑变化即触发差集清理；不递增 `obstacleVersion`，不触发几何重算。拓扑哈希原本已用于 lane 指纹，本次只计算一次并同时服务失效检测与 lane 指纹（未增加每帧哈希次数）；`allLinks` 复用给 lane 指纹与分配，避免二次遍历。
+  1. 新增 `pruneStaleLinkState(links)`（[L955-979](luowen/web/adapters/renderLinkAdapter.js#L955-L979)）：以现存 link 集合做差集，清理 `state.routes`、`lastGoodRoutes`、`prevRoutes`、`baseRoutes`、`effectiveRoutes`、`endpoints`、`pinOffsets`、`cleanup.routes`、`frame.bands`、`frame.orderCtx`；悬停引用的链路已消失时同步清空 `state.hover`。只删消失项，不清空整表，未受影响链路缓存与几何保留。
+  2. `beginFrame` 新增拓扑指纹 `computeLinksHash(graph)` 比对（[L996-1004](luowen/web/adapters/renderLinkAdapter.js#L996-L1004)），拓扑变化即触发差集清理；不递增 `obstacleVersion`，不触发几何重算。拓扑哈希原本已用于 lane 指纹，本次只计算一次并同时服务失效检测与 lane 指纹（未增加每帧哈希次数）；`allLinks` 复用给 lane 指纹与分配，避免二次遍历。
 - **修前/修后（同一 suite.mjs，宿主 0.43.2 + 1.55.18）**：
   - suite 先删节点 68、再删 link 79（节点矩形不变）：修前 `links 8 / routed 9 / routes 9` → 修后 `links 8 / routed 8 / routes 8`。
   - 重连（新 link 83）：修前 `links 9 / routed 10 / routes 10` → 修后 `links 9 / routed 9 / routes 9`。
@@ -183,11 +183,11 @@ description: >
 - **日期**：2026-11-07（第三方共存源码级分析暴露；对应矩阵 C6/Z4 验收盲区）
 - **现象**：`verify()` 只比对 kind/nodeCount/nodeIds/linkTuples。合成写入 `graph.extra.probe_vendor`、`graph.extra.zipTies`、`node.properties['cablemanagement.owned']` 后，修前均返回 `{ok:true,diffs:[]}`；第三方写工作流 `extra` 或节点 `properties` 时自检无感知。
 - **宿主自有字段排查（比对时排除）**：宿主前端工作流 extra schema（`comfyui_frontend_package/static/assets/api-DTg5QMcw.js`，`or=...`，`.passthrough()`）定义 `ds / frontendVersion / linkExtensions / linkPresentation / reroutes / workflowRendererVersion / BlueprintDescription / BlueprintSearchAliases / linearMode / linearData`。实测普通操作只写 `ds`（视口，serialize/load 重写）；原生 Reroute 与保存路径会写 `linkExtensions/linkPresentation`。以上十项全部排除；第三方自定义键不在其中，仍可检出。本插件源码 grep 无 `graph.extra` / `node.properties` 写入。
-- **修复（只改 [index.js](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/index.js)）**：
-  1. `EXTRA_HOST_KEYS` + 键深排序的 `canonicalValue/canonicalJson` + `extraFingerprint`（[L51-102](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/index.js#L51-L102)）：extra 只保留非宿主键。
-  2. `snapshotGraph` 增加 `nodePos`（3 位小数；宿主 1.55.18 的 `pos` 是 Float64Array）、`nodeProps`（每节点 properties 规范化 JSON）、`extra`（[L106-128](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/index.js#L106-L128)）。
-  3. `diffSnapshot` 增加节点 id 集合差、`extra-*` 键级差、`node-prop(id)-*` 键级差（[L130-186](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/index.js#L130-L186)）；原有 kind/节点数/链路判定不变。
-  4. `movedNodes` + `verify().moved`（[L189-201](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/index.js#L189-L201)、[L441-452](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/index.js#L441-L452)）：位置变化只报告，不计入 `ok/diffs`，避免用户拖动造成误报。
+- **修复（只改 [index.js](luowen/web/index.js)）**：
+  1. `EXTRA_HOST_KEYS` + 键深排序的 `canonicalValue/canonicalJson` + `extraFingerprint`（[L51-102](luowen/web/index.js#L51-L102)）：extra 只保留非宿主键。
+  2. `snapshotGraph` 增加 `nodePos`（3 位小数；宿主 1.55.18 的 `pos` 是 Float64Array）、`nodeProps`（每节点 properties 规范化 JSON）、`extra`（[L106-128](luowen/web/index.js#L106-L128)）。
+  3. `diffSnapshot` 增加节点 id 集合差、`extra-*` 键级差、`node-prop(id)-*` 键级差（[L130-186](luowen/web/index.js#L130-L186)）；原有 kind/节点数/链路判定不变。
+  4. `movedNodes` + `verify().moved`（[L189-201](luowen/web/index.js#L189-L201)、[L441-452](luowen/web/index.js#L441-L452)）：位置变化只报告，不计入 `ok/diffs`，避免用户拖动造成误报。
 - **A/B（同一宿主 0.43.2 + 1.55.18，`.verify/p4/verify-ab.mjs`；合成写入仅内存、测后还原、未 serialize）**：
   - 修前：上述三类合成写入均 `{ok:true,diffs:[]}`。
   - 修后：`extra.probe_vendor` → `{ok:false,diffs:["extra-added: probe_vendor"]}`；`extra.zipTies` → `extra-added: zipTies`；`node.properties['cablemanagement.owned']` → `node-prop(9)-added: cablemanagement.owned`；删除对应键后均恢复 `{ok:true,diffs:[]}`。
@@ -207,7 +207,7 @@ description: >
 ### 真实鼠标删除复测与 undo 自动 rebase 口径（2026-11-07，待办 2「阶段 3 剩余验收」轮）
 
 - **真实鼠标删除**：右键 link 76 分支段（hover 先命中 `{linkId:76, part:'branch'}`）→ 菜单 `Delete` → `verify()` `{ok:false, diffs:["link-count: 10 -> 9","link-removed: 76"]}`——如实报告用户主动删除，属预期行为；Ctrl+Z 撤销后 `ok:true`。真实鼠标主干右键组删除（link 79/81 一次事务删除 2 条）同轮通过，undo 恢复 `ok:true`。
-- **口径注记（新发现，非缺陷）**：ComfyUI 的撤销 = `loadGraphData` 恢复快照，会触发本插件 `afterConfigureGraph()`（[index.js:333-336](file:///d:/Workspace/Code/Comfyui-Luowen/luowen/web/index.js#L333-L336)）重建基线——**每次 Ctrl+Z 后 baseline 自动跟随撤销后的状态**。因此「undo 后 verify ok:true」只证明「与撤销后状态一致」，不能证明「与最初基线一致」；用户手工验收时若先做过删除/撤销，应先 `LuoWen.rebase()` 再判定。
+- **口径注记（新发现，非缺陷）**：ComfyUI 的撤销 = `loadGraphData` 恢复快照，会触发本插件 `afterConfigureGraph()`（[index.js:333-336](luowen/web/index.js#L333-L336)）重建基线——**每次 Ctrl+Z 后 baseline 自动跟随撤销后的状态**。因此「undo 后 verify ok:true」只证明「与撤销后状态一致」，不能证明「与最初基线一致」；用户手工验收时若先做过删除/撤销，应先 `LuoWen.rebase()` 再判定。
 - **自动化脚本注意事项**：undo 链可能把已删除的粘贴节点复活（撤销「删除节点」）；验收脚本终态需孤儿清扫 + 强制 `rebase()`（`.verify/p3/stage3-remaining.mjs` finalSweep），否则 `FINAL` 的 ok 会建立在被污染的基线上。
 
 ### 用户验收（2026-11-07，DEC-037 委托口径）

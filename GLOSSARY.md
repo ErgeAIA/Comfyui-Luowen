@@ -7,7 +7,7 @@ Luowen 的 ComfyUI 自定义节点项目。产品中文名唯一写法：**络�
 ### 项目
 
 **目标实例**:
-本机锁定的唯一开发与验证宿主：`D:\AIGC\ComfyUI_windows_portable\ComfyUI`（v0.43.2）。
+本机锁定的唯一开发与验证宿主：`%ComfyUIPortable%\ComfyUI`（v0.43.2）。
 _Avoid_: 主环境、生产环境、TE 实例（指另一套 0.17.0 安装，永不作为目标）
 
 **开发基线**:

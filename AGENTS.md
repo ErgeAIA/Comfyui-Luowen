@@ -27,11 +27,13 @@ YOU MUST 性能与视觉效果并列为验收维度；性能结论须附测量�
 
 ## Toolchain
 
+> 路径占位：`%ComfyUIPortable%` = 本机 ComfyUI portable 根目录，`%TEMP%` = 系统临时目录（本仓库不记录个人盘符）。
+
 | 工具 | 精确版本 | 锁定位置 |
 | ---- | -------- | -------- |
-| ComfyUI（验证宿主） | v0.43.2 | D:\AIGC\ComfyUI_windows_portable\ComfyUI\comfyui_version.py |
+| ComfyUI（验证宿主） | v0.43.2 | %ComfyUIPortable%\ComfyUI\comfyui_version.py |
 | comfyui-frontend-package（宿主实装） | 1.55.18 | 宿主 python_embeded\Lib\site-packages（requirements 声明 1.57.4 未重装） |
-| Python（宿主 embedded） | 3.13 | D:\AIGC\ComfyUI_windows_portable\python_embeded |
+| Python（宿主 embedded） | 3.13 | %ComfyUIPortable%\python_embeded |
 | torch | 2.14.0+cu130 | 宿主 python_embeded\Lib\site-packages\torch\version.py |
 | codegraph | 1.6.2 | PATH |
 | Node（前端单测运行时） | 24.22.1 | PATH（node --version） |
@@ -40,7 +42,7 @@ YOU MUST 性能与视觉效果并列为验收维度；性能结论须附测量�
 
 | 场景 | 命令原文 | 来源 |
 | ---- | -------- | ---- |
-| 启动验证宿主 | run_nvidia_gpu.bat | D:\AIGC\ComfyUI_windows_portable\run_nvidia_gpu.bat |
+| 启动验证宿主 | run_nvidia_gpu.bat | %ComfyUIPortable%\run_nvidia_gpu.bat |
 | 查节点 schema | curl http://127.0.0.1:8188/object_info/<类名> | docs/comfyui-dev-conventions.md §6 |
 | Python 语法自检 | python_embeded\python.exe -I -m py_compile <files> | docs/comfyui-dev-conventions.md §6 |
 | 前端单元测试 | node --test tests/unit/*.test.mjs | glob 必需：Windows 上 node --test 传目录会 MODULE_NOT_FOUND |
@@ -59,7 +61,7 @@ YOU MUST 性能与视觉效果并列为验收维度；性能结论须附测量�
 | AGENTS.md 杂音归宿 | 变更日志 → CHANGELOG.md（无则 decision-log.md）；人读说明 → README.md（无则不写）；决策叙事与踩坑 → decision-log.md 与 debug-log.md；执行流水 → init-report.md 与 project-progress.md |
 | 仓库文档归属 | README 生成或优化 → shuxu；CHANGELOG 建立、改结构、归档版本 → changelog-manager，日常只按既有格式追加 `[Unreleased]`；.gitignore 新增或修正 → git-manager；其他角色只报告缺口，不代写 |
 | 开发结论须可复核 | 新的 ComfyUI 契约结论写入 docs/comfyui-dev-conventions.md，附源码 file:line，≥2 个成熟节点交叉验证（[n/7] 标注） |
-| 目标环境锁定 | 开发与验证只用 D:\AIGC\ComfyUI_windows_portable（0.43.2）；不动 TE 实例；不改宿主环境依赖 |
+| 目标环境锁定 | 开发与验证只用 %ComfyUIPortable%（0.43.2）；不动 TE 实例；不改宿主环境依赖 |
 | 模板为起点 | 新节点代码从 template/ComfyUI-Luowen/ 起步，契约写法对齐 nodes/example.py 注释 |
 | 性能结论有固定落点 | 写 docs/agents/performance.md；方法、样本、数据齐全才可下结论，只追加不删历史；效果与性能同时验收 |
 

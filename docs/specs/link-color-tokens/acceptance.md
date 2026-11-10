@@ -290,7 +290,7 @@ const stroke = typeof color === 'string' && color ? color : '#94a3b8';
 
 ```powershell
 cd d:\Workspace\Code\Comfyui-Luowen\docs\specs\link-color-tokens
-node verify.mjs --strict --out data --emit-hex --object-info C:\Users\GigaByte\AppData\Local\Temp\luowen-tokens\object_info.json
+node verify.mjs --strict --out data --emit-hex --object-info %TEMP%\luowen-tokens\object_info.json
 ```
 
 产物：`data/contrast.md`、`data/cvd-matrix-*.csv`、`data/coverage.json`、`data/verify-report.json`、`data/link-colors-*.json`。`--strict` 任一门禁失败即退出码 1。

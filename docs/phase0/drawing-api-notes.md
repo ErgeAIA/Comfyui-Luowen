@@ -7,7 +7,7 @@
 
 | 项 | 版本 | 备注 |
 |---|---|---|
-| ComfyUI | v0.43.2 | `D:\AIGC\ComfyUI_windows_portable` |
+| ComfyUI | v0.43.2 | `%ComfyUIPortable%` |
 | comfyui-frontend-package | **1.55.18**（实际安装） | requirements 声明 1.57.4 未重装；API 结论以 1.55.18 为准 |
 | 验证宿主 GPU | RTX 5080 / torch 2.14.0+cu130 | 经典画布 + Nodes 2.0 双形态实测 |
 

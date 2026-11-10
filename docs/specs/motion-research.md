@@ -1,6 +1,6 @@
 # LuoWen 连线动态视觉研究报告（研究任务 v2）
 
-> 依据：`C:\Users\GigaByte\Downloads\luowen-motion-research-prompt-v2.md`（2026-11-08）。
+> 依据：`luowen-motion-research-prompt-v2.md（外部提示词，未入库）`（2026-11-08）。
 > 本文件只追加各阶段产出；不修改生产代码与既有文档。所有结论标注证据等级：
 > **已实测**（本机探针/单测）/ **代码静态推断**（源码 file:line）/ **源码取证·外部**（参照项目源码）/ **设计假设**（待验证）。
 

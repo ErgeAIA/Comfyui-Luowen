@@ -105,7 +105,9 @@ for (const c of CASES) {
 
 // test1：宿主金标坐标（与旧判据几何一致），按分量复算主链用于展示
 const t1 = JSON.parse(fs.readFileSync(path.join(ROOT, 'tests/fixtures/layout-golden/test1.json'), 'utf8'));
-const t1wf = fromWorkflowJson(JSON.parse(fs.readFileSync(process.env.LUOWEN_TEST1 ?? 'D:/AIGC/ComfyUI_windows_portable/ComfyUI/user/default/workflows/test1.json', 'utf8')));
+const TEST1 = process.env.LUOWEN_TEST1;
+if (!TEST1) throw new Error('请先设置 LUOWEN_TEST1=<test1.json 路径>');
+const t1wf = fromWorkflowJson(JSON.parse(fs.readFileSync(TEST1, 'utf8')));
 const t1pos = new Map(Object.entries(t1.samples.test1.positions));
 const t1chains = movableComponents(t1wf, t1pos).map((comp) => spineOf(t1wf, t1pos, new Set(comp), { strategy: 'sink-coverage' }).chain).filter((c) => c.length);
 panels.push({
@@ -139,7 +141,10 @@ console.log('written', `${OUT}.html`);
 
 const require = createRequire(import.meta.url);
 let playwright;
-try { playwright = require('playwright'); } catch { playwright = require('C:/Users/GigaByte/AppData/Roaming/npm/node_modules/playwright'); }
+try { playwright = require('playwright'); } catch {
+  const { execFileSync } = await import('node:child_process');
+  playwright = require(path.join(execFileSync('npm', ['root', '-g'], { encoding: 'utf8' }).trim(), 'playwright'));
+}
 const exe = process.env.LUOWEN_CHROMIUM ?? (() => {
   const base = path.join(process.env.LOCALAPPDATA ?? '', 'ms-playwright');
   try { for (const d of fs.readdirSync(base).filter((x) => /^chromium-\d+$/.test(x)).sort().reverse()) { const f = path.join(base, d, 'chrome-win64/chrome.exe'); if (fs.existsSync(f)) return f; } } catch { /* 默认 */ }

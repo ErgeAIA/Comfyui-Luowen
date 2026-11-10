@@ -1,12 +1,12 @@
 # ComfyUI 自定义节点开发约定（开发基线 · spec-of-record）
 
 > **适用版本档案**（本机实测，2026-11-06）
-> - ComfyUI **v0.43.2**，git detached HEAD @ tag v0.43.2（commit `423cbd2`，提交均为官方提交），位于 `D:\AIGC\ComfyUI_windows_portable\ComfyUI`
+> - ComfyUI **v0.43.2**，git detached HEAD @ tag v0.43.2（commit `423cbd2`，提交均为官方提交），位于 `%ComfyUIPortable%\ComfyUI`
 > - Python **3.13**（embedded）+ torch **2.14.0+cu130**，RTX 5080 16GB
 > - 前端包实际安装 **comfyui-frontend-package 1.55.18**（⚠️ requirements.txt 声明 1.57.4 未重装，前端 API 结论一律以 **1.55.18** 为准）
 > - 启动方式：根目录 `run_nvidia_gpu.bat`（`--windows-standalone-build`，默认端口 8188）
 >
-> **引用约定**：`nodes.py:2299` 等行号均指上述本机 checkout（省略前缀 `D:\AIGC\ComfyUI_windows_portable\ComfyUI\`）。前端源码引用来自前端包自带的 sourcemap（内嵌完整 TypeScript 原文，与本机 1.55.18 逐字一致）。
+> **引用约定**：`nodes.py:2299` 等行号均指上述本机 checkout（省略前缀 `%ComfyUIPortable%\ComfyUI\`）。前端源码引用来自前端包自带的 sourcemap（内嵌完整 TypeScript 原文，与本机 1.55.18 逐字一致）。
 > **交叉验证标注**：`[n/7]` 表示该写法在本机 7 个成熟节点包（KJNodes / VHS / WanVideoWrapper / Impact-Pack / GGUF / Easy-Use / rgthree）中被 n 个采用；≥2 才有资格称"约定"。
 > **模板**：`template/ComfyUI-Luowen/`（正本）已安装至 `custom_nodes\ComfyUI-Luowen\` 并通过 §6 全部验证；每条契约在 `template/.../nodes/example.py` 里有带行号的活体示例。
 
