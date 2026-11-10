@@ -26,4 +26,4 @@
 
 ### 其他
 
-- MIT 许可；复用 ComfyUI Cable Management 的几何内核（MIT）、elkjs（EPL-2.0）、dagre（MIT），许可全文随插件包附带
+- MIT 许可；复用 ComfyUI Cable Management 的几何内核（MIT）、elkjs（EPL-2.0），许可全文随插件包附带

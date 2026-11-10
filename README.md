@@ -143,4 +143,4 @@ ComfyUI 的连线表达与工作流整理扩展：正交/贝塞尔线路、节�
 
 ## 许可
 
-MIT，见 [LICENSE](LICENSE)。第三方许可全文随插件包附带：`luowen/LICENSES/cable-management-MIT.txt`（ComfyUI Cable Management 几何内核，MIT）、`luowen/web/vendor/LICENSE-elkjs.md`（EPL-2.0）、`luowen/web/vendor/LICENSE-dagre.txt`（MIT）。
+MIT，见 [LICENSE](LICENSE)。第三方许可全文随插件包附带：`luowen/LICENSES/cable-management-MIT.txt`（ComfyUI Cable Management 几何内核，MIT）、`luowen/web/vendor/LICENSE-elkjs.md`（EPL-2.0）。

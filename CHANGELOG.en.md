@@ -26,4 +26,4 @@ Initial public release.
 
 ### Other
 
-- MIT licensed; reuses the ComfyUI Cable Management geometry kernel (MIT), elkjs (EPL-2.0) and dagre (MIT); full licence texts ship with the plugin package
+- MIT licensed; reuses the ComfyUI Cable Management geometry kernel (MIT) and elkjs (EPL-2.0); full licence texts ship with the plugin package
