@@ -10,9 +10,18 @@ const here = dirname(fileURLToPath(import.meta.url));
 const OUT = join(here, '..', '..', '..', 'luowen', 'web', 'colors', 'materialized.js');
 
 const themes = {};
-for (const id of ['luowen-dark', 'luowen-cyberpunk', 'luowen-nightlight', 'luowen-jellyfish', 'luowen-solarized']) {
+function loadToken(id, seen = new Set()) {
+  if (seen.has(id)) throw new Error(`extends 循环: ${id}`);
+  seen.add(id);
   const short = id.replace(/^luowen-/, '');
-  const token = JSON.parse(readFileSync(join(here, `luowen-${short}.tokens.json`), 'utf8'));
+  const raw = JSON.parse(readFileSync(join(here, `luowen-${short}.tokens.json`), 'utf8'));
+  if (!raw.extends) return raw;
+  const base = loadToken(raw.extends, seen);
+  return { ...base, ...raw, typeMap: raw.typeMap ?? base.typeMap, typeRules: raw.typeRules ?? base.typeRules };
+}
+
+for (const id of ['luowen-cyberpunk', 'luowen-nightlight', 'luowen-light', 'luowen-jellyfish', 'luowen-solarized']) {
+  const token = loadToken(id);
   const data = JSON.parse(readFileSync(join(here, 'data', `link-colors-${id}.json`), 'utf8'));
   themes[id] = {
     id: token.id ?? id,
@@ -35,4 +44,4 @@ export const THEMES = ${JSON.stringify(themes, null, 2)};
 
 mkdirSync(dirname(OUT), { recursive: true });
 writeFileSync(OUT, banner, 'utf8');
-console.log('written', OUT, 'themes:', Object.keys(themes).join(', '), 'types:', Object.keys(themes['luowen-dark'].types).length);
+console.log('written', OUT, 'themes:', Object.keys(themes).join(', '), 'types:', Object.keys(themes['luowen-nightlight'].types).length);

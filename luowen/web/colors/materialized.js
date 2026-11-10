@@ -3,155 +3,6 @@
 // 来源：luowen-{dark,cyberpunk,nightlight}.tokens.json + data/link-colors-*.json（verify.mjs --emit-hex 产物）。
 // 门槛（对比度 / 色盲 ΔE / 62 类覆盖）已在 token 层验证，见 docs/specs/link-color-tokens/。
 export const THEMES = {
-  "luowen-dark": {
-    "id": "luowen-dark",
-    "name": "LuoWen Dark 连线 token",
-    "context": {
-      "canvas": "#141414",
-      "card": "#353535"
-    },
-    "width": 3,
-    "flow": {
-      "enabled": false,
-      "dash": 7,
-      "gap": 13,
-      "speed": 48,
-      "opacity": 0.92
-    },
-    "tokens": {
-      "link.image": "#76BCFF",
-      "link.video": "#5196D6",
-      "link.latent": "#DF9ADE",
-      "link.conditioning": "#D09244",
-      "link.clip": "#C1BA59",
-      "link.vae": "#F99692",
-      "link.model": "#A192E5",
-      "link.mask": "#6EB470",
-      "link.audio": "#44CFBD",
-      "link.mesh3d": "#13B3CA",
-      "link.scalar": "#89939E",
-      "link.struct": "#77818C",
-      "link.unknown": "#9BA6B1"
-    },
-    "types": {
-      "IMAGE": "#76BCFF",
-      "VIDEO": "#5196D6",
-      "CONDITIONING": "#D09244",
-      "STRING": "#89939E",
-      "MODEL": "#A192E5",
-      "INT": "#89939E",
-      "LATENT": "#DF9ADE",
-      "VAE": "#F99692",
-      "CLIP": "#C1BA59",
-      "MASK": "#6EB470",
-      "AUDIO": "#44CFBD",
-      "FLOAT": "#89939E",
-      "MESH": "#13B3CA",
-      "BOOLEAN": "#89939E",
-      "FILE_3D_GLB": "#13B3CA",
-      "CLIP_VISION": "#C1BA59",
-      "CLIP_VISION_OUTPUT": "#C1BA59",
-      "SIGMAS": "#A192E5",
-      "SAMPLER": "#A192E5",
-      "RECRAFT_COLOR": "#D09244",
-      "GUIDER": "#A192E5",
-      "NOISE": "#DF9ADE",
-      "ARRAY": "#77818C",
-      "VOXEL": "#13B3CA",
-      "*": "#9BA6B1",
-      "ELEVENLABS_VOICE": "#44CFBD",
-      "FILE_3D_FBX": "#13B3CA",
-      "COMBO": "#89939E",
-      "SVG": "#76BCFF",
-      "AUDIO_ENCODER_OUTPUT": "#44CFBD",
-      "FILE_3D": "#13B3CA",
-      "FISHAUDIO_VOICE": "#44CFBD",
-      "FILE_3D_OBJ": "#13B3CA",
-      "TRACKS": "#5196D6",
-      "BACKGROUND_REMOVAL": "#76BCFF",
-      "DICT": "#77818C",
-      "RECRAFT_CONTROLS": "#D09244",
-      "CONTROL_NET": "#D09244",
-      "LUMA_REF": "#D09244",
-      "RECRAFT_V3_STYLE": "#D09244",
-      "BOUNDING_BOX": "#6EB470",
-      "MHR_POSE_DATA": "#77818C",
-      "WAN_CAMERA_EMBEDDING": "#D09244",
-      "SPLAT": "#13B3CA",
-      "PIXVERSE_TEMPLATE": "#77818C",
-      "LATENT_OPERATION": "#DF9ADE",
-      "SAM3D_BODY_MODEL": "#13B3CA",
-      "AUDIO_ENCODER": "#44CFBD",
-      "SHAPE_SUBDIVIDES": "#77818C",
-      "MOGE_MODEL": "#A192E5",
-      "MOGE_GEOMETRY": "#13B3CA",
-      "GEMINI_INPUT_FILES": "#D09244",
-      "KREA_STYLE_REF": "#D09244",
-      "STYLE_MODEL": "#A192E5",
-      "MODEL_PATCH": "#A192E5",
-      "LATENT_UPSCALE_MODEL": "#A192E5",
-      "LOAD3D_CAMERA": "#77818C",
-      "LAYERS": "#76BCFF",
-      "COLOR": "#89939E",
-      "OPENAI_CHAT_CONFIG": "#77818C",
-      "UPSCALE_MODEL": "#A192E5",
-      "SAM3_TRACK_DATA": "#77818C"
-    },
-    "typeRules": [
-      {
-        "pattern": "CAMERA_EMBED|TEXT_?EMBEDS?|CONDITION|GUIDER|CONTROL|STYLE_REF|PROMPT|KEYFRAME|CONCEPTS|ANGLE|CONTEXT|INPUT_FILES|_REF$",
-        "token": "link.conditioning"
-      },
-      {
-        "pattern": "TRACK_DATA|TASK_ID|HOOK|MATCHTYPE|CAMERA|PIPE|DICT|ARRAY|CONFIG|TEMPLATE|ARGS|PARAMETERS|OPTIONS|BUS|ID_INFO|INDEXES|CACHE|ACCUMULATION|^X_?Y$|^XY$|^VHS_BatchManager$",
-        "token": "link.struct"
-      },
-      {
-        "pattern": "MESH|VOXEL|SPLAT|3D|GEOMETRY",
-        "token": "link.mesh3d"
-      },
-      {
-        "pattern": "MODEL|LORA|CHECKPOINT|SAMPLER|SIGMAS|UPSCALER|ADAPTER|SCHEDULER|TIMESTEP|DIT|BLOCK|INSIGHTFACE|GLIGEN|CLASSIFIER",
-        "token": "link.model"
-      },
-      {
-        "pattern": "VIDEO|TRACKS|TRACKING",
-        "token": "link.video"
-      },
-      {
-        "pattern": "AUDIO|VOICE|TTS|SPEECH|SOUND",
-        "token": "link.audio"
-      },
-      {
-        "pattern": "MASK|SEG|BOX|BOUND",
-        "token": "link.mask"
-      },
-      {
-        "pattern": "CLIP|TEXT_?ENCODER",
-        "token": "link.clip"
-      },
-      {
-        "pattern": "VAE|TAESD",
-        "token": "link.vae"
-      },
-      {
-        "pattern": "LATENT|NOISE|EMBED",
-        "token": "link.latent"
-      },
-      {
-        "pattern": "IMAGE|LAYER|SVG|PREVIEW|PIXEL|HISTOGRAM|OPTICAL_FLOW|LOSS_MAP|PHOTOMAKER|SEAM|FILENAMES",
-        "token": "link.image"
-      },
-      {
-        "pattern": "STRING|INT|FLOAT|BOOLEAN|COMBO|NUMBER|COLOR|SEED|TIMER",
-        "token": "link.scalar"
-      },
-      {
-        "pattern": "DATA|LIST|PATH|CURVE|OVERLAP",
-        "token": "link.struct"
-      }
-    ]
-  },
   "luowen-cyberpunk": {
     "id": "luowen-cyberpunk",
     "name": "LuoWen Cyberpunk 连线 token",
@@ -246,7 +97,60 @@ export const THEMES = {
       "UPSCALE_MODEL": "#AD74FF",
       "SAM3_TRACK_DATA": "#77818C"
     },
-    "typeRules": []
+    "typeRules": [
+      {
+        "pattern": "CAMERA_EMBED|TEXT_?EMBEDS?|CONDITION|GUIDER|CONTROL|STYLE_REF|PROMPT|KEYFRAME|CONCEPTS|ANGLE|CONTEXT|INPUT_FILES|_REF$",
+        "token": "link.conditioning"
+      },
+      {
+        "pattern": "TRACK_DATA|TASK_ID|HOOK|MATCHTYPE|CAMERA|PIPE|DICT|ARRAY|CONFIG|TEMPLATE|ARGS|PARAMETERS|OPTIONS|BUS|ID_INFO|INDEXES|CACHE|ACCUMULATION|^X_?Y$|^XY$|^VHS_BatchManager$",
+        "token": "link.struct"
+      },
+      {
+        "pattern": "MESH|VOXEL|SPLAT|3D|GEOMETRY",
+        "token": "link.mesh3d"
+      },
+      {
+        "pattern": "MODEL|LORA|CHECKPOINT|SAMPLER|SIGMAS|UPSCALER|ADAPTER|SCHEDULER|TIMESTEP|DIT|BLOCK|INSIGHTFACE|GLIGEN|CLASSIFIER",
+        "token": "link.model"
+      },
+      {
+        "pattern": "VIDEO|TRACKS|TRACKING",
+        "token": "link.video"
+      },
+      {
+        "pattern": "AUDIO|VOICE|TTS|SPEECH|SOUND",
+        "token": "link.audio"
+      },
+      {
+        "pattern": "MASK|SEG|BOX|BOUND",
+        "token": "link.mask"
+      },
+      {
+        "pattern": "CLIP|TEXT_?ENCODER",
+        "token": "link.clip"
+      },
+      {
+        "pattern": "VAE|TAESD",
+        "token": "link.vae"
+      },
+      {
+        "pattern": "LATENT|NOISE|EMBED",
+        "token": "link.latent"
+      },
+      {
+        "pattern": "IMAGE|LAYER|SVG|PREVIEW|PIXEL|HISTOGRAM|OPTICAL_FLOW|LOSS_MAP|PHOTOMAKER|SEAM|FILENAMES",
+        "token": "link.image"
+      },
+      {
+        "pattern": "STRING|INT|FLOAT|BOOLEAN|COMBO|NUMBER|COLOR|SEED|TIMER",
+        "token": "link.scalar"
+      },
+      {
+        "pattern": "DATA|LIST|PATH|CURVE|OVERLAP",
+        "token": "link.struct"
+      }
+    ]
   },
   "luowen-nightlight": {
     "id": "luowen-nightlight",
@@ -342,7 +246,209 @@ export const THEMES = {
       "UPSCALE_MODEL": "#B9579C",
       "SAM3_TRACK_DATA": "#747B83"
     },
-    "typeRules": []
+    "typeRules": [
+      {
+        "pattern": "CAMERA_EMBED|TEXT_?EMBEDS?|CONDITION|GUIDER|CONTROL|STYLE_REF|PROMPT|KEYFRAME|CONCEPTS|ANGLE|CONTEXT|INPUT_FILES|_REF$",
+        "token": "link.conditioning"
+      },
+      {
+        "pattern": "TRACK_DATA|TASK_ID|HOOK|MATCHTYPE|CAMERA|PIPE|DICT|ARRAY|CONFIG|TEMPLATE|ARGS|PARAMETERS|OPTIONS|BUS|ID_INFO|INDEXES|CACHE|ACCUMULATION|^X_?Y$|^XY$|^VHS_BatchManager$",
+        "token": "link.struct"
+      },
+      {
+        "pattern": "MESH|VOXEL|SPLAT|3D|GEOMETRY",
+        "token": "link.mesh3d"
+      },
+      {
+        "pattern": "MODEL|LORA|CHECKPOINT|SAMPLER|SIGMAS|UPSCALER|ADAPTER|SCHEDULER|TIMESTEP|DIT|BLOCK|INSIGHTFACE|GLIGEN|CLASSIFIER",
+        "token": "link.model"
+      },
+      {
+        "pattern": "VIDEO|TRACKS|TRACKING",
+        "token": "link.video"
+      },
+      {
+        "pattern": "AUDIO|VOICE|TTS|SPEECH|SOUND",
+        "token": "link.audio"
+      },
+      {
+        "pattern": "MASK|SEG|BOX|BOUND",
+        "token": "link.mask"
+      },
+      {
+        "pattern": "CLIP|TEXT_?ENCODER",
+        "token": "link.clip"
+      },
+      {
+        "pattern": "VAE|TAESD",
+        "token": "link.vae"
+      },
+      {
+        "pattern": "LATENT|NOISE|EMBED",
+        "token": "link.latent"
+      },
+      {
+        "pattern": "IMAGE|LAYER|SVG|PREVIEW|PIXEL|HISTOGRAM|OPTICAL_FLOW|LOSS_MAP|PHOTOMAKER|SEAM|FILENAMES",
+        "token": "link.image"
+      },
+      {
+        "pattern": "STRING|INT|FLOAT|BOOLEAN|COMBO|NUMBER|COLOR|SEED|TIMER",
+        "token": "link.scalar"
+      },
+      {
+        "pattern": "DATA|LIST|PATH|CURVE|OVERLAP",
+        "token": "link.struct"
+      }
+    ]
+  },
+  "luowen-light": {
+    "id": "luowen-light",
+    "name": "LuoWen Light 连线 token",
+    "context": {
+      "canvas": "#FAF1E9",
+      "card": "#FFFFFF"
+    },
+    "width": 3,
+    "flow": {
+      "enabled": false,
+      "dash": 7,
+      "gap": 13,
+      "speed": 48,
+      "opacity": 0.92
+    },
+    "tokens": {
+      "link.image": "#0465AF",
+      "link.video": "#B04C26",
+      "link.latent": "#A758A1",
+      "link.conditioning": "#938A00",
+      "link.clip": "#003F43",
+      "link.vae": "#922943",
+      "link.model": "#623E96",
+      "link.mask": "#145E00",
+      "link.audio": "#007B4F",
+      "link.mesh3d": "#0079A0",
+      "link.scalar": "#555F69",
+      "link.struct": "#454E58",
+      "link.unknown": "#69737D"
+    },
+    "types": {
+      "IMAGE": "#0465AF",
+      "VIDEO": "#B04C26",
+      "CONDITIONING": "#938A00",
+      "STRING": "#555F69",
+      "MODEL": "#623E96",
+      "INT": "#555F69",
+      "LATENT": "#A758A1",
+      "VAE": "#922943",
+      "CLIP": "#003F43",
+      "MASK": "#145E00",
+      "AUDIO": "#007B4F",
+      "FLOAT": "#555F69",
+      "MESH": "#0079A0",
+      "BOOLEAN": "#555F69",
+      "FILE_3D_GLB": "#0079A0",
+      "CLIP_VISION": "#003F43",
+      "CLIP_VISION_OUTPUT": "#003F43",
+      "SIGMAS": "#623E96",
+      "SAMPLER": "#623E96",
+      "RECRAFT_COLOR": "#938A00",
+      "GUIDER": "#623E96",
+      "NOISE": "#A758A1",
+      "ARRAY": "#454E58",
+      "VOXEL": "#0079A0",
+      "*": "#69737D",
+      "ELEVENLABS_VOICE": "#007B4F",
+      "FILE_3D_FBX": "#0079A0",
+      "COMBO": "#555F69",
+      "SVG": "#0465AF",
+      "AUDIO_ENCODER_OUTPUT": "#007B4F",
+      "FILE_3D": "#0079A0",
+      "FISHAUDIO_VOICE": "#007B4F",
+      "FILE_3D_OBJ": "#0079A0",
+      "TRACKS": "#B04C26",
+      "BACKGROUND_REMOVAL": "#0465AF",
+      "DICT": "#454E58",
+      "RECRAFT_CONTROLS": "#938A00",
+      "CONTROL_NET": "#938A00",
+      "LUMA_REF": "#938A00",
+      "RECRAFT_V3_STYLE": "#938A00",
+      "BOUNDING_BOX": "#145E00",
+      "MHR_POSE_DATA": "#454E58",
+      "WAN_CAMERA_EMBEDDING": "#938A00",
+      "SPLAT": "#0079A0",
+      "PIXVERSE_TEMPLATE": "#454E58",
+      "LATENT_OPERATION": "#A758A1",
+      "SAM3D_BODY_MODEL": "#0079A0",
+      "AUDIO_ENCODER": "#007B4F",
+      "SHAPE_SUBDIVIDES": "#454E58",
+      "MOGE_MODEL": "#623E96",
+      "MOGE_GEOMETRY": "#0079A0",
+      "GEMINI_INPUT_FILES": "#938A00",
+      "KREA_STYLE_REF": "#938A00",
+      "STYLE_MODEL": "#623E96",
+      "MODEL_PATCH": "#623E96",
+      "LATENT_UPSCALE_MODEL": "#623E96",
+      "LOAD3D_CAMERA": "#454E58",
+      "LAYERS": "#0465AF",
+      "COLOR": "#555F69",
+      "OPENAI_CHAT_CONFIG": "#454E58",
+      "UPSCALE_MODEL": "#623E96",
+      "SAM3_TRACK_DATA": "#454E58"
+    },
+    "typeRules": [
+      {
+        "pattern": "CAMERA_EMBED|TEXT_?EMBEDS?|CONDITION|GUIDER|CONTROL|STYLE_REF|PROMPT|KEYFRAME|CONCEPTS|ANGLE|CONTEXT|INPUT_FILES|_REF$",
+        "token": "link.conditioning"
+      },
+      {
+        "pattern": "TRACK_DATA|TASK_ID|HOOK|MATCHTYPE|CAMERA|PIPE|DICT|ARRAY|CONFIG|TEMPLATE|ARGS|PARAMETERS|OPTIONS|BUS|ID_INFO|INDEXES|CACHE|ACCUMULATION|^X_?Y$|^XY$|^VHS_BatchManager$",
+        "token": "link.struct"
+      },
+      {
+        "pattern": "MESH|VOXEL|SPLAT|3D|GEOMETRY",
+        "token": "link.mesh3d"
+      },
+      {
+        "pattern": "MODEL|LORA|CHECKPOINT|SAMPLER|SIGMAS|UPSCALER|ADAPTER|SCHEDULER|TIMESTEP|DIT|BLOCK|INSIGHTFACE|GLIGEN|CLASSIFIER",
+        "token": "link.model"
+      },
+      {
+        "pattern": "VIDEO|TRACKS|TRACKING",
+        "token": "link.video"
+      },
+      {
+        "pattern": "AUDIO|VOICE|TTS|SPEECH|SOUND",
+        "token": "link.audio"
+      },
+      {
+        "pattern": "MASK|SEG|BOX|BOUND",
+        "token": "link.mask"
+      },
+      {
+        "pattern": "CLIP|TEXT_?ENCODER",
+        "token": "link.clip"
+      },
+      {
+        "pattern": "VAE|TAESD",
+        "token": "link.vae"
+      },
+      {
+        "pattern": "LATENT|NOISE|EMBED",
+        "token": "link.latent"
+      },
+      {
+        "pattern": "IMAGE|LAYER|SVG|PREVIEW|PIXEL|HISTOGRAM|OPTICAL_FLOW|LOSS_MAP|PHOTOMAKER|SEAM|FILENAMES",
+        "token": "link.image"
+      },
+      {
+        "pattern": "STRING|INT|FLOAT|BOOLEAN|COMBO|NUMBER|COLOR|SEED|TIMER",
+        "token": "link.scalar"
+      },
+      {
+        "pattern": "DATA|LIST|PATH|CURVE|OVERLAP",
+        "token": "link.struct"
+      }
+    ]
   },
   "luowen-jellyfish": {
     "id": "luowen-jellyfish",
@@ -438,7 +544,60 @@ export const THEMES = {
       "UPSCALE_MODEL": "#9475FF",
       "SAM3_TRACK_DATA": "#77818C"
     },
-    "typeRules": []
+    "typeRules": [
+      {
+        "pattern": "CAMERA_EMBED|TEXT_?EMBEDS?|CONDITION|GUIDER|CONTROL|STYLE_REF|PROMPT|KEYFRAME|CONCEPTS|ANGLE|CONTEXT|INPUT_FILES|_REF$",
+        "token": "link.conditioning"
+      },
+      {
+        "pattern": "TRACK_DATA|TASK_ID|HOOK|MATCHTYPE|CAMERA|PIPE|DICT|ARRAY|CONFIG|TEMPLATE|ARGS|PARAMETERS|OPTIONS|BUS|ID_INFO|INDEXES|CACHE|ACCUMULATION|^X_?Y$|^XY$|^VHS_BatchManager$",
+        "token": "link.struct"
+      },
+      {
+        "pattern": "MESH|VOXEL|SPLAT|3D|GEOMETRY",
+        "token": "link.mesh3d"
+      },
+      {
+        "pattern": "MODEL|LORA|CHECKPOINT|SAMPLER|SIGMAS|UPSCALER|ADAPTER|SCHEDULER|TIMESTEP|DIT|BLOCK|INSIGHTFACE|GLIGEN|CLASSIFIER",
+        "token": "link.model"
+      },
+      {
+        "pattern": "VIDEO|TRACKS|TRACKING",
+        "token": "link.video"
+      },
+      {
+        "pattern": "AUDIO|VOICE|TTS|SPEECH|SOUND",
+        "token": "link.audio"
+      },
+      {
+        "pattern": "MASK|SEG|BOX|BOUND",
+        "token": "link.mask"
+      },
+      {
+        "pattern": "CLIP|TEXT_?ENCODER",
+        "token": "link.clip"
+      },
+      {
+        "pattern": "VAE|TAESD",
+        "token": "link.vae"
+      },
+      {
+        "pattern": "LATENT|NOISE|EMBED",
+        "token": "link.latent"
+      },
+      {
+        "pattern": "IMAGE|LAYER|SVG|PREVIEW|PIXEL|HISTOGRAM|OPTICAL_FLOW|LOSS_MAP|PHOTOMAKER|SEAM|FILENAMES",
+        "token": "link.image"
+      },
+      {
+        "pattern": "STRING|INT|FLOAT|BOOLEAN|COMBO|NUMBER|COLOR|SEED|TIMER",
+        "token": "link.scalar"
+      },
+      {
+        "pattern": "DATA|LIST|PATH|CURVE|OVERLAP",
+        "token": "link.struct"
+      }
+    ]
   },
   "luowen-solarized": {
     "id": "luowen-solarized",
@@ -534,6 +693,59 @@ export const THEMES = {
       "UPSCALE_MODEL": "#7896FF",
       "SAM3_TRACK_DATA": "#77818C"
     },
-    "typeRules": []
+    "typeRules": [
+      {
+        "pattern": "CAMERA_EMBED|TEXT_?EMBEDS?|CONDITION|GUIDER|CONTROL|STYLE_REF|PROMPT|KEYFRAME|CONCEPTS|ANGLE|CONTEXT|INPUT_FILES|_REF$",
+        "token": "link.conditioning"
+      },
+      {
+        "pattern": "TRACK_DATA|TASK_ID|HOOK|MATCHTYPE|CAMERA|PIPE|DICT|ARRAY|CONFIG|TEMPLATE|ARGS|PARAMETERS|OPTIONS|BUS|ID_INFO|INDEXES|CACHE|ACCUMULATION|^X_?Y$|^XY$|^VHS_BatchManager$",
+        "token": "link.struct"
+      },
+      {
+        "pattern": "MESH|VOXEL|SPLAT|3D|GEOMETRY",
+        "token": "link.mesh3d"
+      },
+      {
+        "pattern": "MODEL|LORA|CHECKPOINT|SAMPLER|SIGMAS|UPSCALER|ADAPTER|SCHEDULER|TIMESTEP|DIT|BLOCK|INSIGHTFACE|GLIGEN|CLASSIFIER",
+        "token": "link.model"
+      },
+      {
+        "pattern": "VIDEO|TRACKS|TRACKING",
+        "token": "link.video"
+      },
+      {
+        "pattern": "AUDIO|VOICE|TTS|SPEECH|SOUND",
+        "token": "link.audio"
+      },
+      {
+        "pattern": "MASK|SEG|BOX|BOUND",
+        "token": "link.mask"
+      },
+      {
+        "pattern": "CLIP|TEXT_?ENCODER",
+        "token": "link.clip"
+      },
+      {
+        "pattern": "VAE|TAESD",
+        "token": "link.vae"
+      },
+      {
+        "pattern": "LATENT|NOISE|EMBED",
+        "token": "link.latent"
+      },
+      {
+        "pattern": "IMAGE|LAYER|SVG|PREVIEW|PIXEL|HISTOGRAM|OPTICAL_FLOW|LOSS_MAP|PHOTOMAKER|SEAM|FILENAMES",
+        "token": "link.image"
+      },
+      {
+        "pattern": "STRING|INT|FLOAT|BOOLEAN|COMBO|NUMBER|COLOR|SEED|TIMER",
+        "token": "link.scalar"
+      },
+      {
+        "pattern": "DATA|LIST|PATH|CURVE|OVERLAP",
+        "token": "link.struct"
+      }
+    ]
   }
 };

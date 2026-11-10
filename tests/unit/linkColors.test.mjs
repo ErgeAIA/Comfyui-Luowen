@@ -13,7 +13,7 @@ test('linkColors: 主题关闭（默认）→ resolve 返回 null，适配器回
 });
 
 test('linkColors: 五套主题内置，62 类映射齐全，hex 格式合法', () => {
-  assert.deepEqual(listThemes().sort(), ['luowen-cyberpunk', 'luowen-dark', 'luowen-jellyfish', 'luowen-nightlight', 'luowen-solarized']);
+  assert.deepEqual(listThemes().sort(), ['luowen-cyberpunk', 'luowen-jellyfish', 'luowen-light', 'luowen-nightlight', 'luowen-solarized']);
   for (const id of listThemes()) {
     setTheme(id);
     const info = themeInfo();
@@ -42,8 +42,8 @@ function requireMaterialized(id) {
 }
 
 test('linkColors: 显式映射命中（CLIP/LATENT/MODEL）与 token 层产物逐值一致', () => {
-  setTheme('luowen-dark');
-  const mat = requireMaterialized('luowen-dark');
+  setTheme('luowen-nightlight');
+  const mat = requireMaterialized('luowen-nightlight');
   for (const t of ['CLIP', 'LATENT', 'MODEL', 'IMAGE', 'STRING', '*']) {
     assert.equal(resolveLinkColor({ type: t }), mat.types[t], `${t} 应与 verify.mjs 产物一致`);
   }
@@ -68,7 +68,7 @@ test('linkColors.shouldAnimate: 三模式 × 生成时禁用 × 外部闸门', a
   // 主题与动效解耦（用户反馈：主题关不该静默灭掉动效）
   setTheme(null);
   assert.equal(shouldAnimate(base), true, '主题关闭时动效照常（描边回退原取色链）');
-  setTheme('luowen-dark');
+  setTheme('luowen-nightlight');
   assert.equal(shouldAnimate(base), true, 'all 模式：启用即动');
   // selected：命中/未命中
   assert.equal(shouldAnimate({ ...base, mode: 'selected', selectedIds: new Set(['67']) }), true, '选中端点命中');

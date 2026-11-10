@@ -243,9 +243,16 @@ function colorThemeScope() {
   return readSetting(COLOR_THEME_SCOPE_ID, 'links+slots') === 'links' ? 'links' : 'links+slots';
 }
 
+const COLOR_THEME_IDS = ['luowen-nightlight', 'luowen-cyberpunk', 'luowen-light', 'luowen-jellyfish', 'luowen-solarized'];
+// luowen-dark 已从选择器移除（仅保留为 token 母版）：旧存档迁移到夜灯默认
+function normalizeColorTheme(v) {
+  if (v === 'luowen-dark') return 'luowen-nightlight';
+  return COLOR_THEME_IDS.includes(v) ? v : 'off';
+}
+
 // 主题范围：仅连线 / 连线+槽点。槽点同步会在启动与工作流加载后重放，避免被宿主调色板服务覆盖。
 function syncColorTheme(idOverride, scopeOverride) {
-  const id = idOverride ?? readSetting(COLOR_THEME_ID, 'off');
+  const id = normalizeColorTheme(idOverride ?? readSetting(COLOR_THEME_ID, 'off'));
   const scope = scopeOverride ?? colorThemeScope();
   try {
     if (!id || id === 'off' || scope === 'links') clearSlotPalette(app);
@@ -531,16 +538,16 @@ get options() {
 get options() {
         return [
           { text: t('ColorTheme.opt.off'), value: 'off' },
-          { text: t('ColorTheme.opt.luowen-dark'), value: 'luowen-dark' },
           { text: t('ColorTheme.opt.luowen-cyberpunk'), value: 'luowen-cyberpunk' },
           { text: t('ColorTheme.opt.luowen-nightlight'), value: 'luowen-nightlight' },
+          { text: t('ColorTheme.opt.luowen-light'), value: 'luowen-light' },
           { text: t('ColorTheme.opt.luowen-jellyfish'), value: 'luowen-jellyfish' },
           { text: t('ColorTheme.opt.luowen-solarized'), value: 'luowen-solarized' },
         ];
       },
       defaultValue: 'luowen-nightlight',
       onChange: (v) => {
-        const id = ['luowen-dark', 'luowen-cyberpunk', 'luowen-nightlight', 'luowen-jellyfish', 'luowen-solarized'].includes(v) ? v : 'off';
+        const id = normalizeColorTheme(v);
         setSettings({ colorTheme: id });
         syncColorTheme(id);
       },
@@ -770,7 +777,7 @@ get tooltip() {
         cornerRadius: readSetting(CORNER_RADIUS_ID, DEFAULT_RADIUS),
         brotherSpacing: Math.max(4, Math.min(24, Number(readSetting(BROTHER_SPACING_ID, 12)) || 12)),
         crossCleanup: !!readSetting(CROSS_CLEANUP_ID, false),
-        colorTheme: readSetting(COLOR_THEME_ID, 'off'),
+        colorTheme: normalizeColorTheme(readSetting(COLOR_THEME_ID, 'off')),
         dashSpeed: (() => { const raw = Number(readSetting(DASH_SPEED_ID, NaN)); if (Number.isFinite(raw) && raw >= 0) return Math.max(0, Math.min(10, raw)); const legacy = Number(readSetting('LuoWen.FlowSpeed', NaN)); return Number.isFinite(legacy) && legacy >= 0 ? Math.max(0, Math.min(10, legacy > 10 ? Math.round(legacy / 60) : legacy)) : 4; })(),
         dashLen: (() => { const raw = Number(readSetting(DASH_LEN_ID, NaN)); return Number.isFinite(raw) && raw >= 0 ? raw : Math.max(0, Math.min(30, Number(readSetting('LuoWen.FlowDash', 7)) || 7)); })(),
         dashGap: (() => { const raw = Number(readSetting(DASH_GAP_ID, NaN)); return Number.isFinite(raw) && raw >= 0 ? raw : Math.max(4, Math.min(40, Number(readSetting('LuoWen.FlowGap', 13)) || 13)); })(),

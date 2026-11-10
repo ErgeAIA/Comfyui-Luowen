@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { themeSlotColors, applySlotPalette, clearSlotPalette } from '../../luowen/web/colors/slotPalette.js';
 
-test('slotPalette: 三主题 62 类颜色表齐全且为 #RRGGBB', () => {
-  for (const id of ['luowen-dark', 'luowen-cyberpunk', 'luowen-nightlight']) {
+test('slotPalette: 五主题 62 类颜色表齐全且为 #RRGGBB', () => {
+  for (const id of ['luowen-cyberpunk', 'luowen-nightlight', 'luowen-light', 'luowen-jellyfish', 'luowen-solarized']) {
     const map = themeSlotColors(id);
     assert.ok(map, `${id} 存在`);
     assert.equal(Object.keys(map).length, 62, `${id} 62 类`);
@@ -25,7 +25,7 @@ test('slotPalette: 应用写入宿主 byType，关闭后原样还原（含删除
 
 test('slotPalette: 主题切换后关闭仍还原到最初宿主值', () => {
   const app = { canvas: { default_connection_color_byType: { IMAGE: '#222222' }, setDirty() {} } };
-  applySlotPalette(app, 'luowen-dark');
+  applySlotPalette(app, 'luowen-nightlight');
   const cyber = themeSlotColors('luowen-cyberpunk');
   applySlotPalette(app, 'luowen-cyberpunk');
   assert.equal(app.canvas.default_connection_color_byType.IMAGE, cyber.IMAGE);

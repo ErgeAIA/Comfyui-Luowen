@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T06:15:37.884Z",
+  "generatedAt": "2026-11-10T06:28:08.151Z",
   "gate": {
     "contrast": 3,
     "deltaE": 0.02,
@@ -6733,6 +6733,1444 @@
         {
           "pair": "latent(330) / vae(15)",
           "deltaE": 0.1227
+        }
+      ],
+      "coverageRows": [
+        {
+          "type": "IMAGE",
+          "token": "link.image",
+          "how": "exact",
+          "links": 1564,
+          "workflows": 490
+        },
+        {
+          "type": "VIDEO",
+          "token": "link.video",
+          "how": "exact",
+          "links": 399,
+          "workflows": 233
+        },
+        {
+          "type": "CONDITIONING",
+          "token": "link.conditioning",
+          "how": "exact",
+          "links": 365,
+          "workflows": 77
+        },
+        {
+          "type": "STRING",
+          "token": "link.scalar",
+          "how": "exact",
+          "links": 310,
+          "workflows": 98
+        },
+        {
+          "type": "MODEL",
+          "token": "link.model",
+          "how": "exact",
+          "links": 260,
+          "workflows": 78
+        },
+        {
+          "type": "INT",
+          "token": "link.scalar",
+          "how": "exact",
+          "links": 260,
+          "workflows": 86
+        },
+        {
+          "type": "LATENT",
+          "token": "link.latent",
+          "how": "exact",
+          "links": 240,
+          "workflows": 77
+        },
+        {
+          "type": "VAE",
+          "token": "link.vae",
+          "how": "exact",
+          "links": 169,
+          "workflows": 76
+        },
+        {
+          "type": "CLIP",
+          "token": "link.clip",
+          "how": "exact",
+          "links": 149,
+          "workflows": 75
+        },
+        {
+          "type": "MASK",
+          "token": "link.mask",
+          "how": "exact",
+          "links": 88,
+          "workflows": 27
+        },
+        {
+          "type": "AUDIO",
+          "token": "link.audio",
+          "how": "exact",
+          "links": 86,
+          "workflows": 56
+        },
+        {
+          "type": "FLOAT",
+          "token": "link.scalar",
+          "how": "exact",
+          "links": 49,
+          "workflows": 24
+        },
+        {
+          "type": "MESH",
+          "token": "link.mesh3d",
+          "how": "exact",
+          "links": 43,
+          "workflows": 9
+        },
+        {
+          "type": "BOOLEAN",
+          "token": "link.scalar",
+          "how": "exact",
+          "links": 38,
+          "workflows": 16
+        },
+        {
+          "type": "FILE_3D_GLB",
+          "token": "link.mesh3d",
+          "how": "exact",
+          "links": 31,
+          "workflows": 27
+        },
+        {
+          "type": "CLIP_VISION",
+          "token": "link.clip",
+          "how": "exact",
+          "links": 27,
+          "workflows": 17
+        },
+        {
+          "type": "CLIP_VISION_OUTPUT",
+          "token": "link.clip",
+          "how": "exact",
+          "links": 24,
+          "workflows": 14
+        },
+        {
+          "type": "SIGMAS",
+          "token": "link.model",
+          "how": "exact",
+          "links": 23,
+          "workflows": 17
+        },
+        {
+          "type": "SAMPLER",
+          "token": "link.model",
+          "how": "exact",
+          "links": 21,
+          "workflows": 17
+        },
+        {
+          "type": "RECRAFT_COLOR",
+          "token": "link.conditioning",
+          "how": "exact",
+          "links": 20,
+          "workflows": 7
+        },
+        {
+          "type": "GUIDER",
+          "token": "link.model",
+          "how": "exact",
+          "links": 16,
+          "workflows": 12
+        },
+        {
+          "type": "NOISE",
+          "token": "link.latent",
+          "how": "exact",
+          "links": 16,
+          "workflows": 12
+        },
+        {
+          "type": "ARRAY",
+          "token": "link.struct",
+          "how": "exact",
+          "links": 13,
+          "workflows": 11
+        },
+        {
+          "type": "VOXEL",
+          "token": "link.mesh3d",
+          "how": "exact",
+          "links": 12,
+          "workflows": 6
+        },
+        {
+          "type": "*",
+          "token": "link.unknown",
+          "how": "exact",
+          "links": 12,
+          "workflows": 8
+        },
+        {
+          "type": "ELEVENLABS_VOICE",
+          "token": "link.audio",
+          "how": "exact",
+          "links": 10,
+          "workflows": 6
+        },
+        {
+          "type": "FILE_3D_FBX",
+          "token": "link.mesh3d",
+          "how": "exact",
+          "links": 10,
+          "workflows": 10
+        },
+        {
+          "type": "COMBO",
+          "token": "link.scalar",
+          "how": "exact",
+          "links": 10,
+          "workflows": 3
+        },
+        {
+          "type": "SVG",
+          "token": "link.image",
+          "how": "exact",
+          "links": 9,
+          "workflows": 9
+        },
+        {
+          "type": "AUDIO_ENCODER_OUTPUT",
+          "token": "link.audio",
+          "how": "exact",
+          "links": 9,
+          "workflows": 2
+        },
+        {
+          "type": "FILE_3D",
+          "token": "link.mesh3d",
+          "how": "exact",
+          "links": 8,
+          "workflows": 8
+        },
+        {
+          "type": "FISHAUDIO_VOICE",
+          "token": "link.audio",
+          "how": "exact",
+          "links": 7,
+          "workflows": 4
+        },
+        {
+          "type": "FILE_3D_OBJ",
+          "token": "link.mesh3d",
+          "how": "exact",
+          "links": 7,
+          "workflows": 5
+        },
+        {
+          "type": "TRACKS",
+          "token": "link.video",
+          "how": "exact",
+          "links": 6,
+          "workflows": 1
+        },
+        {
+          "type": "BACKGROUND_REMOVAL",
+          "token": "link.image",
+          "how": "exact",
+          "links": 5,
+          "workflows": 2
+        },
+        {
+          "type": "DICT",
+          "token": "link.struct",
+          "how": "exact",
+          "links": 5,
+          "workflows": 4
+        },
+        {
+          "type": "RECRAFT_CONTROLS",
+          "token": "link.conditioning",
+          "how": "exact",
+          "links": 5,
+          "workflows": 5
+        },
+        {
+          "type": "CONTROL_NET",
+          "token": "link.conditioning",
+          "how": "exact",
+          "links": 5,
+          "workflows": 4
+        },
+        {
+          "type": "LUMA_REF",
+          "token": "link.conditioning",
+          "how": "exact",
+          "links": 4,
+          "workflows": 1
+        },
+        {
+          "type": "RECRAFT_V3_STYLE",
+          "token": "link.conditioning",
+          "how": "exact",
+          "links": 4,
+          "workflows": 4
+        },
+        {
+          "type": "BOUNDING_BOX",
+          "token": "link.mask",
+          "how": "exact",
+          "links": 4,
+          "workflows": 4
+        },
+        {
+          "type": "MHR_POSE_DATA",
+          "token": "link.struct",
+          "how": "exact",
+          "links": 4,
+          "workflows": 1
+        },
+        {
+          "type": "WAN_CAMERA_EMBEDDING",
+          "token": "link.conditioning",
+          "how": "exact",
+          "links": 4,
+          "workflows": 3
+        },
+        {
+          "type": "SPLAT",
+          "token": "link.mesh3d",
+          "how": "exact",
+          "links": 3,
+          "workflows": 1
+        },
+        {
+          "type": "PIXVERSE_TEMPLATE",
+          "token": "link.struct",
+          "how": "exact",
+          "links": 3,
+          "workflows": 3
+        },
+        {
+          "type": "LATENT_OPERATION",
+          "token": "link.latent",
+          "how": "exact",
+          "links": 3,
+          "workflows": 3
+        },
+        {
+          "type": "SAM3D_BODY_MODEL",
+          "token": "link.mesh3d",
+          "how": "exact",
+          "links": 3,
+          "workflows": 1
+        },
+        {
+          "type": "AUDIO_ENCODER",
+          "token": "link.audio",
+          "how": "exact",
+          "links": 3,
+          "workflows": 2
+        },
+        {
+          "type": "SHAPE_SUBDIVIDES",
+          "token": "link.struct",
+          "how": "exact",
+          "links": 2,
+          "workflows": 2
+        },
+        {
+          "type": "MOGE_MODEL",
+          "token": "link.model",
+          "how": "exact",
+          "links": 2,
+          "workflows": 2
+        },
+        {
+          "type": "MOGE_GEOMETRY",
+          "token": "link.mesh3d",
+          "how": "exact",
+          "links": 2,
+          "workflows": 2
+        },
+        {
+          "type": "GEMINI_INPUT_FILES",
+          "token": "link.conditioning",
+          "how": "exact",
+          "links": 2,
+          "workflows": 1
+        },
+        {
+          "type": "KREA_STYLE_REF",
+          "token": "link.conditioning",
+          "how": "exact",
+          "links": 2,
+          "workflows": 1
+        },
+        {
+          "type": "STYLE_MODEL",
+          "token": "link.model",
+          "how": "exact",
+          "links": 2,
+          "workflows": 1
+        },
+        {
+          "type": "MODEL_PATCH",
+          "token": "link.model",
+          "how": "exact",
+          "links": 2,
+          "workflows": 2
+        },
+        {
+          "type": "LATENT_UPSCALE_MODEL",
+          "token": "link.model",
+          "how": "exact",
+          "links": 2,
+          "workflows": 2
+        },
+        {
+          "type": "LOAD3D_CAMERA",
+          "token": "link.struct",
+          "how": "exact",
+          "links": 1,
+          "workflows": 1
+        },
+        {
+          "type": "LAYERS",
+          "token": "link.image",
+          "how": "exact",
+          "links": 1,
+          "workflows": 1
+        },
+        {
+          "type": "COLOR",
+          "token": "link.scalar",
+          "how": "exact",
+          "links": 1,
+          "workflows": 1
+        },
+        {
+          "type": "OPENAI_CHAT_CONFIG",
+          "token": "link.struct",
+          "how": "exact",
+          "links": 1,
+          "workflows": 1
+        },
+        {
+          "type": "UPSCALE_MODEL",
+          "token": "link.model",
+          "how": "exact",
+          "links": 1,
+          "workflows": 1
+        },
+        {
+          "type": "SAM3_TRACK_DATA",
+          "token": "link.struct",
+          "how": "exact",
+          "links": 1,
+          "workflows": 1
+        }
+      ],
+      "byToken": {
+        "link.image": 1579,
+        "link.video": 405,
+        "link.conditioning": 411,
+        "link.scalar": 668,
+        "link.model": 329,
+        "link.latent": 259,
+        "link.vae": 169,
+        "link.clip": 200,
+        "link.mask": 92,
+        "link.audio": 115,
+        "link.mesh3d": 119,
+        "link.struct": 30,
+        "link.unknown": 12
+      },
+      "coverage": {
+        "linkTotal": 4388,
+        "exact": 4388,
+        "rule": 0,
+        "fallback": 0
+      }
+    },
+    "luowen-light": {
+      "context": {
+        "canvas": "#FAF1E9",
+        "card": "#FFFFFF"
+      },
+      "colors": {
+        "link.image": {
+          "hex": "#0465AF",
+          "L": 0.5,
+          "C": 0.14,
+          "H": 250
+        },
+        "link.video": {
+          "hex": "#B04C26",
+          "L": 0.54,
+          "C": 0.14,
+          "H": 40
+        },
+        "link.latent": {
+          "hex": "#A758A1",
+          "L": 0.58,
+          "C": 0.14,
+          "H": 330
+        },
+        "link.conditioning": {
+          "hex": "#938A00",
+          "L": 0.62,
+          "C": 0.14,
+          "H": 105
+        },
+        "link.clip": {
+          "hex": "#003F43",
+          "L": 0.3,
+          "C": 0.14,
+          "H": 195
+        },
+        "link.vae": {
+          "hex": "#922943",
+          "L": 0.45,
+          "C": 0.14,
+          "H": 10
+        },
+        "link.model": {
+          "hex": "#623E96",
+          "L": 0.45,
+          "C": 0.14,
+          "H": 300
+        },
+        "link.mask": {
+          "hex": "#145E00",
+          "L": 0.42,
+          "C": 0.14,
+          "H": 140
+        },
+        "link.audio": {
+          "hex": "#007B4F",
+          "L": 0.5,
+          "C": 0.14,
+          "H": 165
+        },
+        "link.mesh3d": {
+          "hex": "#0079A0",
+          "L": 0.52,
+          "C": 0.14,
+          "H": 220
+        },
+        "link.scalar": {
+          "hex": "#555F69",
+          "L": 0.48,
+          "C": 0.02,
+          "H": 250
+        },
+        "link.struct": {
+          "hex": "#454E58",
+          "L": 0.42,
+          "C": 0.02,
+          "H": 250
+        },
+        "link.unknown": {
+          "hex": "#69737D",
+          "L": 0.55,
+          "C": 0.02,
+          "H": 250
+        }
+      },
+      "contrastRows": [
+        {
+          "id": "link.image",
+          "hex": "#0465AF",
+          "L": 0.5,
+          "C": 0.14,
+          "H": 250,
+          "gamut": true,
+          "canvas": 5.4,
+          "card": 6.02,
+          "ok": true
+        },
+        {
+          "id": "link.video",
+          "hex": "#B04C26",
+          "L": 0.54,
+          "C": 0.14,
+          "H": 40,
+          "gamut": true,
+          "canvas": 4.82,
+          "card": 5.37,
+          "ok": true
+        },
+        {
+          "id": "link.latent",
+          "hex": "#A758A1",
+          "L": 0.58,
+          "C": 0.14,
+          "H": 330,
+          "gamut": true,
+          "canvas": 4.13,
+          "card": 4.61,
+          "ok": true
+        },
+        {
+          "id": "link.conditioning",
+          "hex": "#938A00",
+          "L": 0.62,
+          "C": 0.14,
+          "H": 105,
+          "gamut": false,
+          "canvas": 3.2,
+          "card": 3.57,
+          "ok": true
+        },
+        {
+          "id": "link.clip",
+          "hex": "#003F43",
+          "L": 0.3,
+          "C": 0.14,
+          "H": 195,
+          "gamut": false,
+          "canvas": 10.5,
+          "card": 11.72,
+          "ok": true
+        },
+        {
+          "id": "link.vae",
+          "hex": "#922943",
+          "L": 0.45,
+          "C": 0.14,
+          "H": 10,
+          "gamut": true,
+          "canvas": 7.18,
+          "card": 8.01,
+          "ok": true
+        },
+        {
+          "id": "link.model",
+          "hex": "#623E96",
+          "L": 0.45,
+          "C": 0.14,
+          "H": 300,
+          "gamut": true,
+          "canvas": 7.11,
+          "card": 7.93,
+          "ok": true
+        },
+        {
+          "id": "link.mask",
+          "hex": "#145E00",
+          "L": 0.42,
+          "C": 0.14,
+          "H": 140,
+          "gamut": false,
+          "canvas": 7.15,
+          "card": 7.98,
+          "ok": true
+        },
+        {
+          "id": "link.audio",
+          "hex": "#007B4F",
+          "L": 0.5,
+          "C": 0.14,
+          "H": 165,
+          "gamut": false,
+          "canvas": 4.77,
+          "card": 5.32,
+          "ok": true
+        },
+        {
+          "id": "link.mesh3d",
+          "hex": "#0079A0",
+          "L": 0.52,
+          "C": 0.14,
+          "H": 220,
+          "gamut": false,
+          "canvas": 4.44,
+          "card": 4.95,
+          "ok": true
+        },
+        {
+          "id": "link.scalar",
+          "hex": "#555F69",
+          "L": 0.48,
+          "C": 0.02,
+          "H": 250,
+          "gamut": true,
+          "canvas": 5.83,
+          "card": 6.51,
+          "ok": true
+        },
+        {
+          "id": "link.struct",
+          "hex": "#454E58",
+          "L": 0.42,
+          "C": 0.02,
+          "H": 250,
+          "gamut": true,
+          "canvas": 7.58,
+          "card": 8.46,
+          "ok": true
+        },
+        {
+          "id": "link.unknown",
+          "hex": "#69737D",
+          "L": 0.55,
+          "C": 0.02,
+          "H": 250,
+          "gamut": true,
+          "canvas": 4.33,
+          "card": 4.83,
+          "ok": true
+        }
+      ],
+      "matrix": [
+        {
+          "a": "link.image",
+          "b": "link.video",
+          "normal": 0.2745,
+          "protan": 0.208,
+          "deutan": 0.2494,
+          "tritan": 0.2655,
+          "min": 0.208
+        },
+        {
+          "a": "link.image",
+          "b": "link.latent",
+          "normal": 0.1969,
+          "protan": 0.0371,
+          "deutan": 0.128,
+          "tritan": 0.1982,
+          "min": 0.0371
+        },
+        {
+          "a": "link.image",
+          "b": "link.conditioning",
+          "normal": 0.2872,
+          "protan": 0.2622,
+          "deutan": 0.3031,
+          "tritan": 0.1673,
+          "min": 0.1673
+        },
+        {
+          "a": "link.image",
+          "b": "link.clip",
+          "normal": 0.1987,
+          "protan": 0.2053,
+          "deutan": 0.1939,
+          "tritan": 0.1804,
+          "min": 0.1804
+        },
+        {
+          "a": "link.image",
+          "b": "link.vae",
+          "normal": 0.2481,
+          "protan": 0.1912,
+          "deutan": 0.1822,
+          "tritan": 0.2671,
+          "min": 0.1822
+        },
+        {
+          "a": "link.image",
+          "b": "link.model",
+          "normal": 0.127,
+          "protan": 0.0905,
+          "deutan": 0.0502,
+          "tritan": 0.1227,
+          "min": 0.0502
+        },
+        {
+          "a": "link.image",
+          "b": "link.mask",
+          "normal": 0.2403,
+          "protan": 0.2288,
+          "deutan": 0.229,
+          "tritan": 0.1044,
+          "min": 0.1044
+        },
+        {
+          "a": "link.image",
+          "b": "link.audio",
+          "normal": 0.1841,
+          "protan": 0.1759,
+          "deutan": 0.1787,
+          "tritan": 0.0318,
+          "min": 0.0318
+        },
+        {
+          "a": "link.image",
+          "b": "link.mesh3d",
+          "normal": 0.0681,
+          "protan": 0.0694,
+          "deutan": 0.0738,
+          "tritan": 0.0395,
+          "min": 0.0395
+        },
+        {
+          "a": "link.image",
+          "b": "link.scalar",
+          "normal": 0.1217,
+          "protan": 0.1139,
+          "deutan": 0.1254,
+          "tritan": 0.0792,
+          "min": 0.0792
+        },
+        {
+          "a": "link.image",
+          "b": "link.struct",
+          "normal": 0.1442,
+          "protan": 0.148,
+          "deutan": 0.1408,
+          "tritan": 0.1225,
+          "min": 0.1225
+        },
+        {
+          "a": "link.image",
+          "b": "link.unknown",
+          "normal": 0.1312,
+          "protan": 0.1095,
+          "deutan": 0.1425,
+          "tritan": 0.0746,
+          "min": 0.0746
+        },
+        {
+          "a": "link.video",
+          "b": "link.latent",
+          "normal": 0.1655,
+          "protan": 0.18,
+          "deutan": 0.1621,
+          "tritan": 0.0893,
+          "min": 0.0893
+        },
+        {
+          "a": "link.video",
+          "b": "link.conditioning",
+          "normal": 0.1673,
+          "protan": 0.1467,
+          "deutan": 0.082,
+          "tritan": 0.1576,
+          "min": 0.082
+        },
+        {
+          "a": "link.video",
+          "b": "link.clip",
+          "normal": 0.2837,
+          "protan": 0.152,
+          "deutan": 0.2547,
+          "tritan": 0.3095,
+          "min": 0.152
+        },
+        {
+          "a": "link.video",
+          "b": "link.vae",
+          "normal": 0.1153,
+          "protan": 0.1232,
+          "deutan": 0.1116,
+          "tritan": 0.0894,
+          "min": 0.0894
+        },
+        {
+          "a": "link.video",
+          "b": "link.model",
+          "normal": 0.2334,
+          "protan": 0.2118,
+          "deutan": 0.2461,
+          "tritan": 0.1988,
+          "min": 0.1988
+        },
+        {
+          "a": "link.video",
+          "b": "link.mask",
+          "normal": 0.2448,
+          "protan": 0.0333,
+          "deutan": 0.1283,
+          "tritan": 0.2775,
+          "min": 0.0333
+        },
+        {
+          "a": "link.video",
+          "b": "link.audio",
+          "normal": 0.2243,
+          "protan": 0.0732,
+          "deutan": 0.0775,
+          "tritan": 0.2668,
+          "min": 0.0732
+        },
+        {
+          "a": "link.video",
+          "b": "link.mesh3d",
+          "normal": 0.2466,
+          "protan": 0.1776,
+          "deutan": 0.188,
+          "tritan": 0.2707,
+          "min": 0.1776
+        },
+        {
+          "a": "link.video",
+          "b": "link.scalar",
+          "normal": 0.1697,
+          "protan": 0.099,
+          "deutan": 0.1397,
+          "tritan": 0.2074,
+          "min": 0.099
+        },
+        {
+          "a": "link.video",
+          "b": "link.struct",
+          "normal": 0.199,
+          "protan": 0.1119,
+          "deutan": 0.1803,
+          "tritan": 0.2334,
+          "min": 0.1119
+        },
+        {
+          "a": "link.video",
+          "b": "link.unknown",
+          "normal": 0.1585,
+          "protan": 0.1262,
+          "deutan": 0.1184,
+          "tritan": 0.1961,
+          "min": 0.1184
+        },
+        {
+          "a": "link.latent",
+          "b": "link.conditioning",
+          "normal": 0.2543,
+          "protan": 0.2272,
+          "deutan": 0.1929,
+          "tritan": 0.087,
+          "min": 0.087
+        },
+        {
+          "a": "link.latent",
+          "b": "link.clip",
+          "normal": 0.3044,
+          "protan": 0.2001,
+          "deutan": 0.251,
+          "tritan": 0.2869,
+          "min": 0.2001
+        },
+        {
+          "a": "link.latent",
+          "b": "link.vae",
+          "normal": 0.161,
+          "protan": 0.1814,
+          "deutan": 0.1548,
+          "tritan": 0.1437,
+          "min": 0.1437
+        },
+        {
+          "a": "link.latent",
+          "b": "link.model",
+          "normal": 0.1489,
+          "protan": 0.1115,
+          "deutan": 0.154,
+          "tritan": 0.1623,
+          "min": 0.1115
+        },
+        {
+          "a": "link.latent",
+          "b": "link.mask",
+          "normal": 0.3185,
+          "protan": 0.2036,
+          "deutan": 0.2087,
+          "tritan": 0.239,
+          "min": 0.2036
+        },
+        {
+          "a": "link.latent",
+          "b": "link.audio",
+          "normal": 0.2638,
+          "protan": 0.1414,
+          "deutan": 0.1143,
+          "tritan": 0.2044,
+          "min": 0.1143
+        },
+        {
+          "a": "link.latent",
+          "b": "link.mesh3d",
+          "normal": 0.195,
+          "protan": 0.0365,
+          "deutan": 0.0571,
+          "tritan": 0.1987,
+          "min": 0.0365
+        },
+        {
+          "a": "link.latent",
+          "b": "link.scalar",
+          "normal": 0.1702,
+          "protan": 0.0898,
+          "deutan": 0.1078,
+          "tritan": 0.1594,
+          "min": 0.0898
+        },
+        {
+          "a": "link.latent",
+          "b": "link.struct",
+          "normal": 0.2108,
+          "protan": 0.1361,
+          "deutan": 0.1663,
+          "tritan": 0.2027,
+          "min": 0.1361
+        },
+        {
+          "a": "link.latent",
+          "b": "link.unknown",
+          "normal": 0.1413,
+          "protan": 0.073,
+          "deutan": 0.0514,
+          "tritan": 0.1272,
+          "min": 0.0514
+        },
+        {
+          "a": "link.conditioning",
+          "b": "link.clip",
+          "normal": 0.3236,
+          "protan": 0.2946,
+          "deutan": 0.3356,
+          "tritan": 0.2985,
+          "min": 0.2946
+        },
+        {
+          "a": "link.conditioning",
+          "b": "link.vae",
+          "normal": 0.2633,
+          "protan": 0.265,
+          "deutan": 0.192,
+          "tritan": 0.2142,
+          "min": 0.192
+        },
+        {
+          "a": "link.conditioning",
+          "b": "link.model",
+          "normal": 0.3191,
+          "protan": 0.3093,
+          "deutan": 0.3101,
+          "tritan": 0.1874,
+          "min": 0.1874
+        },
+        {
+          "a": "link.conditioning",
+          "b": "link.mask",
+          "normal": 0.2168,
+          "protan": 0.1737,
+          "deutan": 0.2095,
+          "tritan": 0.2313,
+          "min": 0.1737
+        },
+        {
+          "a": "link.conditioning",
+          "b": "link.audio",
+          "normal": 0.1574,
+          "protan": 0.1031,
+          "deutan": 0.1492,
+          "tritan": 0.1656,
+          "min": 0.1031
+        },
+        {
+          "a": "link.conditioning",
+          "b": "link.mesh3d",
+          "normal": 0.2272,
+          "protan": 0.2013,
+          "deutan": 0.2353,
+          "tritan": 0.1514,
+          "min": 0.1514
+        },
+        {
+          "a": "link.conditioning",
+          "b": "link.scalar",
+          "normal": 0.2049,
+          "protan": 0.1948,
+          "deutan": 0.2093,
+          "tritan": 0.1583,
+          "min": 0.1583
+        },
+        {
+          "a": "link.conditioning",
+          "b": "link.struct",
+          "normal": 0.2509,
+          "protan": 0.2404,
+          "deutan": 0.2577,
+          "tritan": 0.2153,
+          "min": 0.2153
+        },
+        {
+          "a": "link.conditioning",
+          "b": "link.unknown",
+          "normal": 0.1642,
+          "protan": 0.1567,
+          "deutan": 0.1655,
+          "tritan": 0.0977,
+          "min": 0.0977
+        },
+        {
+          "a": "link.clip",
+          "b": "link.vae",
+          "normal": 0.2281,
+          "protan": 0.0298,
+          "deutan": 0.1438,
+          "tritan": 0.2566,
+          "min": 0.0298
+        },
+        {
+          "a": "link.clip",
+          "b": "link.model",
+          "normal": 0.1953,
+          "protan": 0.1459,
+          "deutan": 0.1451,
+          "tritan": 0.1287,
+          "min": 0.1287
+        },
+        {
+          "a": "link.clip",
+          "b": "link.mask",
+          "normal": 0.1485,
+          "protan": 0.1376,
+          "deutan": 0.1426,
+          "tritan": 0.0829,
+          "min": 0.0829
+        },
+        {
+          "a": "link.clip",
+          "b": "link.audio",
+          "normal": 0.1981,
+          "protan": 0.1992,
+          "deutan": 0.1922,
+          "tritan": 0.1818,
+          "min": 0.1818
+        },
+        {
+          "a": "link.clip",
+          "b": "link.mesh3d",
+          "normal": 0.2138,
+          "protan": 0.2234,
+          "deutan": 0.2083,
+          "tritan": 0.2168,
+          "min": 0.2083
+        },
+        {
+          "a": "link.clip",
+          "b": "link.scalar",
+          "normal": 0.1527,
+          "protan": 0.13,
+          "deutan": 0.1491,
+          "tritan": 0.1417,
+          "min": 0.13
+        },
+        {
+          "a": "link.clip",
+          "b": "link.struct",
+          "normal": 0.0968,
+          "protan": 0.0687,
+          "deutan": 0.0875,
+          "tritan": 0.0851,
+          "min": 0.0687
+        },
+        {
+          "a": "link.clip",
+          "b": "link.unknown",
+          "normal": 0.2207,
+          "protan": 0.1999,
+          "deutan": 0.2193,
+          "tritan": 0.2101,
+          "min": 0.1999
+        },
+        {
+          "a": "link.vae",
+          "b": "link.model",
+          "normal": 0.1617,
+          "protan": 0.1438,
+          "deutan": 0.16,
+          "tritan": 0.1664,
+          "min": 0.1438
+        },
+        {
+          "a": "link.vae",
+          "b": "link.mask",
+          "normal": 0.2539,
+          "protan": 0.1113,
+          "deutan": 0.0554,
+          "tritan": 0.2479,
+          "min": 0.0554
+        },
+        {
+          "a": "link.vae",
+          "b": "link.audio",
+          "normal": 0.2562,
+          "protan": 0.1697,
+          "deutan": 0.0542,
+          "tritan": 0.27,
+          "min": 0.0542
+        },
+        {
+          "a": "link.vae",
+          "b": "link.mesh3d",
+          "normal": 0.2493,
+          "protan": 0.2017,
+          "deutan": 0.1436,
+          "tritan": 0.2843,
+          "min": 0.1436
+        },
+        {
+          "a": "link.vae",
+          "b": "link.scalar",
+          "normal": 0.155,
+          "protan": 0.1046,
+          "deutan": 0.0607,
+          "tritan": 0.1935,
+          "min": 0.0607
+        },
+        {
+          "a": "link.vae",
+          "b": "link.struct",
+          "normal": 0.1544,
+          "protan": 0.0456,
+          "deutan": 0.0716,
+          "tritan": 0.1952,
+          "min": 0.0456
+        },
+        {
+          "a": "link.vae",
+          "b": "link.unknown",
+          "normal": 0.1817,
+          "protan": 0.1739,
+          "deutan": 0.1063,
+          "tritan": 0.2129,
+          "min": 0.1063
+        },
+        {
+          "a": "link.model",
+          "b": "link.mask",
+          "normal": 0.2738,
+          "protan": 0.2201,
+          "deutan": 0.2003,
+          "tritan": 0.1008,
+          "min": 0.1008
+        },
+        {
+          "a": "link.model",
+          "b": "link.audio",
+          "normal": 0.2493,
+          "protan": 0.2109,
+          "deutan": 0.1715,
+          "tritan": 0.1339,
+          "min": 0.1339
+        },
+        {
+          "a": "link.model",
+          "b": "link.mesh3d",
+          "normal": 0.1693,
+          "protan": 0.1476,
+          "deutan": 0.0975,
+          "tritan": 0.1545,
+          "min": 0.0975
+        },
+        {
+          "a": "link.model",
+          "b": "link.scalar",
+          "normal": 0.1314,
+          "protan": 0.1237,
+          "deutan": 0.111,
+          "tritan": 0.0538,
+          "min": 0.0538
+        },
+        {
+          "a": "link.model",
+          "b": "link.struct",
+          "normal": 0.1306,
+          "protan": 0.1149,
+          "deutan": 0.1043,
+          "tritan": 0.0502,
+          "min": 0.0502
+        },
+        {
+          "a": "link.model",
+          "b": "link.unknown",
+          "normal": 0.1629,
+          "protan": 0.1638,
+          "deutan": 0.1522,
+          "tritan": 0.1114,
+          "min": 0.1114
+        },
+        {
+          "a": "link.mask",
+          "b": "link.audio",
+          "normal": 0.1043,
+          "protan": 0.1064,
+          "deutan": 0.1007,
+          "tritan": 0.1003,
+          "min": 0.1003
+        },
+        {
+          "a": "link.mask",
+          "b": "link.mesh3d",
+          "normal": 0.2091,
+          "protan": 0.2053,
+          "deutan": 0.1975,
+          "tritan": 0.1374,
+          "min": 0.1374
+        },
+        {
+          "a": "link.mask",
+          "b": "link.scalar",
+          "normal": 0.1566,
+          "protan": 0.1176,
+          "deutan": 0.1142,
+          "tritan": 0.0806,
+          "min": 0.0806
+        },
+        {
+          "a": "link.mask",
+          "b": "link.struct",
+          "normal": 0.1458,
+          "protan": 0.1129,
+          "deutan": 0.1016,
+          "tritan": 0.0583,
+          "min": 0.0583
+        },
+        {
+          "a": "link.mask",
+          "b": "link.unknown",
+          "normal": 0.1941,
+          "protan": 0.1558,
+          "deutan": 0.1594,
+          "tritan": 0.1392,
+          "min": 0.1392
+        },
+        {
+          "a": "link.audio",
+          "b": "link.mesh3d",
+          "normal": 0.1307,
+          "protan": 0.126,
+          "deutan": 0.122,
+          "tritan": 0.04,
+          "min": 0.04
+        },
+        {
+          "a": "link.audio",
+          "b": "link.scalar",
+          "normal": 0.1227,
+          "protan": 0.0921,
+          "deutan": 0.0626,
+          "tritan": 0.0836,
+          "min": 0.0626
+        },
+        {
+          "a": "link.audio",
+          "b": "link.struct",
+          "normal": 0.152,
+          "protan": 0.1397,
+          "deutan": 0.1096,
+          "tritan": 0.1261,
+          "min": 0.1096
+        },
+        {
+          "a": "link.audio",
+          "b": "link.unknown",
+          "normal": 0.1234,
+          "protan": 0.0717,
+          "deutan": 0.063,
+          "tritan": 0.0777,
+          "min": 0.063
+        },
+        {
+          "a": "link.mesh3d",
+          "b": "link.scalar",
+          "normal": 0.1057,
+          "protan": 0.1005,
+          "deutan": 0.0849,
+          "tritan": 0.107,
+          "min": 0.0849
+        },
+        {
+          "a": "link.mesh3d",
+          "b": "link.struct",
+          "normal": 0.1486,
+          "protan": 0.1562,
+          "deutan": 0.1305,
+          "tritan": 0.157,
+          "min": 0.1305
+        },
+        {
+          "a": "link.mesh3d",
+          "b": "link.unknown",
+          "normal": 0.0892,
+          "protan": 0.0549,
+          "deutan": 0.0727,
+          "tritan": 0.0748,
+          "min": 0.0549
+        },
+        {
+          "a": "link.scalar",
+          "b": "link.struct",
+          "normal": 0.0608,
+          "protan": 0.0615,
+          "deutan": 0.0617,
+          "tritan": 0.0608,
+          "min": 0.0608
+        },
+        {
+          "a": "link.scalar",
+          "b": "link.unknown",
+          "normal": 0.0701,
+          "protan": 0.07,
+          "deutan": 0.0702,
+          "tritan": 0.0701,
+          "min": 0.07
+        },
+        {
+          "a": "link.struct",
+          "b": "link.unknown",
+          "normal": 0.1309,
+          "protan": 0.1315,
+          "deutan": 0.1319,
+          "tritan": 0.1309,
+          "min": 0.1309
+        }
+      ],
+      "worst": {
+        "pair": "link.clip / link.vae",
+        "value": 0.029752867073108667
+      },
+      "hueAdj": [
+        {
+          "pair": "vae(10) / video(40)",
+          "deltaE": 0.0726
+        },
+        {
+          "pair": "video(40) / conditioning(105)",
+          "deltaE": 0.1309
+        },
+        {
+          "pair": "conditioning(105) / mask(140)",
+          "deltaE": 0.0851
+        },
+        {
+          "pair": "mask(140) / audio(165)",
+          "deltaE": 0.052
+        },
+        {
+          "pair": "audio(165) / clip(195)",
+          "deltaE": 0.0713
+        },
+        {
+          "pair": "clip(195) / mesh3d(220)",
+          "deltaE": 0.0588
+        },
+        {
+          "pair": "mesh3d(220) / image(250)",
+          "deltaE": 0.0585
+        },
+        {
+          "pair": "image(250) / model(300)",
+          "deltaE": 0.1191
+        },
+        {
+          "pair": "model(300) / latent(330)",
+          "deltaE": 0.0729
+        },
+        {
+          "pair": "latent(330) / vae(10)",
+          "deltaE": 0.0944
         }
       ],
       "coverageRows": [

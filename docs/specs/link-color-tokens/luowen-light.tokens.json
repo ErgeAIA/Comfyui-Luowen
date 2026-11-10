@@ -1,0 +1,85 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "luowen-light",
+  "name": "LuoWen Light 连线 token",
+  "extends": "luowen-dark",
+  "$description": "浅色：ThemeVault #002 erge/light（canvas #FAF1E9 / card #FFFFFF）；品牌橙红 #FF6A2B 向色相，浅底适配明度。",
+  "context": {
+    "canvas": "#FAF1E9",
+    "card": "#FFFFFF"
+  },
+  "primitive": {
+    "hue": {
+      "vae": 10,
+      "conditioning": 105,
+      "clip": 195,
+      "mask": 140,
+      "audio": 165,
+      "mesh3d": 220,
+      "image": 250,
+      "model": 300,
+      "latent": 330,
+      "video": 40
+    },
+    "luminance": {
+      "hi": 0.58,
+      "bright": 0.62,
+      "mid": 0.54,
+      "lo": 0.5,
+      "dark": 0.45,
+      "mesh": 0.52,
+      "video": 0.54,
+      "deep": 0.3,
+      "darkest": 0.42
+    },
+    "chroma": 0.14,
+    "neutralChroma": 0.02,
+    "neutralLuminance": {
+      "scalar": 0.48,
+      "struct": 0.42,
+      "unknown": 0.55
+    }
+  },
+  "semantic": {
+    "link.image": {
+      "hue": "primitive.hue.image",
+      "luminance": "primitive.luminance.lo"
+    },
+    "link.video": {
+      "hue": "primitive.hue.video",
+      "luminance": "primitive.luminance.mid"
+    },
+    "link.latent": {
+      "hue": "primitive.hue.latent",
+      "luminance": "primitive.luminance.hi"
+    },
+    "link.conditioning": {
+      "hue": "primitive.hue.conditioning",
+      "luminance": "primitive.luminance.bright"
+    },
+    "link.clip": {
+      "hue": "primitive.hue.clip",
+      "luminance": "primitive.luminance.deep"
+    },
+    "link.vae": {
+      "hue": "primitive.hue.vae",
+      "luminance": "primitive.luminance.dark"
+    },
+    "link.model": {
+      "hue": "primitive.hue.model",
+      "luminance": "primitive.luminance.dark"
+    },
+    "link.mask": {
+      "hue": "primitive.hue.mask",
+      "luminance": "primitive.luminance.darkest"
+    },
+    "link.audio": {
+      "hue": "primitive.hue.audio",
+      "luminance": "primitive.luminance.lo"
+    },
+    "link.mesh3d": {
+      "hue": "primitive.hue.mesh3d",
+      "luminance": "primitive.luminance.mesh"
+    }
+  }
+}
