@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: MIT
  *
  * Adapted from https://github.com/vtokic/comfyui-cable-management
- * (upstream file: web/pathing/trace.js). Registered in THIRD_PARTY_NOTICES.md at repo root.
+ * (upstream file: web/pathing/trace.js). MIT; full text in luowen/LICENSES/cable-management-MIT.txt.
  * Modifications by LuoWen: fillet radius is a caller-supplied parameter (default 10);
  * emitBezier() added for the smooth style (corner cubic Bezier, PRD §5.1 骨架曲线化).
  */

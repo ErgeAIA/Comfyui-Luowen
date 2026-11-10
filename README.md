@@ -6,6 +6,8 @@ ComfyUI 的连线表达与工作流整理扩展：正交/贝塞尔线路、节�
 
 ![络纹 LuoWen](assets/luowen-banner.svg)
 
+**v0.1.0** · MIT · 已在 ComfyUI 0.43.2 / 前端 1.55.18 验证
+
 ## 能力
 
 ### 线路
@@ -55,9 +57,18 @@ ComfyUI 的连线表达与工作流整理扩展：正交/贝塞尔线路、节�
 
 ## 安装
 
-1. 把 `luowen/` 整个目录复制到 ComfyUI 的 `custom_nodes/` 下（目录名任意）
+**方式一：下载发布包（推荐）**
+
+1. 打开 [Releases](https://github.com/ErgeAIA/Comfyui-Luowen/releases)，下载最新 `ComfyUI-Luowen-<版本>.zip`
+2. 解压到 `ComfyUI/custom_nodes/`，得到 `custom_nodes/ComfyUI-Luowen/`
+3. 重启 ComfyUI，刷新页面：画布右上出现「络纹」logo 按钮，设置面板「其他」下出现 `LuoWen` 分组
+
+**方式二：从源码复制**
+
+1. 把仓库里的 `luowen/` 整个目录复制到 `custom_nodes/` 下（目录名任意）
 2. 重启 ComfyUI
-3. 刷新页面：画布右上出现「络纹」logo 按钮，设置面板「其他」下出现 `LuoWen` 分组
+
+升级 = 用新版本的文件夹替换旧文件夹后重启；设置项保存在 ComfyUI 用户设置里，会沿用。
 
 无构建步骤、无 npm 依赖、无第三方 Python 包；服务端入口只有 `WEB_DIRECTORY = "./web"`。
 
@@ -132,4 +143,4 @@ ComfyUI 的连线表达与工作流整理扩展：正交/贝塞尔线路、节�
 
 ## 许可
 
-MIT，见 [LICENSE](LICENSE)。复用的第三方代码与许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)：elkjs（EPL-2.0）、dagre（MIT）、ComfyUI Cable Management（MIT，`geometry/router.js` 与 `geometry/trace.js` 的改编来源）。
+MIT，见 [LICENSE](LICENSE)。第三方许可全文随插件包附带：`luowen/LICENSES/cable-management-MIT.txt`（ComfyUI Cable Management 几何内核，MIT）、`luowen/web/vendor/LICENSE-elkjs.md`（EPL-2.0）、`luowen/web/vendor/LICENSE-dagre.txt`（MIT）。

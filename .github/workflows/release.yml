@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check version matches tag
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          ver=$(sed -n 's/^__version__ *= *"\([^"]*\)".*/\1/p' luowen/__init__.py)
+          echo "tag=$tag version=$ver"
+          test "$tag" = "$ver"
+
+      - name: Syntax check plugin scripts
+        run: |
+          set -e
+          while IFS= read -r -d '' f; do node --check "$f"; done < <(find luowen/web -name '*.js' -not -path '*/vendor/*' -print0)
+
+      - name: Package plugin
+        run: |
+          set -e
+          mkdir -p dist/ComfyUI-Luowen
+          cp -r luowen/. dist/ComfyUI-Luowen/
+          cd dist
+          zip -qr "ComfyUI-Luowen-${GITHUB_REF_NAME#v}.zip" ComfyUI-Luowen
+          sha256sum "ComfyUI-Luowen-${GITHUB_REF_NAME#v}.zip" > "ComfyUI-Luowen-${GITHUB_REF_NAME#v}.zip.sha256"
+          ls -l
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "dist/ComfyUI-Luowen-${GITHUB_REF_NAME#v}.zip" \
+            "dist/ComfyUI-Luowen-${GITHUB_REF_NAME#v}.zip.sha256" \
+            --title "络纹 LuoWen ${GITHUB_REF_NAME#v}" \
+            --generate-notes

@@ -7,6 +7,8 @@
 安装：复制本目录到 ComfyUI 的 custom_nodes/ 下并重启。
 """
 
+__version__ = "0.1.0"
+
 WEB_DIRECTORY = "./web"
 
-__all__ = ["WEB_DIRECTORY"]
+__all__ = ["WEB_DIRECTORY", "__version__"]

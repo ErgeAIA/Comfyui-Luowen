@@ -24,8 +24,8 @@ THE SOFTWARE.
 Scope of this license text:
 
 Applies to the following files in this pack (verbatim copies with an
-attribution header prepended; see THIRD_PARTY_NOTICES.md at the repository
-root for provenance and modification status):
+attribution header prepended; see the file headers for provenance and
+modification status):
 
   - web/geometry/router.js   (upstream: web/pathing/router.js)
   - web/geometry/trace.js    (upstream: web/pathing/trace.js)

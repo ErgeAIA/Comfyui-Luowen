@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: MIT
  *
  * Verbatim copy from https://github.com/vtokic/comfyui-cable-management
- * (upstream file: web/pathing/router.js). Registered in THIRD_PARTY_NOTICES.md at repo root.
+ * (upstream file: web/pathing/router.js). MIT; full text in luowen/LICENSES/cable-management-MIT.txt.
  * Modifications by LuoWen: optional `strict` mode (all hard node boxes impassable)
  * and `blockRects` (only the listed obstacle indices impassable), instead of the
  * upstream 8x-cost best effort. Both default off; upstream behavior is unchanged.
