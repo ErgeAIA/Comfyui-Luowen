@@ -21,6 +21,8 @@
 export const DEFAULT_SNAP_TOL = 10;
 export const DEFAULT_RELEASE_TOL = 15;
 export const SNAP_TIE_WINDOW = 2;
+// 画布一小格的图坐标尺寸：LGraphCanvas 背景 tile 100×100，内含每 10 单位细线（实测宿主 1.55.18）
+export const GRID_SIZE = 10;
 
 const EPS = 1e-6;
 

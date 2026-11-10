@@ -22,7 +22,7 @@ import { applySlotPalette, clearSlotPalette } from './colors/slotPalette.js';
 import { t, i18nDebug } from './i18n.js';
 import { layoutOf } from './settings-layout.js';
 import { LUOWEN_LOGO_SVG } from './brandLogo.js';
-import { installSnap, uninstallSnap, setSnapEnabled, getSnapDebug } from './snap/dragSnap.js';
+import { installSnap, uninstallSnap, setSnapEnabled, setSnapTolerance, getSnapDebug } from './snap/dragSnap.js';
 
 // 前端 1.55.18 只暴露 window.comfyAPI shim（见 docs/phase0/drawing-api-notes.md §2）
 const { app } = window.comfyAPI.app;
@@ -54,6 +54,7 @@ const BEAM_LEN_ID = 'LuoWen.BeamLen';
 const BEAM_SPACING_ID = 'LuoWen.BeamSpacing';
 const DISABLE_ANIM_ON_RUN_ID = 'LuoWen.DisableAnimOnRun';
 const SNAP_ID = 'LuoWen.SnapAlign';
+const SNAP_TOL_ID = 'LuoWen.SnapTolerance';
 const CROSS_CLEANUP_ID = 'LuoWen.CrossCleanup';
 
 const TIP_CLASS = 'luowen-tooltip';
@@ -473,6 +474,20 @@ app.registerExtension({
       },
     },
     {
+      id: SNAP_TOL_ID,
+      get name() {
+        return t('SnapTolerance.name');
+      },
+      ...layoutOf(SNAP_TOL_ID),
+      get tooltip() {
+        return { value: t('SnapTolerance.tooltip'), class: TIP_CLASS };
+      },
+      type: 'slider',
+      attrs: { min: 1, max: 5, step: 1 },
+      defaultValue: 2,
+      onChange: (v) => setSnapTolerance(v),
+    },
+    {
       id: STYLE_ID,
       get name() {
         return t('WireStyle.name');
@@ -799,6 +814,7 @@ get tooltip() {
       /* 设置读取失败保持默认 */
     }
     setSnapEnabled(!!readSetting(SNAP_ID, true));
+    setSnapTolerance(readSetting(SNAP_TOL_ID, 2));
     // 宿主调色板服务可能在扩展 setup 之后才应用主题：重放三次覆盖启动竞态
     syncColorTheme();
     setTimeout(() => syncColorTheme(), 800);

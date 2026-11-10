@@ -5,7 +5,7 @@
 // 不变量：一组的全部 sortOrder 落在 [band, band+99]，组序永远由组号决定，不受组内最大值漂移影响。
 // 分类三段 = ['LuoWen', 组名, 唯一键]；唯一键取 id 最后一段（同组内必须唯一，否则宿主折叠覆盖）。
 export const SETTINGS_GROUPS = [
-  { label: '基础', band: 8000, items: [['LuoWen.Enabled', 9], ['LuoWen.SnapAlign', 8], ['LuoWen.Language', 7]] },
+  { label: '基础', band: 8000, items: [['LuoWen.Enabled', 9], ['LuoWen.SnapAlign', 8], ['LuoWen.SnapTolerance', 7], ['LuoWen.Language', 6]] },
   {
     label: '线路外观',
     band: 7000,

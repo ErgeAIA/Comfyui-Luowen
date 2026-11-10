@@ -4,7 +4,7 @@ import { SETTINGS_GROUPS, layoutOf, settingsFromLayout, settingsPanelOrder, band
 
 // 期望页序（DEC-066）：门控先于依赖 → 常驻视觉先于按需工具 → 稳定先于实验 → 组内宏观先于微观
 const EXPECTED = [
-  ['基础', ['LuoWen.Enabled', 'LuoWen.SnapAlign', 'LuoWen.Language']],
+  ['基础', ['LuoWen.Enabled', 'LuoWen.SnapAlign', 'LuoWen.SnapTolerance', 'LuoWen.Language']],
   ['线路外观', ['LuoWen.WireStyle', 'LuoWen.NodeAvoidance', 'LuoWen.Chamfer', 'LuoWen.CornerRadius', 'LuoWen.BrotherSpacing']],
   ['连线配色', ['LuoWen.ColorTheme', 'LuoWen.ColorTheme.Scope']],
   [
@@ -64,6 +64,6 @@ test('settingsOrder: 同组分类唯一键不重复（否则宿主把同组设�
     }
   }
   const ids = SETTINGS_GROUPS.flatMap((group) => group.items.map(([id]) => id));
-  assert.equal(ids.length, 28, '登记项数 = 运行时注册数');
-  assert.equal(new Set(ids).size, 28, 'id 无重复');
+  assert.equal(ids.length, 29, '登记项数 = 运行时注册数');
+  assert.equal(new Set(ids).size, 29, 'id 无重复');
 });
