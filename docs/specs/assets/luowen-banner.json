@@ -1,0 +1,41 @@
+{
+  "meta": { "name": "banner-luowen" },
+  "content": {
+    "category": "COMFYUI FRONTEND EXTENSION",
+    "title": "连线路由与整理",
+    "captionEn": "ORTHOGONAL · BEZIER · AUTO-LAYOUT",
+    "subtitle": "让复杂工作流的线不再打架",
+    "points": "正交 / 贝塞尔 · 主干合流 · 节点避障",
+    "feature": "5 套配色 · 自动布局 · 吸附 2–20 px 可调",
+    "emFeature": false,
+    "footer": "MIT · ComfyUI 0.43.2 · 前端 1.55.18 验证",
+    "caption": "四类画布能力：线路 · 动效 · 配色 · 整理"
+  },
+  "style": {
+    "theme": "custom",
+    "bg": "#1a0f0c",
+    "card": "#241512",
+    "border": "#4a2c22",
+    "surface2": "#2f1c17",
+    "text": "#ffe9dc",
+    "muted": "#e6b49a",
+    "dim": "#c08a6e",
+    "accent": "#F2570F",
+    "accentDeep": "#c23e12",
+    "amber": "#ffb638",
+    "idle": "#5a4038",
+    "showGrid": true,
+    "showLMark": true
+  },
+  "glyph": {
+    "type": "C1",
+    "label": "CANVAS CAPABILITIES",
+    "tiles": [
+      { "label": "ROUTING", "kind": "article" },
+      { "label": "MOTION", "kind": "qa" },
+      { "label": "THEMES", "kind": "grid" },
+      { "label": "ARRANGE", "kind": "video" }
+    ],
+    "note": "右区为定制 mini-mockup（两节点正交连线 / 光束 / 五色点 / 三列卡片）；编辑器 C1 会按内置四形态重绘，文案与配色以本 JSON 为准。"
+  }
+}
