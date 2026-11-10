@@ -2,7 +2,7 @@
 title: Decision Log
 type: decision-log
 project: 络纹（LuoWen）
-updated: 2026-11-09
+updated: 2026-11-10
 priority: higher-than-prd
 description: >
   开发过程决策日志，优先级高于 PRD；冲突时以本文件最新条目为准并回写 PRD/ADR。
@@ -15,6 +15,18 @@ description: >
 > **优先级高于 PRD**：冲突时以本文件最新决策为准，并回写 PRD/ADR。
 > 格式：`## DEC-NNN: 标题`，新条目置顶，NNN 三位递增。
 > 字段：`- **日期**：` / `- **背景**：` / `- **决策**：` / `- **验证**：`
+
+## DEC-065: 主题显示名跟随界面语言（赛博朋克 / 日晒）
+
+- **日期**：2026-11-10
+- **背景**：主题选择器里 `Cyberpunk`、`Solarized（暗）` 是英文原文，未随界面语言；其余三项已是「中文（English）」形式。用户要求 Cyberpunk 跟随语言显示「赛博朋克」，Solarized 显示「日晒」。
+- **决策**：
+  1. zh 显示名：`赛博朋克（Cyberpunk）`、`日晒（Solarized）`，与「夜灯（Night Light）/ 晨光（Dawn）/ 水母（JellyFish）」同构；en 保持 `Cyberpunk`，`Solarized Dark` 去掉 Dark 改为 `Solarized`。
+  2. zh `ColorTheme.tooltip` 的枚举句同步为「夜灯、赛博朋克、晨光、水母、日晒」，并修掉已过期的「浅色」。
+  3. 只改显示串：不动 setting id、option value、默认值；不动 `materialized.js` 的内部 token `name`（非 UI 文案）。
+  4. `theme-sources.md` 增补「显示名（zh / en）」两列，作为主题与 ThemeVault 映射的人读口径。
+- **验证**：宿主 8188 实测 zh/en 各渲染一次下拉，6 项文案与设置参数 getter 一致（zh：关闭（原生）/ 赛博朋克（Cyberpunk）/ 夜灯（Night Light）/ 晨光（Dawn）/ 水母（JellyFish）/ 日晒（Solarized）；en：Off (native) / Cyberpunk / Night Light / Dawn / JellyFish / Solarized）；探针结束后 `LuoWen.Language` 已还原 `auto`；单测 167/167。
+- **状态**：待用户验收。
 
 ## DEC-064: 新增浅色主题（#002）并移除「暗色」选项，夜灯为唯一默认
 

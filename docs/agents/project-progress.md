@@ -17,14 +17,15 @@ description: >
 
 ## 当前状态
 
-- **当前分支**：auto-layout（F-015 自动布局工作线；main 停在阶段 3 收尾后的动效/配色工作）
+- **当前分支**：theme-cyberpunk（主题工作线，含夜灯/晨光/水母/Solarized/赛博朋克；main 已含自动布局工作线）
 - **阶段**：阶段 0–2 已完成并由用户验收（阶段 2 提交 `8614a8a`）；阶段 3 **首轮兼容性与生命周期测试已完成，BUG-006 已修复并完成宿主实测（待用户验收）；verify() 快照口径 BUG-007 已补并完成宿主实测（待用户验收）**（结论见 `docs/agents/compatibility-matrix.md`），其余阶段 3 交付项（复制粘贴、节点折叠、第三方冲突扩展、发布材料与包）仍未开始；3A（拖动对齐吸附）、3B（交叉枚举与离线清理，默认关闭）属 PRD §4.2 P1 增强，不计入阶段 3 交付；3C 顺序抽头已实现后按用户决定撤除（DEC-019）；P0 主干组交互已按 DEC-021 新口径（组高亮 + 组删除）实现，**2026-11-07 用户验收通过**；BUG-002 连线抖动修复与 BUG-003 等距带方案 A 同日验收通过（已随 `ad01899` 提交）；阶段 3 的 BUG-006 修复与 `verify()` 快照补强（BUG-007）已随 `d546e39`、`ebbc038` 提交并 push，**2026-11-07 按 DEC-037 委托口径验收通过（结案）**；**待办 2（阶段 3 剩余验收：节点折叠、复制粘贴、真实鼠标拖拽与菜单、crossCleanup=true 四类）已完成真实鼠标宿主实测并经用户确认验收（2026-11-07，DEC-037 委托口径）**；下一步为待办 1 第三方运行时共存验证（用户已批准安装，2026-11-07）
 - **最近提交**：`afa7780`（锚点端口对齐）、`e090165`（深度源检测修正，DEC-058 补记）、`3276d0f`（主轴加宽 + #219 左侧插空档，DEC-058）、`b4c2e77`（兄弟吸附 + 深度源插空档，DEC-057）、`8710bcc`（端口锚定主轴 + 纯源降级，DEC-056）；main 侧历史见下方旧条目
 - **工作区**：干净（2026-11-09 本轮提交已推送）；本地无未推送提交。`.verify/` 实测脚本与截图按忽略规则不入库
-- **测试**：`node --test tests/unit/*.test.mjs` **157/157** 通过（2026-11-09 性能 Stage 0 复跑，fail 0）
+- **测试**：`node --test tests/unit/*.test.mjs` **167/167** 通过（2026-11-10，fail 0）
 - **本轮提交收尾（2026-11-07）**：文档与代码分三笔提交后，又追加 6 笔功能/修复提交并已 push；提交链 `529648e`（文档）→ `ad01899`（阶段 2 代码）→ `9f93d3c`（trunkCache 上限）→ `8d55a0b`（chamfer 预筛）→ `29fc015`（等距带方向感知）→ `01d8df7`（Reroute 手动意图保护）→ `d546e39`（BUG-006）→ `5146c82`（共存文档）→ `ebbc038`（verify 快照）；工作区干净，本地无未推送提交
 - **代码**：`luowen/`（含 `routing/trunkPlan.js` 单主干共享几何、三档避障、预览、缓存、`geometry/chamfer.js` 绕障外角大斜切、`geometry/trace.js` 圆角半径 0–24（默认 10）、`routing/laneAssign.js` 输入侧按接近方向嵌套分道 + 走廊净空顺延 + 同目标等距带（`planBands`、`bandDegraded`/`orderDegraded`）、`snap/alignSnap.js` + `snap/dragSnap.js` 对齐吸附、`routing/crossings.js` + `routing/crossCleanup.js` 交叉枚举与离线清理、主干组高亮 + 组删除菜单），已装本机 custom_nodes 实测
 - **工具链**：验证宿主（0.43.2）、前端 1.55.18、codegraph 1.6.2、Node 24.22.1；Playwright 浏览器实测流程已打通
+- **主题显示名本地化（2026-11-10，分支 theme-cyberpunk；DEC-065）**：选择器 zh 改为「赛博朋克（Cyberpunk）」「日晒（Solarized）」，en 为 `Cyberpunk` / `Solarized`；zh tooltip 枚举句同步并修掉过期的「浅色」；`theme-sources.md` 增显示名两列。宿主 8188 zh/en 实测下拉 6 项一致，探针后语言还原 `auto`；单测 167/167；**待用户验收**。
 - **浅色主题 + 移除暗色选项（2026-11-10，分支 theme-cyberpunk；DEC-064）**：新增 `luowen-dawn`（晨光，#002 erge/light，canvas #FAF1E9）；`luowen-dark` 退出选择器/运行时、仅作母版，旧存档迁移夜灯；修复 materialize extends 的 typeRules 丢失；门槛 CVD 0.0298、对比度 ≥3.20；单测 167/167；**待用户验收**。
 - **新增 JellyFish/Solarized 主题 + 来源映射（2026-11-10，分支 theme-cyberpunk；DEC-063）**：`luowen-jellyfish`（#057，canvas #00002C）与 `luowen-solarized`（#137，canvas #002B36）；新增 `theme-sources.md` 固定五套主题与 ThemeVault 编号对应；默认仍夜灯；门槛全过，单测 167/167；**待用户验收**。
 - **夜灯重排并设为默认（2026-11-10，分支 theme-cyberpunk；DEC-062）**：常用类型强分离（IMAGE 蓝/VIDEO 橙/CONDITIONING 黄/CLIP 青/MODEL 紫/LATENT 品红/VAE 红/MASK 绿，C 0.14、6 档明度）；`ColorTheme` 默认改为 `luowen-nightlight`；**补记：改为暖色主导（桃/橙/黄/橄榄/红/玫红/紫粉/绿，仅 AUDIO/MESH 冷色），CVD 0.0280、对比度 ≥3.77；单测 167/167；待用户验收**。
