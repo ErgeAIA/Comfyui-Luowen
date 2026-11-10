@@ -39,6 +39,7 @@ const AVOID_ID = 'LuoWen.NodeAvoidance';
 const CHAMFER_ID = 'LuoWen.Chamfer';
 const CORNER_RADIUS_ID = 'LuoWen.CornerRadius';
 const COLOR_THEME_ID = 'LuoWen.ColorTheme';
+const COLOR_THEME_SCOPE_ID = 'LuoWen.ColorTheme.Scope';
 const FLOW_ID = 'LuoWen.FlowAnim';
 const ANIM_MODE_ID = 'LuoWen.AnimMode';
 const FLOW_STYLE_ID = 'LuoWen.FlowStyle';
@@ -236,6 +237,20 @@ function readSetting(id, fallback) {
   } catch {
     return fallback;
   }
+}
+
+function colorThemeScope() {
+  return readSetting(COLOR_THEME_SCOPE_ID, 'links+slots') === 'links' ? 'links' : 'links+slots';
+}
+
+// 主题范围：仅连线 / 连线+槽点。槽点同步会在启动与工作流加载后重放，避免被宿主调色板服务覆盖。
+function syncColorTheme(idOverride, scopeOverride) {
+  const id = idOverride ?? readSetting(COLOR_THEME_ID, 'off');
+  const scope = scopeOverride ?? colorThemeScope();
+  try {
+    if (!id || id === 'off' || scope === 'links') clearSlotPalette(app);
+    else applySlotPalette(app, id);
+  } catch { /* 槽点同步失败不阻断主题 */ }
 }
 
 app.registerExtension({
@@ -525,7 +540,30 @@ get options() {
       onChange: (v) => {
         const id = ['luowen-dark', 'luowen-cyberpunk', 'luowen-nightlight'].includes(v) ? v : 'off';
         setSettings({ colorTheme: id });
-        try { if (id === 'off') clearSlotPalette(app); else applySlotPalette(app, id); } catch { /* 槽点同步失败不阻断主题 */ }
+        syncColorTheme(id);
+      },
+    },
+    {
+      id: COLOR_THEME_SCOPE_ID,
+      get name() {
+        return t('ColorThemeScope.name');
+      },
+      category: ['LuoWen', '线路外观', 'ColorThemeScope'],
+      sortOrder: 54,
+      get tooltip() {
+        return { value: t('ColorThemeScope.tooltip'), class: TIP_CLASS };
+      },
+      type: 'combo',
+      get options() {
+        return [
+          { text: t('ColorThemeScope.opt.both'), value: 'links+slots' },
+          { text: t('ColorThemeScope.opt.links'), value: 'links' },
+        ];
+      },
+      defaultValue: 'links+slots',
+      onChange: (v) => {
+        const scope = v === 'links' ? 'links' : 'links+slots';
+        syncColorTheme(undefined, scope);
       },
     },
     {
@@ -712,6 +750,8 @@ get tooltip() {
     baseline = snapshotGraph();
     // 自停架构的唤醒点之一（研究报告 §4.4）：子图/工作流切换后可能具备动效条件
     notifyFlowWake();
+    // 宿主会在此后重放调色板；稍后同步一次，保证槽点不被覆盖
+    setTimeout(() => syncColorTheme(), 0);
   },
 
   setup() {
@@ -740,10 +780,10 @@ get tooltip() {
       /* 设置读取失败保持默认 */
     }
     setSnapEnabled(!!readSetting(SNAP_ID, true));
-    {
-      const themeId = readSetting(COLOR_THEME_ID, 'off');
-      if (themeId && themeId !== 'off') { try { applySlotPalette(app, themeId); } catch { /* 启动时同步失败保持宿主配色 */ } }
-    }
+    // 宿主调色板服务可能在扩展 setup 之后才应用主题：重放三次覆盖启动竞态
+    syncColorTheme();
+    setTimeout(() => syncColorTheme(), 800);
+    setTimeout(() => syncColorTheme(), 2500);
     if (!baseline) baseline = snapshotGraph();    // 队列执行事件 → 动效「生成时禁用」与「仅执行中」模式（DEC-040；事件名取证 api-DTg5QMcw.js）
     try {
       const api = app.api;

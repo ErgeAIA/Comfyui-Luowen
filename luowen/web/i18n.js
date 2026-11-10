@@ -34,6 +34,12 @@ const LOCALES = {
     'ColorTheme.opt.luowen-dark': '暗色（LuoWen Dark）',
     'ColorTheme.opt.luowen-cyberpunk': 'Cyberpunk',
     'ColorTheme.opt.luowen-nightlight': '夜灯（Night Light）',
+    'ColorThemeScope.name': '主题范围',
+    'ColorThemeScope.tooltip': '仅连线：只改连线描边，节点槽点保持宿主配色。\n连线+槽点：把 62 类类型色同步到节点槽点；关闭/切换主题时还原宿主配色。',
+    'ColorThemeScope.opt.both': '连线 + 槽点',
+    'ColorThemeScope.opt.links': '仅连线',
+
+
     'FlowAnim.name': '启用动效',
     'FlowAnim.tooltip': '动效总开关（默认关闭）。\n系统开启减少动态效果时自动改为实线。\n缩放不大于 40% 时自动关闭。',
     'AnimMode.name': '动效模式',
@@ -114,6 +120,12 @@ const LOCALES = {
     'ColorTheme.opt.luowen-dark': 'LuoWen Dark',
     'ColorTheme.opt.luowen-cyberpunk': 'Cyberpunk',
     'ColorTheme.opt.luowen-nightlight': 'Night Light',
+    'ColorThemeScope.name': 'Theme Scope',
+    'ColorThemeScope.tooltip': 'Links only: recolor link strokes, leave node slot dots on the host palette.\nLinks + slots: also sync all 62 type colors to node slot dots; host palette is restored on off/switch.',
+    'ColorThemeScope.opt.both': 'Links + slots',
+    'ColorThemeScope.opt.links': 'Links only',
+
+
     'FlowAnim.name': 'Flow Animation',
     'FlowAnim.tooltip': 'Animation master switch (default off).\nForces solid lines when the system prefers reduced motion.\nAuto-off below 40% zoom.',
     'AnimMode.name': 'Anim Mode',

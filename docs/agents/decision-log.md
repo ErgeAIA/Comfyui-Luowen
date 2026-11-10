@@ -23,6 +23,7 @@ description: >
 - **决策**：只接管**槽点/连线取色层**——主题开启时把 62 类颜色写入宿主三个入口：`--color-datatype-*` CSS 变量、`app.canvas.default_connection_color_byType`、`LGraphCanvas.link_type_colors`；首次应用前快照宿主原值，关闭或切换主题时原样还原（含删除新增键）。**不接管**节点卡片、标题、画布、菜单（属宿主整站主题，另行决策）。
 - **验证**：新增单测 3 条（62 类、应用/还原、切换后还原），单测 167/167。宿主关闭，运行时待验。
 - **边界**：若其他插件也在写同一调色板，后写者生效；关闭络纹主题会还原到首次快照，不追踪第三方后续改动。
+- **补记（2026-11-10，宿主实测）**：宿主调色板服务在扩展 setup 之后才应用主题，导致首次写入被覆盖。修正为：CSS 变量用 `!important`；启动后 0/800/2500ms 重放、`afterConfigureGraph` 后再同步。新增设置 `LuoWen.ColorTheme.Scope`：`links+slots`（默认）/`links`；实测 `links+slots` 写入 `#F3E300 !important`、`links` 清空还原宿主、切回恢复。
 
 ## DEC-060: Cyberpunk 连线主题重排（旧主题色相锚）
 

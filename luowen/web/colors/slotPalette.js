@@ -49,7 +49,7 @@ export function applySlotPalette(app, themeId) {
     if (ltc) { ltc[type] = hex; applied.ltcKeys.add(type); }
     if (typeof document !== 'undefined' && type !== '*') {
       const name = `--color-datatype-${type.toUpperCase()}`;
-      document.documentElement.style.setProperty(name, hex);
+      document.documentElement.style.setProperty(name, hex, 'important');
       applied.cssNames.add(name);
     }
   }
